@@ -1,0 +1,39 @@
+# Variables de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencias
+node_modules/
+
+# Build / Dist
+dist/
+build/
+.next/
+
+# Caché y logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.user
+*.suo
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+.turbo/
+.pnp.*
+.yarn/cache/
