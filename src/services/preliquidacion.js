@@ -22,9 +22,9 @@ export const obtenerControlPlantasJornal = (id) =>
 
 export const listarLineas = (id, filtros = {}) => {
   const params = new URLSearchParams()
-  if (filtros.empresa)        params.append('empresa', filtros.empresa)
+  if (filtros.empresa)         params.append('empresa', filtros.empresa)
   if (filtros.revisado != null) params.append('revisado', filtros.revisado)
-  if (filtros.solo_alertas)   params.append('solo_alertas', true)
+  if (filtros.solo_alertas)    params.append('solo_alertas', true)
   if (filtros.nombre_empleado) params.append('nombre_empleado', filtros.nombre_empleado)
   return api.get(`/preliquidacion/${id}/lineas?${params}`).then(r => r.data)
 }
@@ -38,7 +38,22 @@ export const agregarConcepto = (lineaId, datos) =>
 export const eliminarConcepto = (conceptoId) =>
   api.delete(`/preliquidacion/linea/concepto/${conceptoId}`).then(r => r.data)
 
-// ─── Precios ──────────────────────────────────────────────────────────────────
+export const agregarConceptoPorCodigo = (lineaId, codigo) =>
+  api.post(`/preliquidacion/linea/${lineaId}/conceptos/por-codigo`, { codigo }).then(r => r.data)
+
+export const aplicarConceptos = (preliqId) =>
+  api.post(`/preliquidacion/${preliqId}/aplicar-conceptos`).then(r => r.data)
+
+export const recalcularPrecios = (preliqId) =>
+  api.post(`/preliquidacion/${preliqId}/recalcular`).then(r => r.data)
+
+export const agregarConceptoMasivo = (lineaIds, codigo) =>
+  api.post('/preliquidacion/lineas/concepto-masivo', { linea_ids: lineaIds, codigo }).then(r => r.data)
+
+export const eliminarConceptoMasivo = (lineaIds, codigo) =>
+  api.post('/preliquidacion/lineas/concepto-masivo/eliminar', { linea_ids: lineaIds, codigo }).then(r => r.data)
+
+// ─── Catálogos externos ───────────────────────────────────────────────────────
 
 export const listarClientes = () =>
   api.get('/precios/maestro/clientes').then(r => r.data)
@@ -49,45 +64,18 @@ export const listarFincas = (cliente) =>
 export const listarTareas = () =>
   api.get('/precios/maestro/tareas').then(r => r.data)
 
-export const listarPreciosMaestro = (quincena, cliente) => {
-  const params = new URLSearchParams()
-  if (quincena) params.append('quincena', quincena)
-  if (cliente)  params.append('cliente', cliente)
-  return api.get(`/precios/maestro?${params}`).then(r => r.data)
-}
+export const listarGruposPago = () =>
+  api.get('/precios/grupos-pago').then(r => r.data)
 
-export const crearPrecioMaestro = (datos) =>
-  api.post('/precios/maestro', datos).then(r => r.data)
+// ─── Maestro unificado de Conceptos ──────────────────────────────────────────
+// Reemplaza precio_maestro + precio_comun + concepto_liquidacion anterior.
+// scope: 'comun' (cliente IS NULL) | 'especifico' (cliente NOT NULL)
 
-export const eliminarPrecioMaestro = (id) =>
-  api.delete(`/precios/maestro/${id}`).then(r => r.data)
+export const listarQuincenasConConceptos = () =>
+  api.get('/precios/conceptos/quincenas').then(r => r.data)
 
-export const actualizarPrecioMaestro = (id, datos) =>
-  api.patch(`/precios/maestro/${id}`, datos).then(r => r.data)
-
-export const copiarQuincena = (origen, destino) =>
-  api.post(`/precios/maestro/copiar-quincena?quincena_origen=${origen}&quincena_destino=${destino}`).then(r => r.data)
-
-export const listarQuincenasConPrecios = () =>
-  api.get('/precios/maestro/quincenas').then(r => r.data)
-
-export const buscarConceptosParaCombo = (q) =>
-  api.get('/precios/conceptos/buscar', { params: { q } }).then(r => r.data)
-
-export const agregarConceptoPorCodigo = (lineaId, codigo) =>
-  api.post(`/preliquidacion/linea/${lineaId}/conceptos/por-codigo`, { codigo }).then(r => r.data)
-
-export const aplicarConceptos = (preliqId) =>
-  api.post(`/preliquidacion/${preliqId}/aplicar-conceptos`).then(r => r.data)
-
-export const listarConceptosAgrupados = (params = {}) =>
-  api.get('/precios/conceptos/agrupados', { params }).then(r => r.data)
-
-export const listarConceptos = (detalle) =>
-  api.get('/precios/conceptos', { params: { detalle } }).then(r => r.data)
-
-export const listarDetallesConceptos = () =>
-  api.get('/precios/conceptos/detalles').then(r => r.data)
+export const listarConceptos = (quincena, scope) =>
+  api.get('/precios/conceptos', { params: { quincena, scope } }).then(r => r.data)
 
 export const crearConcepto = (datos) =>
   api.post('/precios/conceptos', datos).then(r => r.data)
@@ -98,40 +86,16 @@ export const actualizarConcepto = (id, datos) =>
 export const eliminarConcepto2 = (id) =>
   api.delete(`/precios/conceptos/${id}`).then(r => r.data)
 
-export const recalcularPrecios = (preliqId) =>
-  api.post(`/preliquidacion/${preliqId}/recalcular`).then(r => r.data)
-
-export const obtenerPreciosFaltantes = (preliqId) =>
-  api.get(`/precios/maestro/faltantes/${preliqId}`).then(r => r.data)
-
-export const obtenerPrecioSugerido = (cliente, finca, tarea) =>
-  api.get(`/precios/maestro/precio-sugerido?cliente=${encodeURIComponent(cliente)}&finca=${encodeURIComponent(finca)}&tarea=${encodeURIComponent(tarea)}`).then(r => r.data)
-
-export const listarPreciosComunes = (quincena) => {
-  const params = new URLSearchParams()
-  if (quincena) params.append('quincena', quincena)
-  return api.get(`/precios/comunes?${params}`).then(r => r.data)
-}
-
-export const crearPrecioComun = (datos) =>
-  api.post('/precios/comunes', datos).then(r => r.data)
-
-export const eliminarPrecioComun = (id) =>
-  api.delete(`/precios/comunes/${id}`).then(r => r.data)
-
-export const listarGruposPago = () =>
-  api.get('/precios/grupos-pago').then(r => r.data)
-
-export const agregarConceptoMasivo = (lineaIds, codigo) =>
-  api.post('/preliquidacion/lineas/concepto-masivo', { linea_ids: lineaIds, codigo }).then(r => r.data)
-
-export const eliminarConceptoMasivo = (lineaIds, codigo) =>
-  api.post('/preliquidacion/lineas/concepto-masivo/eliminar', { linea_ids: lineaIds, codigo }).then(r => r.data)
-
-export const copiarQuincenaComunes = (origen, destino) =>
-  api.post('/precios/comunes/copiar-quincena', null, {
+export const copiarConceptos = (origen, destino) =>
+  api.post('/precios/conceptos/copiar', null, {
     params: { quincena_origen: origen, quincena_destino: destino }
   }).then(r => r.data)
 
-export const listarQuincenasConPreciosComunes = () =>
-  api.get('/precios/comunes/quincenas').then(r => r.data)
+export const listarConceptosFaltantes = (quincena) =>
+  api.get('/precios/conceptos/faltantes', { params: { quincena } }).then(r => r.data)
+
+export const buscarConceptosParaCombo = (q, quincena) =>
+  api.get('/precios/conceptos/buscar', { params: { q, quincena } }).then(r => r.data)
+
+export const aplicar = (preliqId) =>
+  api.post(`/preliquidacion/${preliqId}/aplicar`).then(r => r.data)

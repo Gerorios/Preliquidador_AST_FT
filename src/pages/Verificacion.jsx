@@ -1,22 +1,17 @@
 import { useState, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
+import { useQuery } from '@tanstack/react-query'
 import {
   listarLineas, listarPreliquidaciones,
-  buscarConceptosParaCombo,
-  agregarConceptoMasivo, eliminarConceptoMasivo,
 } from '../services/preliquidacion'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import styles from './Verificacion.module.css'
 
 const SECCIONES = [
-  { key: 'horas', label: '⏱ Horas excedidas', umbral: '> 13 hs/día' },
-  { key: 'tancadas', label: '📦 Tancadas excedidas', umbral: '> 35/día' },
-  { key: 'plantas', label: '🌱 Plantas excedidas', umbral: '> 6.000/día' },
-  { key: 'empleados', label: '👤 Resumen por empleado', umbral: 'importe · días · $/día' },
-  { key: 'plantas-jornal', label: '📊 Plantas vs Jornal', umbral: 'rendimiento por tarea' },
-  { key: 'liquidacion', label: '✏ Liquidación por persona', umbral: 'ajuste masivo de conceptos' },
+  { key: 'horas',         label: '⏱ Horas excedidas',      umbral: '> 13 hs/día' },
+  { key: 'tancadas',      label: '📦 Tancadas excedidas',   umbral: '> 35/día' },
+  { key: 'plantas',       label: '🌱 Plantas excedidas',    umbral: '> 6.000/día' },
+  { key: 'empleados',     label: '👤 Resumen por empleado', umbral: 'importe · días · $/día' },
+  { key: 'plantas-jornal',label: '📊 Plantas vs Jornal',    umbral: 'rendimiento por tarea' },
 ]
 
 const UMBRAL_PROM_JORNAL_ALTO = 50000
@@ -46,9 +41,9 @@ function calcularExcesos(lineas) {
   }
   const grupos = Object.values(porEmpleadoFecha)
   return {
-    excesoHoras: grupos.filter(g => g.hsjornal > 13).map(g => ({ ...g, valor: g.hsjornal })).sort((a,b) => b.valor - a.valor),
+    excesoHoras:    grupos.filter(g => g.hsjornal > 13).map(g => ({ ...g, valor: g.hsjornal })).sort((a,b) => b.valor - a.valor),
     excesoTancadas: grupos.filter(g => g.tancadas > 35).map(g => ({ ...g, valor: g.tancadas })).sort((a,b) => b.valor - a.valor),
-    excesoPlantas: grupos.filter(g => g.plantas > 6000).map(g => ({ ...g, valor: g.plantas })).sort((a,b) => b.valor - a.valor),
+    excesoPlantas:  grupos.filter(g => g.plantas > 6000).map(g => ({ ...g, valor: g.plantas })).sort((a,b) => b.valor - a.valor),
   }
 }
 
@@ -108,22 +103,21 @@ function calcularPlantasJornal(lineas) {
 }
 
 export default function Verificacion() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const qc = useQueryClient()
+  const [preliqId, setPreliqId] = useState(null)
   const [seccion, setSeccion] = useState('horas')
   const [expandido, setExpandido] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [filtros, setFiltros] = useState({})
 
-  const { data: preliqData } = useQuery({
-    queryKey: ['preliq', id],
-    queryFn: () => listarPreliquidaciones().then(list => list.find(p => String(p.id) === String(id))),
+  const { data: preliquidaciones = [] } = useQuery({
+    queryKey: ['preliquidaciones'],
+    queryFn: listarPreliquidaciones,
   })
 
   const { data: lineas = [], isLoading } = useQuery({
-    queryKey: ['lineas', id, {}],
-    queryFn: () => listarLineas(id, {}),
+    queryKey: ['lineas-verif', preliqId],
+    queryFn: () => listarLineas(preliqId, {}),
+    enabled: !!preliqId,
   })
 
   const lineasFiltradas = useMemo(() => {
@@ -147,272 +141,94 @@ export default function Verificacion() {
     return lista.filter(item => item.nombre_empleado?.toLowerCase().includes(q) || item.legajo?.toLowerCase().includes(q))
   }
 
-  const excesoHorasF = useMemo(() => filtrarBusqueda(excesoHoras), [excesoHoras, busqueda])
-  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas), [excesoTancadas, busqueda])
-  const excesoPlantasF = useMemo(() => filtrarBusqueda(excesoPlantas), [excesoPlantas, busqueda])
+  const excesoHorasF    = useMemo(() => filtrarBusqueda(excesoHoras),            [excesoHoras, busqueda])
+  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas),         [excesoTancadas, busqueda])
+  const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas),          [excesoPlantas, busqueda])
   const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto), [resumenEmpleadosCompleto, busqueda])
-
-  const refrescarLineas = () => qc.invalidateQueries({ queryKey: ['lineas', id] })
 
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
-        <button className="btn btn-sm" onClick={() => navigate(`/revision/${id}`)}>← Volver a revisión</button>
-        <div className={styles.titulo}>Verificación {preliqData?.quincena ? `· ${preliqData.quincena}` : ''}</div>
-        {seccion !== 'plantas-jornal' && seccion !== 'liquidacion' && (
-          <input className="input" style={{ width: 240, marginLeft: 'auto' }} placeholder="Buscar empleado o legajo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+        <div className={styles.titulo}>Verificación</div>
+        <select
+          className="input"
+          style={{ width: 200 }}
+          value={preliqId || ''}
+          onChange={e => {
+            setPreliqId(e.target.value || null)
+            setFiltros({})
+            setBusqueda('')
+            setExpandido(null)
+            setSeccion('horas')
+          }}
+        >
+          <option value="">— Seleccionar quincena —</option>
+          {preliquidaciones.map(p => (
+            <option key={p.id} value={p.id}>{p.quincena}</option>
+          ))}
+        </select>
+        {preliqId && seccion !== 'plantas-jornal' && (
+          <input
+            className="input"
+            style={{ width: 240, marginLeft: 'auto' }}
+            placeholder="Buscar empleado o legajo..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+          />
         )}
       </div>
 
-      <FiltrosBar lineas={lineas} filtros={filtros} onChange={setFiltros} busqueda="" onBusqueda={() => {}} mostrarAlertas={false} />
-
-      <div className={styles.nav}>
-        {SECCIONES.map(s => {
-          const cantidad = { horas: excesoHorasF.length, tancadas: excesoTancadasF.length, plantas: excesoPlantasF.length, empleados: resumenEmpleados.length, 'plantas-jornal': null, liquidacion: null }[s.key]
-          return (
-            <button key={s.key} className={`${styles.navItem} ${seccion === s.key ? styles.navItemActive : ''}`} onClick={() => setSeccion(s.key)}>
-              <span className={styles.navLabel}>{s.label}</span>
-              <span className={styles.navUmbral}>{s.umbral}</span>
-              {cantidad != null && cantidad > 0 && <span className="badge badge-warn mono" style={{ marginLeft: 8 }}>{cantidad}</span>}
-            </button>
-          )
-        })}
-      </div>
-
-      {isLoading ? (
-        <div className={styles.loading}><span className="spinner" /> Cargando líneas...</div>
+      {!preliqId ? (
+        <div className={styles.empty} style={{ padding: 40, textAlign: 'center' }}>
+          Seleccioná una quincena para ver la verificación.
+        </div>
       ) : (
-        <div className={styles.content}>
-          {seccion === 'horas' && <ListaExceso titulo="Empleados con más de 13 horas jornal en un mismo día" items={excesoHorasF} unidad="hs" expandido={expandido} setExpandido={setExpandido} />}
-          {seccion === 'tancadas' && <ListaExceso titulo="Empleados con más de 35 tancadas en un mismo día" items={excesoTancadasF} unidad="tancadas" expandido={expandido} setExpandido={setExpandido} />}
-          {seccion === 'plantas' && <ListaExceso titulo="Empleados con más de 6.000 plantas en un mismo día" items={excesoPlantasF} unidad="plantas" expandido={expandido} setExpandido={setExpandido} />}
-          {seccion === 'empleados' && <ResumenEmpleados items={resumenEmpleados} expandido={expandido} setExpandido={setExpandido} />}
-          {seccion === 'plantas-jornal' && <PlantasJornal data={plantasJornal} />}
-          {seccion === 'liquidacion' && <LiquidacionPersona lineas={lineasFiltradas} onCambio={refrescarLineas} />}
-        </div>
-      )}
-    </div>
-  )
-}
+        <>
+          <FiltrosBar lineas={lineas} filtros={filtros} onChange={setFiltros} busqueda="" onBusqueda={() => {}} mostrarAlertas={false} />
 
-// ─── Sección: Liquidación por persona ────────────────────────────────────────
-
-function LiquidacionPersona({ lineas, onCambio }) {
-  const [busqPersona, setBusqPersona] = useState('')
-  const [personaSeleccionada, setPersonaSeleccionada] = useState(null)
-  const [seleccionadas, setSeleccionadas] = useState(new Set())
-  const [codigoConcepto, setCodigoConcepto] = useState('')
-  const [mostrarCombo, setMostrarCombo] = useState(false)
-
-  const { data: conceptosDisponibles = [] } = useQuery({
-    queryKey: ['conceptos-combo'],
-    queryFn: () => buscarConceptosParaCombo(''),
-    enabled: mostrarCombo,
-  })
-
-  const { mutate: agregar, isPending: agregando } = useMutation({
-    mutationFn: () => {
-      const codigo = parseInt(codigoConcepto)
-      if (!codigo || isNaN(codigo)) throw new Error('Seleccioná un concepto')
-      return agregarConceptoMasivo([...seleccionadas], codigo)
-    },
-    onSuccess: () => {
-      toast.success('Concepto agregado a las líneas seleccionadas')
-      setCodigoConcepto('')
-      setMostrarCombo(false)
-      setSeleccionadas(new Set())
-      onCambio()
-    },
-    onError: err => toast.error(err.message),
-  })
-
-  const { mutate: eliminar, isPending: eliminando } = useMutation({
-    mutationFn: (codigo) => eliminarConceptoMasivo([...seleccionadas], codigo),
-    onSuccess: () => {
-      toast.success('Concepto eliminado de las líneas seleccionadas')
-      setSeleccionadas(new Set())
-      onCambio()
-    },
-    onError: err => toast.error(err.message),
-  })
-
-  // Agrupar lineas por empleado
-  const empleados = useMemo(() => {
-    const map = {}
-    for (const l of lineas) {
-      const legajo = l.legajo_asignado || l.legajo_campo || ''
-      if (!map[legajo]) map[legajo] = { legajo, nombre_empleado: l.nombre_empleado, empresa_asignada: l.empresa_asignada, lineas: [] }
-      map[legajo].lineas.push(l)
-    }
-    return Object.values(map).sort((a,b) => (a.nombre_empleado||'').localeCompare(b.nombre_empleado||''))
-  }, [lineas])
-
-  const empleadosFiltrados = useMemo(() => {
-    if (!busqPersona) return empleados
-    const q = busqPersona.toLowerCase()
-    return empleados.filter(e => e.nombre_empleado?.toLowerCase().includes(q) || e.legajo?.toLowerCase().includes(q))
-  }, [empleados, busqPersona])
-
-  const persona = personaSeleccionada ? empleados.find(e => e.legajo === personaSeleccionada) : null
-
-  // Conceptos únicos en las líneas seleccionadas
-  const conceptosEnSeleccion = useMemo(() => {
-    if (!persona) return []
-    const lineasSel = persona.lineas.filter(l => seleccionadas.has(l.id))
-    const mapa = {}
-    for (const l of lineasSel) {
-      for (const c of (l.conceptos || [])) {
-        const codigo = c.codigo_concepto ?? c.codigo
-        if (codigo == null || codigo === undefined) continue
-        if (!mapa[codigo]) mapa[codigo] = { codigo, descripcion: c.descripcion, count: 0 }
-        mapa[codigo].count++
-      }
-    }
-    return Object.values(mapa)
-  }, [persona, seleccionadas, lineas])
-
-  const toggleLinea = (id) => setSeleccionadas(prev => {
-    const next = new Set(prev)
-    next.has(id) ? next.delete(id) : next.add(id)
-    return next
-  })
-
-  const toggleTodas = () => {
-    if (!persona) return
-    const todos = persona.lineas.map(l => l.id)
-    const todasSel = todos.every(id => seleccionadas.has(id))
-    setSeleccionadas(todasSel ? new Set() : new Set(todos))
-  }
-
-  if (!personaSeleccionada) {
-    return (
-      <div>
-        <div className={styles.seccionTitulo}>Liquidación por persona — seleccioná un empleado para ver y ajustar sus conceptos</div>
-        <input
-          className="input"
-          style={{ width: 320, marginBottom: 12 }}
-          placeholder="Buscar por nombre o legajo..."
-          value={busqPersona}
-          onChange={e => setBusqPersona(e.target.value)}
-          autoFocus
-        />
-        <div className={styles.lista}>
-          {empleadosFiltrados.map(emp => (
-            <div key={emp.legajo} className={styles.card} style={{ cursor: 'pointer' }} onClick={() => { setPersonaSeleccionada(emp.legajo); setSeleccionadas(new Set()) }}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardInfo}>
-                  <span className={styles.cardNombre}>{emp.nombre_empleado || '—'}</span>
-                  <span className={styles.cardLegajo}>legajo {emp.legajo || '—'}</span>
-                  <span className="badge badge-muted">{emp.empresa_asignada || '—'}</span>
-                </div>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{emp.lineas.length} líneas →</span>
-              </div>
-            </div>
-          ))}
-          {empleadosFiltrados.length === 0 && <div className={styles.empty}>Sin resultados.</div>}
-        </div>
-      </div>
-    )
-  }
-
-  if (!persona) return null
-
-  const importe_total = persona.lineas.reduce((s, l) => s + Number(l.importe_total || 0), 0)
-  const dias = new Set(persona.lineas.map(l => l.fecha_tarea).filter(Boolean)).size
-  const cantSel = seleccionadas.size
-
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button className="btn btn-sm" onClick={() => { setPersonaSeleccionada(null); setSeleccionadas(new Set()) }}>← Volver</button>
-        <div>
-          <span className={styles.cardNombre}>{persona.nombre_empleado}</span>
-          <span className={styles.cardLegajo} style={{ marginLeft: 8 }}>legajo {persona.legajo}</span>
-          <span className="badge badge-muted" style={{ marginLeft: 8 }}>{persona.empresa_asignada}</span>
-        </div>
-        <div className={styles.resumenStats} style={{ marginLeft: 'auto' }}>
-          <span className={styles.statItem}><span className={styles.statLabel}>Días</span><span className={styles.statValor}>{dias}</span></span>
-          <span className={styles.statItem}><span className={styles.statLabel}>Total</span><span className={styles.statValorTotal}>${importe_total.toLocaleString('es-AR')}</span></span>
-        </div>
-      </div>
-
-      {/* Acciones masivas — solo visibles si hay líneas seleccionadas */}
-      {cantSel > 0 && (
-        <div style={{ background: 'var(--accent-glow)', border: '1px solid var(--accent-dim)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>{cantSel} línea{cantSel > 1 ? 's' : ''} seleccionada{cantSel > 1 ? 's' : ''}</span>
-
-          {/* Agregar concepto */}
-          {!mostrarCombo ? (
-            <button className="btn btn-primary btn-sm" onClick={() => setMostrarCombo(true)}>+ Agregar concepto</button>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <select className="input" style={{ width: 220 }} value={codigoConcepto} onChange={e => setCodigoConcepto(e.target.value)} autoFocus>
-                <option value="">— Seleccionar concepto —</option>
-                {conceptosDisponibles.map(c => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.tipo}</option>)}
-              </select>
-              <button className="btn btn-primary btn-sm" onClick={() => agregar()} disabled={!codigoConcepto || isNaN(parseInt(codigoConcepto)) || agregando}>
-                {agregando ? <span className="spinner" /> : 'Aplicar'}
-              </button>
-              <button className="btn btn-sm" onClick={() => { setMostrarCombo(false); setCodigoConcepto('') }}>Cancelar</button>
-            </div>
-          )}
-
-          {/* Eliminar conceptos existentes en la selección */}
-          {conceptosEnSeleccion.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginLeft: 8 }}>
-              {conceptosEnSeleccion.map(c => (
-                <button key={`quitar-${c.codigo}`} className="btn btn-sm btn-danger" onClick={() => eliminar(c.codigo)} disabled={eliminando}>
-                  {eliminando ? <span className="spinner" /> : `✕ Quitar cód. ${c.codigo} (${c.count})`}
+          <div className={styles.nav}>
+            {SECCIONES.map(s => {
+              const cantidad = {
+                horas:          excesoHorasF.length,
+                tancadas:       excesoTancadasF.length,
+                plantas:        excesoPlantasF.length,
+                empleados:      resumenEmpleados.length,
+                'plantas-jornal': null,
+              }[s.key]
+              return (
+                <button
+                  key={s.key}
+                  className={`${styles.navItem} ${seccion === s.key ? styles.navItemActive : ''}`}
+                  onClick={() => setSeccion(s.key)}
+                >
+                  <span className={styles.navLabel}>{s.label}</span>
+                  <span className={styles.navUmbral}>{s.umbral}</span>
+                  {cantidad != null && cantidad > 0 && (
+                    <span className="badge badge-warn mono" style={{ marginLeft: 8 }}>{cantidad}</span>
+                  )}
                 </button>
-              ))}
+              )
+            })}
+          </div>
+
+          {isLoading ? (
+            <div className={styles.loading}><span className="spinner" /> Cargando líneas...</div>
+          ) : (
+            <div className={styles.content}>
+              {seccion === 'horas'         && <ListaExceso titulo="Empleados con más de 13 horas jornal en un mismo día" items={excesoHorasF} unidad="hs" expandido={expandido} setExpandido={setExpandido} />}
+              {seccion === 'tancadas'      && <ListaExceso titulo="Empleados con más de 35 tancadas en un mismo día" items={excesoTancadasF} unidad="tancadas" expandido={expandido} setExpandido={setExpandido} />}
+              {seccion === 'plantas'       && <ListaExceso titulo="Empleados con más de 6.000 plantas en un mismo día" items={excesoPlantasF} unidad="plantas" expandido={expandido} setExpandido={setExpandido} />}
+              {seccion === 'empleados'     && <ResumenEmpleados items={resumenEmpleados} expandido={expandido} setExpandido={setExpandido} />}
+              {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} />}
             </div>
           )}
-        </div>
+        </>
       )}
-
-      {/* Tabla de líneas con checkboxes */}
-      <div className="table-wrap" style={{ maxHeight: 500, overflow: 'auto' }}>
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: 32 }}>
-                <input type="checkbox" checked={persona.lineas.length > 0 && persona.lineas.every(l => seleccionadas.has(l.id))} onChange={toggleTodas} />
-              </th>
-              <th>Fecha</th>
-              <th>Tarea</th>
-              <th>Cliente · Finca</th>
-              <th>Hs.jorn</th>
-              <th>Importe</th>
-              <th>Conceptos</th>
-            </tr>
-          </thead>
-          <tbody>
-            {persona.lineas.map(l => (
-              <tr key={l.id} onClick={() => toggleLinea(l.id)} style={{ cursor: 'pointer', background: seleccionadas.has(l.id) ? 'var(--accent-glow)' : undefined }}>
-                <td onClick={e => e.stopPropagation()}>
-                  <input type="checkbox" checked={seleccionadas.has(l.id)} onChange={() => toggleLinea(l.id)} />
-                </td>
-                <td className="mono" style={{ fontSize: 11 }}>{l.fecha_tarea || '—'}</td>
-                <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.nombre_tarea}</td>
-                <td className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{l.nombre_cliente} · {l.nombre_finca}</td>
-                <td className="mono">{l.hsjornal || '—'}</td>
-                <td className="mono">${Number(l.importe_total || 0).toLocaleString('es-AR')}</td>
-                <td>
-                  {(l.conceptos || []).length > 0
-                    ? <span className="badge badge-info">+{l.conceptos.length}</span>
-                    : <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>—</span>
-                  }
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   )
 }
 
-// ─── Secciones existentes ─────────────────────────────────────────────────────
+// ─── Secciones ────────────────────────────────────────────────────────────────
 
 function ListaExceso({ titulo, items, unidad, expandido, setExpandido }) {
   if (items.length === 0) return <div className={styles.empty}>✓ No hay excesos para este control.</div>

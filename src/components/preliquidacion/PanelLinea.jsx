@@ -99,10 +99,7 @@ export default function PanelLinea({
     }
   }
 
-  // Importe calculado en tiempo real
-  const importeBase = calcularImporte(linea, form)
-  const sumConceptos = conceptosLinea.reduce((s, c) => s + Number(c.importe || 0), 0)
-  const importeTotal = importeBase + sumConceptos
+  const importeTotal = conceptosLinea.reduce((s, c) => s + Number(c.importe || 0), 0)
 
   return (
     <div className={styles.panel}>
@@ -183,30 +180,6 @@ export default function PanelLinea({
               <option key={gp} value={gp}>{gp}</option>
             ))}
           </select>
-          <div className="field-label" style={{ marginTop: 10 }}>Precio a usar</div>
-          <div className={styles.radioRow}>
-            <button
-              className={`${styles.radioBtn} ${form.precio_usado === 'A' ? styles.radioBtnSel : ''}`}
-              onClick={() => set('precio_usado', 'A')}
-            >
-              Precio A · ${Number(linea.precio_a || 0).toLocaleString('es-AR')}
-            </button>
-            <button
-              className={`${styles.radioBtn} ${form.precio_usado === 'B' ? styles.radioBtnSel : ''}`}
-              onClick={() => set('precio_usado', 'B')}
-            >
-              Precio B (manual)
-            </button>
-          </div>
-          {form.precio_usado === 'B' && (
-            <input
-              className="input input-mono"
-              style={{ marginTop: 6 }}
-              placeholder="Ingresar precio B..."
-              value={form.precio_b || ''}
-              onChange={e => set('precio_b', e.target.value)}
-            />
-          )}
         </div>
 
         <hr className="divider" />
@@ -283,10 +256,6 @@ export default function PanelLinea({
         {/* Desglose e importe total */}
         <div className={styles.section}>
           <div className="field-label">Desglose</div>
-          <div className={styles.desgloseRow}>
-            <span>Importe base</span>
-            <span className="mono">${importeBase.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-          </div>
           {conceptosLinea.map(c => (
             <div key={c.id} className={styles.desgloseRow}>
               <span>{c.descripcion}</span>
@@ -328,18 +297,6 @@ export default function PanelLinea({
   )
 }
 
-function calcularImporte(linea, form) {
-  const precio = form.precio_usado === 'B' && form.precio_b
-    ? parseFloat(form.precio_b)
-    : Number(linea.precio_a || 0)
-  if (!precio) return 0
-  const gp = (form.grupo_pago_aplicado || '').toUpperCase()
-  if (gp.includes('TANCADA')) return precio * Number(linea.tancadas || 0)
-  if (gp.includes('PLANTA') || gp.includes('BINS') || gp.includes('UNIDAD'))
-    return precio * Number(linea.unidades || 0)
-  if (gp.includes('HORA')) return precio * Number(linea.hsjornal || 0)
-  return 0
-}
 
 function fmt(v) {
   if (v === null || v === undefined || Number(v) === 0) return '—'
