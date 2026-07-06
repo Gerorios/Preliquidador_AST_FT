@@ -38,8 +38,6 @@ export default function PanelLinea({
       empresa_asignada:    linea.empresa_asignada || 'ASTURIANA',
       legajo_asignado:     linea.legajo_asignado || linea.legajo_campo || '',
       grupo_pago_aplicado: linea.grupo_pago_aplicado || '',
-      precio_b:            linea.precio_b || '',
-      precio_usado:        linea.precio_usado || 'A',
       revisado:            linea.revisado || false,
       observacion:         linea.observacion || '',
     })
@@ -61,10 +59,7 @@ export default function PanelLinea({
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const buildPayload = (extra = {}) => {
-    const datos = { ...form, ...extra }
-    if (!datos.precio_b) datos.precio_b = null
-    else datos.precio_b = parseFloat(datos.precio_b)
-    return datos
+    return { ...form, ...extra }
   }
 
   const handleGuardar = () => onGuardar(buildPayload())
