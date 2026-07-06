@@ -1,0 +1,219 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px 24px;
+  gap: 14px;
+  overflow: hidden;
+}
+
+/* ── Topbar ───────────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: auto;
+  letter-spacing: -0.2px;
+}
+
+/* ── Banner aplicando ─────────────────────────────────────────────── */
+.applyingBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ── Panel copiar ─────────────────────────────────────────────────── */
+.copyPanel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 13px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.copyArrow {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tab {
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.tab:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.tabActive {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tabAlert {
+  background: var(--danger-dim);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ── Barra búsqueda ───────────────────────────────────────────────── */
+.searchBar {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.searchCount {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Lista de grupos ──────────────────────────────────────────────── */
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+/* ── Card de grupo ────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.cardHead {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.08s;
+  border-radius: var(--radius);
+}
+
+.cardHead:hover {
+  background: var(--bg-hover);
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.cardChevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.cardBody {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ── Fila de regla ────────────────────────────────────────────────── */
+.reglaRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.reglaRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.fieldLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* ── Formulario nuevo grupo ───────────────────────────────────────── */
+.newGroupForm {
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+
+/* ── Estado vacío ─────────────────────────────────────────────────── */
+.empty {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.emptyOk {
+  padding: 32px;
+  text-align: center;
+  color: var(--accent);
+  font-size: 13px;
+}
