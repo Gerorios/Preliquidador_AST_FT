@@ -23,7 +23,6 @@ export const obtenerControlPlantasJornal = (id) =>
 export const listarLineas = (id, filtros = {}) => {
   const params = new URLSearchParams()
   if (filtros.empresa)         params.append('empresa', filtros.empresa)
-  if (filtros.revisado != null) params.append('revisado', filtros.revisado)
   if (filtros.solo_alertas)    params.append('solo_alertas', true)
   if (filtros.nombre_empleado) params.append('nombre_empleado', filtros.nombre_empleado)
   return api.get(`/preliquidacion/${id}/lineas?${params}`).then(r => r.data)

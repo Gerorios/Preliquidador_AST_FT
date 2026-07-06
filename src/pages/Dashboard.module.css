@@ -73,25 +73,3 @@
   gap: 10px;
 }
 
-.progressBar {
-  display: inline-block;
-  width: 80px;
-  height: 4px;
-  background: var(--border-strong);
-  border-radius: 2px;
-  vertical-align: middle;
-  margin-right: 6px;
-}
-
-.progressFill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-
-.progressPct {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-secondary);
-}

@@ -94,33 +94,21 @@ export default function Dashboard() {
                 <tr>
                   <th>QUINCENA</th>
                   <th>TOTAL LÍNEAS</th>
-                  <th>REVISADAS</th>
                   <th>ALERTAS</th>
-                  <th>PROGRESO</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {preliquidaciones.map(p => {
-                  const pct = p.total_lineas
-                    ? Math.round((p.lineas_revisadas / p.total_lineas) * 100)
-                    : 0
                   return (
                     <tr key={p.id} onClick={() => navigate(`/revision/${p.id}`)}>
                       <td className="mono">{formatQuincena(p.quincena)}</td>
                       <td className="mono">{p.total_lineas}</td>
-                      <td className="mono">{p.lineas_revisadas}</td>
                       <td>
                         {p.lineas_con_alerta > 0
                           ? <span className="badge badge-warn">{p.lineas_con_alerta} alertas</span>
                           : <span className="badge badge-green">OK</span>
                         }
-                      </td>
-                      <td>
-                        <div className={styles.progressBar}>
-                          <div className={styles.progressFill} style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className={styles.progressPct}>{pct}%</span>
                       </td>
                       <td>
                         <button

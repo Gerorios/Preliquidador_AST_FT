@@ -38,7 +38,6 @@ export default function PanelLinea({
       empresa_asignada:    linea.empresa_asignada || 'ASTURIANA',
       legajo_asignado:     linea.legajo_asignado || linea.legajo_campo || '',
       grupo_pago_aplicado: linea.grupo_pago_aplicado || '',
-      revisado:            linea.revisado || false,
       observacion:         linea.observacion || '',
     })
     setMostrarConcepto(false)
@@ -63,7 +62,6 @@ export default function PanelLinea({
   }
 
   const handleGuardar = () => onGuardar(buildPayload())
-  const handleMarcarRevisada = () => onGuardar(buildPayload({ revisado: true }))
 
   // Todos los conceptos de la línea: los confirmados por el servidor (vía
   // prop, ya actualizados) + los optimistas que todavía no llegaron por ahí.
@@ -276,16 +274,8 @@ export default function PanelLinea({
 
       {/* Footer */}
       <div className={styles.panelFooter}>
-        <button className="btn" style={{ flex: 1 }} onClick={handleGuardar} disabled={guardando}>
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleGuardar} disabled={guardando}>
           {guardando ? <span className="spinner" /> : 'Guardar'}
-        </button>
-        <button
-          className={`btn ${linea.revisado ? '' : 'btn-primary'}`}
-          style={{ flex: 2 }}
-          onClick={handleMarcarRevisada}
-          disabled={guardando}
-        >
-          {linea.revisado ? '✓ Revisada' : 'Marcar como revisada'}
         </button>
       </div>
     </div>

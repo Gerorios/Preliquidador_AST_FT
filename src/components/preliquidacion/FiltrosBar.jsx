@@ -161,22 +161,6 @@ export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, o
             valor={filtros.supervisor}
             onChange={v => set('supervisor', v)}
           />
-          {mostrarAlertas && (
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 4 }}>
-                Estado revisión
-              </div>
-              <select
-                className="input"
-                value={filtros.revisado ?? ''}
-                onChange={e => set('revisado', e.target.value === '' ? undefined : e.target.value)}
-              >
-                <option value="">Todas</option>
-                <option value="false">Sin revisar</option>
-                <option value="true">Revisadas</option>
-              </select>
-            </div>
-          )}
         </div>
       )}
     </div>

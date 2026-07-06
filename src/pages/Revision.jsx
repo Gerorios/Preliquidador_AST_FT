@@ -273,10 +273,6 @@ export default function Revision() {
     if (filtros.empresa)    resultado = resultado.filter(l => l.empresa_asignada === filtros.empresa)
     if (filtros.grupo_pago) resultado = resultado.filter(l => l.grupo_pago_aplicado === filtros.grupo_pago)
     if (filtros.supervisor) resultado = resultado.filter(l => l.nombre_supervisor === filtros.supervisor)
-    if (filtros.revisado != null && filtros.revisado !== undefined) {
-      const rev = filtros.revisado === 'true' || filtros.revisado === true
-      resultado = resultado.filter(l => l.revisado === rev)
-    }
     if (filtros.alerta === 'sin_precio')     resultado = resultado.filter(l => l.alerta_sin_precio)
     if (filtros.alerta === 'alerta_legajo')  resultado = resultado.filter(l => l.alerta_legajo)
     if (filtros.alerta === 'alerta_empresa') resultado = resultado.filter(l => l.alerta_empresa)
@@ -349,7 +345,6 @@ export default function Revision() {
     if (linea.es_duplicado) return 'duplicado'
     if (linea.alerta_sin_precio) return 'alerta'
     if (linea.alerta_legajo || linea.alerta_empresa) return 'alerta'
-    if (linea.revisado) return 'revisada'
     return ''
   }
 
@@ -370,7 +365,6 @@ export default function Revision() {
           {stats && (
             <>
               <span className="badge badge-muted mono">{stats.total_lineas} líneas</span>
-              <span className="badge badge-green mono">{stats.lineas_revisadas} revisadas</span>
               {stats.lineas_con_alerta > 0 &&
                 <span className="badge badge-warn mono">{stats.lineas_con_alerta} alertas</span>}
             </>
@@ -440,7 +434,7 @@ export default function Revision() {
               <table>
                 <thead>
                   <tr>
-                    <th>✓</th>
+                    <th></th>
                     <th>FECHA</th>
                     <th>EMPLEADO</th>
                     <th>LEGAJO</th>
@@ -467,9 +461,6 @@ export default function Revision() {
                         : {}}
                     >
                       <td style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <div className={`${styles.check} ${linea.revisado ? styles.checkDone : ''}`}>
-                          {linea.revisado ? '✓' : ''}
-                        </div>
                         {(() => { const a = iconoAlerta(linea); return a ? (
                           <span title={a.title} style={{ fontSize: 10, color: a.color, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{a.icon}</span>
                         ) : null })()}
