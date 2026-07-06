@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import {
   listarLineas, obtenerEstadisticas,
   actualizarLinea, eliminarConcepto,
-  recalcularPrecios, listarPreliquidaciones, aplicarConceptos, aplicar,
+  listarPreliquidaciones, aplicar,
   buscarConceptosParaCombo, agregarConceptoMasivo, eliminarConceptoMasivo,
 } from '../services/preliquidacion'
 import PanelLinea from '../components/preliquidacion/PanelLinea'
@@ -273,7 +273,7 @@ export default function Revision() {
     if (filtros.empresa)    resultado = resultado.filter(l => l.empresa_asignada === filtros.empresa)
     if (filtros.grupo_pago) resultado = resultado.filter(l => l.grupo_pago_aplicado === filtros.grupo_pago)
     if (filtros.supervisor) resultado = resultado.filter(l => l.nombre_supervisor === filtros.supervisor)
-    if (filtros.alerta === 'sin_precio')     resultado = resultado.filter(l => l.alerta_sin_precio)
+    if (filtros.alerta === 'incompleta')     resultado = resultado.filter(l => l.linea_incompleta)
     if (filtros.alerta === 'alerta_legajo')  resultado = resultado.filter(l => l.alerta_legajo)
     if (filtros.alerta === 'alerta_empresa') resultado = resultado.filter(l => l.alerta_empresa)
     if (filtros.alerta === 'es_duplicado')   resultado = resultado.filter(l => l.es_duplicado)
@@ -289,24 +289,6 @@ export default function Revision() {
     }
     qc.invalidateQueries(['stats', id])
   }
-
-  const { mutate: recalcular, isPending: recalculando } = useMutation({
-    mutationFn: () => recalcularPrecios(id),
-    onSuccess: async (data) => {
-      toast.success(data.detalle || 'Precios recalculados')
-      await refrescarYSincronizarPanel()
-    },
-    onError: (err) => toast.error(err.message),
-  })
-
-  const { mutate: aplicarConc, isPending: aplicandoConceptos } = useMutation({
-    mutationFn: () => aplicarConceptos(id),
-    onSuccess: async (data) => {
-      toast.success(data.detalle || 'Conceptos aplicados')
-      await refrescarYSincronizarPanel()
-    },
-    onError: (err) => toast.error(err.message),
-  })
 
   const { mutate: aplicarTodo, isPending: aplicandoTodo } = useMutation({
     mutationFn: () => aplicar(id),
@@ -343,14 +325,14 @@ export default function Revision() {
 
   const claseLinea = (linea) => {
     if (linea.es_duplicado) return 'duplicado'
-    if (linea.alerta_sin_precio) return 'alerta'
+    if (linea.linea_incompleta) return 'alerta'
     if (linea.alerta_legajo || linea.alerta_empresa) return 'alerta'
     return ''
   }
 
   const iconoAlerta = (linea) => {
     if (linea.es_duplicado)    return { icon: '⧉', color: 'var(--danger)', title: 'Duplicado' }
-    if (linea.alerta_sin_precio) return { icon: '$', color: 'var(--warn)',   title: 'Sin precio' }
+    if (linea.linea_incompleta) return { icon: '$', color: 'var(--warn)',   title: 'Incompleta' }
     if (linea.alerta_legajo)   return { icon: '#', color: 'var(--warn)',   title: 'Legajo inválido' }
     if (linea.alerta_empresa)  return { icon: '!', color: 'var(--info)',   title: 'Verificar empresa' }
     return null
@@ -381,14 +363,14 @@ export default function Revision() {
 
       {/* Banners */}
       <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        {stats?.sin_precio > 0 && (
+        {stats?.incompletas > 0 && (
           <div style={{
             background: 'var(--warn-dim)', borderBottom: '1px solid rgba(232,168,74,0.3)',
             padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 12,
             fontSize: 12, color: 'var(--warn)',
           }}>
             <span>⚠</span>
-            <span><strong>{stats.sin_precio} líneas sin precio</strong> — cargá los conceptos y precios en el maestro</span>
+            <span><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</span>
             <button
               onClick={() => navigate('/conceptos')}
               style={{
@@ -401,10 +383,10 @@ export default function Revision() {
             </button>
           </div>
         )}
-        {stats?.lineas_con_alerta > 0 && stats?.sin_precio === 0 && (
+        {stats?.lineas_con_alerta > 0 && stats?.incompletas === 0 && (
           <AlertasBanner
             total={stats.lineas_con_alerta}
-            sinPrecio={stats.sin_precio}
+            incompletas={stats.incompletas}
             duplicados={stats.duplicados}
             alertaLegajo={stats.alerta_legajo}
             onFiltrar={() => setFiltros(f => ({ ...f, solo_alertas: true }))}
@@ -480,8 +462,8 @@ export default function Revision() {
                         {linea.nombre_cliente} · {linea.nombre_finca}
                       </td>
                       <td>
-                        {linea.alerta_sin_precio
-                          ? <span className="badge badge-warn">SIN PRECIO</span>
+                        {linea.linea_incompleta
+                          ? <span className="badge badge-warn">INCOMPLETA</span>
                           : <span className="badge badge-muted mono">{linea.grupo_pago_aplicado || '—'}</span>}
                       </td>
                       <td className="mono">{fmt(linea.hsjornal)}</td>

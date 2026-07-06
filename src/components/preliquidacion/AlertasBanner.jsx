@@ -1,4 +1,4 @@
-export default function AlertasBanner({ total, sinPrecio, duplicados, alertaLegajo, onFiltrar }) {
+export default function AlertasBanner({ total, incompletas, duplicados, alertaLegajo, onFiltrar }) {
   return (
     <div style={{
       background: 'var(--warn-dim)',
@@ -14,7 +14,7 @@ export default function AlertasBanner({ total, sinPrecio, duplicados, alertaLega
       <span>⚠</span>
       <span>
         <strong>{total} alertas sin resolver:</strong>
-        {sinPrecio > 0 && ` ${sinPrecio} sin precio`}
+        {incompletas > 0 && ` ${incompletas} incompletas`}
         {duplicados > 0 && ` · ${duplicados} duplicados`}
         {alertaLegajo > 0 && ` · ${alertaLegajo} legajos`}
       </span>

@@ -108,11 +108,11 @@ export default function PanelLinea({
       <div className={styles.panelBody}>
 
         {/* Alertas */}
-        {(linea.es_duplicado || linea.alerta_legajo || linea.alerta_sin_precio) && (
+        {(linea.es_duplicado || linea.alerta_legajo || linea.linea_incompleta) && (
           <div className={styles.alertaBox}>
             {linea.es_duplicado     && <div className={styles.alertaItem}>⚠ Línea duplicada</div>}
             {linea.alerta_legajo    && <div className={styles.alertaItem}>⚠ Legajo no validado</div>}
-            {linea.alerta_sin_precio && <div className={styles.alertaItem}>⚠ Sin precio asignado</div>}
+            {linea.linea_incompleta && <div className={styles.alertaItem}>⚠ Línea incompleta: falta código o precio</div>}
           </div>
         )}
 

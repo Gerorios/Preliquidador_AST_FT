@@ -43,9 +43,6 @@ export const agregarConceptoPorCodigo = (lineaId, codigo) =>
 export const aplicarConceptos = (preliqId) =>
   api.post(`/preliquidacion/${preliqId}/aplicar-conceptos`).then(r => r.data)
 
-export const recalcularPrecios = (preliqId) =>
-  api.post(`/preliquidacion/${preliqId}/recalcular`).then(r => r.data)
-
 export const agregarConceptoMasivo = (lineaIds, codigo) =>
   api.post('/preliquidacion/lineas/concepto-masivo', { linea_ids: lineaIds, codigo }).then(r => r.data)
 
