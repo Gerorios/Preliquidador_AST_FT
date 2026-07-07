@@ -49,6 +49,14 @@ export const agregarConceptoMasivo = (lineaIds, codigo) =>
 export const eliminarConceptoMasivo = (lineaIds, codigo) =>
   api.post('/preliquidacion/lineas/concepto-masivo/eliminar', { linea_ids: lineaIds, codigo }).then(r => r.data)
 
+export const legajosPorCuil = (lineaIds) =>
+  api.post('/preliquidacion/lineas/legajos-por-cuil', { linea_ids: lineaIds }).then(r => r.data)
+
+export const reasignarEmpresaMasivo = (lineaIds, empresa, motivoAjuste) =>
+  api.post('/preliquidacion/lineas/reasignar-empresa', {
+    linea_ids: lineaIds, empresa, motivo_ajuste: motivoAjuste,
+  }).then(r => r.data)
+
 // ─── Catálogos externos ───────────────────────────────────────────────────────
 
 export const listarClientes = () =>

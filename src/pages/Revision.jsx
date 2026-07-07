@@ -7,6 +7,7 @@ import {
   actualizarLinea, eliminarConcepto,
   listarPreliquidaciones, aplicar,
   buscarConceptosParaCombo, agregarConceptoMasivo, eliminarConceptoMasivo,
+  legajosPorCuil, reasignarEmpresaMasivo,
 } from '../services/preliquidacion'
 import PanelLinea from '../components/preliquidacion/PanelLinea'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
@@ -26,6 +27,8 @@ function LiquidacionPersona({ lineas, onCambio }) {
   const [seleccionadas, setSeleccionadas] = useState(new Set())
   const [codigoConcepto, setCodigoConcepto] = useState('')
   const [mostrarCombo, setMostrarCombo] = useState(false)
+  const [gruposCuil, setGruposCuil] = useState(null)
+  const [empresaPorGrupo, setEmpresaPorGrupo] = useState({})
 
   const { data: conceptosDisponibles = [] } = useQuery({
     queryKey: ['conceptos-combo'],
@@ -53,6 +56,36 @@ function LiquidacionPersona({ lineas, onCambio }) {
     mutationFn: (codigo) => eliminarConceptoMasivo([...seleccionadas], codigo),
     onSuccess: () => {
       toast.success('Concepto eliminado de las líneas seleccionadas')
+      setSeleccionadas(new Set())
+      onCambio()
+    },
+    onError: err => toast.error(err.message),
+  })
+
+  const { mutate: abrirReasignar, isPending: cargandoGrupos } = useMutation({
+    mutationFn: () => legajosPorCuil([...seleccionadas]),
+    onSuccess: (data) => {
+      if (data.grupos.length === 0) {
+        toast.error('Ninguna de las líneas seleccionadas tiene CUIL — reasignalas a mano')
+        return
+      }
+      setGruposCuil(data)
+      setEmpresaPorGrupo({})
+    },
+    onError: err => toast.error(err.message),
+  })
+
+  const { mutate: confirmarReasignacion, isPending: reasignando } = useMutation({
+    mutationFn: async () => {
+      const pendientes = gruposCuil.grupos.filter(g => empresaPorGrupo[g.cuil])
+      for (const g of pendientes) {
+        await reasignarEmpresaMasivo(g.linea_ids, empresaPorGrupo[g.cuil])
+      }
+    },
+    onSuccess: () => {
+      toast.success('Empresa reasignada')
+      setGruposCuil(null)
+      setEmpresaPorGrupo({})
       setSeleccionadas(new Set())
       onCambio()
     },
@@ -188,6 +221,48 @@ function LiquidacionPersona({ lineas, onCambio }) {
               ))}
             </div>
           )}
+          <button className="btn btn-sm" onClick={() => abrirReasignar()} disabled={cargandoGrupos}>
+            {cargandoGrupos ? <span className="spinner" /> : '⇄ Reasignar empresa'}
+          </button>
+        </div>
+      )}
+
+      {gruposCuil && (
+        <div style={{ ...liqStyles.acciones, flexDirection: 'column', alignItems: 'stretch', background: 'var(--info-dim)', borderColor: 'var(--info)' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--info)' }}>Reasignar empresa — un bloque por persona (CUIL)</span>
+          {gruposCuil.sin_cuil.length > 0 && (
+            <span style={{ fontSize: 11, color: 'var(--warn)' }}>
+              ⚠ {gruposCuil.sin_cuil.length} línea{gruposCuil.sin_cuil.length > 1 ? 's' : ''} sin CUIL — no se pueden reasignar así, editalas a mano.
+            </span>
+          )}
+          {gruposCuil.grupos.map(g => (
+            <div key={g.cuil} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+              <span style={{ fontSize: 12, minWidth: 200 }}>
+                {g.nombre_empleado || '—'} <span style={{ color: 'var(--text-muted)' }}>({g.linea_ids.length} líneas)</span>
+              </span>
+              <select
+                className="input"
+                style={{ width: 240 }}
+                value={empresaPorGrupo[g.cuil] || ''}
+                onChange={e => setEmpresaPorGrupo(prev => ({ ...prev, [g.cuil]: e.target.value }))}
+              >
+                <option value="">— Elegir empresa —</option>
+                {g.legajos_disponibles.map(o => (
+                  <option key={o.empresa} value={o.empresa}>{o.empresa} (legajo {o.legajo})</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => confirmarReasignacion()}
+              disabled={reasignando || !Object.values(empresaPorGrupo).some(Boolean)}
+            >
+              {reasignando ? <span className="spinner" /> : 'Confirmar reasignación'}
+            </button>
+            <button className="btn btn-sm" onClick={() => { setGruposCuil(null); setEmpresaPorGrupo({}) }}>Cancelar</button>
+          </div>
         </div>
       )}
 
