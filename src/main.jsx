@@ -21,15 +21,20 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <App />
         <Toaster
-          position="bottom-right"
+          position="top-center"
           toastOptions={{
+            duration: 3500,
             style: {
               background: '#222520',
               color: '#e8ead4',
               border: '1px solid #3d4238',
               fontFamily: 'IBM Plex Sans, sans-serif',
-              fontSize: '12px',
+              fontSize: '13px',
+              padding: '10px 16px',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.45)',
             },
+            success: { iconTheme: { primary: '#6D8B46', secondary: '#151210' } },
+            error: { duration: 5000, iconTheme: { primary: '#C3403A', secondary: '#151210' } },
           }}
         />
       </BrowserRouter>

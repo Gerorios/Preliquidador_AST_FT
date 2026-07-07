@@ -268,6 +268,10 @@ export default function Conceptos() {
     qc.invalidateQueries({ queryKey: ['conceptos'] })
     qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })
     qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
+    // Impacto reactivo (WS2): un cambio de concepto recalcula líneas en el
+    // backend, así que refrescamos también Revisión y sus estadísticas.
+    qc.invalidateQueries({ queryKey: ['lineas'] })
+    qc.invalidateQueries({ queryKey: ['stats'] })
   }
 
   const { mutate: mutCrear } = useMutation({
