@@ -95,6 +95,9 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
       <span className="badge badge-info" style={{ fontSize: 10 }}>
         {TIPOS.find(t => t.value === regla.tipo)?.label || regla.tipo}
       </span>
+      {regla.heredado && (
+        <span className="badge badge-warn" style={{ fontSize: 10 }}>Heredado</span>
+      )}
       <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
         <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
         <button className="btn btn-sm btn-danger" onClick={onEliminar}>✕</button>
@@ -173,6 +176,9 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
           {reglas.every(r => r.codigo == null) && (
             <span className="badge badge-warn" style={{ fontSize: 10 }}>Sin código</span>
           )}
+          {reglas.some(r => r.heredado) && (
+            <span className="badge badge-warn" style={{ fontSize: 10 }}>Heredado</span>
+          )}
         </div>
         <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>{abierto ? '▲' : '▼'}</span>
       </div>
@@ -232,6 +238,7 @@ export default function Conceptos() {
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
   const [busqueda, setBusqueda] = useState('')
+  const [soloHeredados, setSoloHeredados] = useState(false)
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [formNuevo, setFormNuevo] = useState({
     tarea_nombre: '', cliente_nombre: '', finca_nombre: '',
@@ -316,12 +323,16 @@ export default function Conceptos() {
   }, [items, tab])
 
   const gruposFiltrados = useMemo(() => {
-    if (!busqueda) return grupos
-    const q = busqueda.toLowerCase()
-    return Object.fromEntries(
-      Object.entries(grupos).filter(([key]) => key.toLowerCase().includes(q))
-    )
-  }, [grupos, busqueda])
+    let entradas = Object.entries(grupos)
+    if (busqueda) {
+      const q = busqueda.toLowerCase()
+      entradas = entradas.filter(([key]) => key.toLowerCase().includes(q))
+    }
+    if (soloHeredados) {
+      entradas = entradas.filter(([, reglas]) => reglas.some(r => r.heredado))
+    }
+    return Object.fromEntries(entradas)
+  }, [grupos, busqueda, soloHeredados])
 
   const handleCrearNuevo = () => {
     if (!formNuevo.tarea_nombre) { toast.error('Completá la tarea'); return }
@@ -435,6 +446,11 @@ export default function Conceptos() {
             <input className="input" style={{ width: 320 }}
               placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={soloHeredados}
+                onChange={e => setSoloHeredados(e.target.checked)} />
+              Mostrar solo heredados
+            </label>
             <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
               {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
             </button>
