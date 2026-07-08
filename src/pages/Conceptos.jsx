@@ -7,6 +7,7 @@ import {
   listarTareas, listarClientes, listarFincas,
 } from '../services/preliquidacion'
 import CargandoContenido from '../components/layout/CargandoContenido'
+import styles from './Conceptos.module.css'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -43,23 +44,6 @@ const TIPOS = [
 
 const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO' }
 
-const s = {
-  page:       { display: 'flex', flexDirection: 'column', height: '100%', padding: 16, gap: 12, overflow: 'hidden' },
-  topbar:     { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' },
-  title:      { fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginRight: 'auto' },
-  tabs:       { display: 'flex', gap: 4, flexShrink: 0 },
-  tab:        { padding: '5px 14px', fontSize: 12, fontWeight: 500, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)' },
-  tabActive:  { background: 'var(--accent)', border: '1px solid var(--accent)', color: '#fff' },
-  tabAlert:   { background: '#c0392b', border: '1px solid #c0392b', color: '#fff' },
-  list:       { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 },
-  card:       { border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-surface)' },
-  cardHead:   { padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' },
-  cardBody:   { padding: '10px 14px', borderTop: '1px solid var(--border)', background: 'var(--bg-elevated)', display: 'flex', flexDirection: 'column', gap: 8 },
-  reglaRow:   { display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap', padding: '6px 0', borderBottom: '1px solid var(--border)' },
-  fieldLabel: { fontSize: 10, fontWeight: 600, letterSpacing: '0.5px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 3 },
-  copyPanel:  { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', fontSize: 12 },
-}
-
 // ─── ReglaRow: fila editable de una regla ────────────────────────────────────
 
 function ReglaRow({ regla, onActualizar, onEliminar }) {
@@ -82,23 +66,23 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
   }
 
   if (!editando) return (
-    <div style={s.reglaRow}>
-      <span className="badge badge-muted mono" style={{ fontSize: 11 }}>
-        {regla.codigo != null ? `Cód. ${regla.codigo}` : <span style={{ color: 'var(--text-muted)' }}>Sin código</span>}
+    <div className={styles.reglaRow}>
+      <span className="badge badge-muted mono">
+        {regla.codigo != null ? `Cód. ${regla.codigo}` : <span className={styles.textoMuted}>Sin código</span>}
       </span>
-      <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 120 }}>
+      <span className={styles.unidadValor}>
         {UNIDADES.find(u => u.value === regla.unidad_base)?.label || regla.unidad_base}
       </span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--accent)', minWidth: 100 }}>
-        {regla.precio != null ? `$${Number(regla.precio).toLocaleString('es-AR')}` : <span style={{ color: 'var(--text-muted)' }}>sin precio</span>}
+      <span className={styles.precioValor}>
+        {regla.precio != null ? `$${Number(regla.precio).toLocaleString('es-AR')}` : <span className={styles.precioVacio}>sin precio</span>}
       </span>
-      <span className="badge badge-info" style={{ fontSize: 10 }}>
+      <span className="badge badge-info">
         {TIPOS.find(t => t.value === regla.tipo)?.label || regla.tipo}
       </span>
       {regla.heredado && (
-        <span className="badge badge-warn" style={{ fontSize: 10 }}>Heredado</span>
+        <span className="badge badge-warn">Heredado</span>
       )}
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+      <div className={styles.rowActions}>
         <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
         <button className="btn btn-sm btn-danger" onClick={onEliminar}>✕</button>
       </div>
@@ -106,28 +90,28 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
   )
 
   return (
-    <div style={s.reglaRow}>
-      <div><div style={s.fieldLabel}>Código</div>
+    <div className={styles.reglaRow}>
+      <div><div className="field-label">Código</div>
         <input className="input input-mono" type="number" style={{ width: 90 }}
           value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} />
       </div>
-      <div><div style={s.fieldLabel}>Unidad</div>
+      <div><div className="field-label">Unidad</div>
         <select className="input" style={{ width: 150 }} value={form.unidad_base}
           onChange={e => setForm(f => ({ ...f, unidad_base: e.target.value }))}>
           {UNIDADES.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
         </select>
       </div>
-      <div><div style={s.fieldLabel}>Precio</div>
+      <div><div className="field-label">Precio</div>
         <input className="input input-mono" type="number" style={{ width: 120 }}
           value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value }))} />
       </div>
-      <div><div style={s.fieldLabel}>Tipo</div>
+      <div><div className="field-label">Tipo</div>
         <select className="input" style={{ width: 150 }} value={form.tipo}
           onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
           {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
-      <div style={{ display: 'flex', gap: 4, alignSelf: 'flex-end' }}>
+      <div className={styles.rowActions} style={{ marginLeft: 0, alignSelf: 'flex-end' }}>
         <button className="btn btn-primary btn-sm" onClick={guardar}>✓</button>
         <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
       </div>
@@ -161,30 +145,26 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
     setNuevaRegla(EMPTY_REGLA)
   }
 
-  const grupoKey = esComun
-    ? primera.tarea_nombre
-    : `${primera.tarea_nombre}||${primera.cliente_nombre}||${primera.finca_nombre}`
-
   return (
-    <div style={s.card}>
-      <div style={s.cardHead} onClick={() => setAbierto(o => !o)}>
-        <span style={{ fontSize: 12, fontWeight: 500, flex: 1 }}>{titulo}</span>
-        <div style={{ display: 'flex', gap: 6 }}>
+    <div className={styles.card}>
+      <div className={styles.cardHead} onClick={() => setAbierto(o => !o)}>
+        <span className={styles.cardTitle}>{titulo}</span>
+        <div className={styles.cardBadges}>
           {reglas.filter(r => r.codigo != null).map(r => (
-            <span key={r.id} className="badge badge-muted mono" style={{ fontSize: 10 }}>{r.codigo}</span>
+            <span key={r.id} className="badge badge-muted mono">{r.codigo}</span>
           ))}
           {reglas.every(r => r.codigo == null) && (
-            <span className="badge badge-warn" style={{ fontSize: 10 }}>Sin código</span>
+            <span className="badge badge-warn">Sin código</span>
           )}
           {reglas.some(r => r.heredado) && (
-            <span className="badge badge-warn" style={{ fontSize: 10 }}>Heredado</span>
+            <span className="badge badge-warn">Heredado</span>
           )}
         </div>
-        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 8 }}>{abierto ? '▲' : '▼'}</span>
+        <span className={styles.cardChevron}>{abierto ? '▲' : '▼'}</span>
       </div>
 
       {abierto && (
-        <div style={s.cardBody}>
+        <div className={styles.cardBody}>
           {reglas.map(r => (
             <ReglaRow
               key={r.id}
@@ -195,24 +175,24 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
           ))}
 
           {/* Agregar nueva regla */}
-          <div style={{ ...s.reglaRow, borderBottom: 'none', paddingTop: 10 }}>
-            <div><div style={s.fieldLabel}>Código</div>
+          <div className={`${styles.reglaRow} ${styles.reglaRowNew}`}>
+            <div><div className="field-label">Código</div>
               <input className="input input-mono" type="number" style={{ width: 90 }} placeholder="—"
                 value={nuevaRegla.codigo}
                 onChange={e => setNuevaRegla(f => ({ ...f, codigo: e.target.value }))} />
             </div>
-            <div><div style={s.fieldLabel}>Unidad</div>
+            <div><div className="field-label">Unidad</div>
               <select className="input" style={{ width: 150 }} value={nuevaRegla.unidad_base}
                 onChange={e => setNuevaRegla(f => ({ ...f, unidad_base: e.target.value }))}>
                 {UNIDADES.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
               </select>
             </div>
-            <div><div style={s.fieldLabel}>Precio</div>
+            <div><div className="field-label">Precio</div>
               <input className="input input-mono" type="number" style={{ width: 120 }} placeholder="$0"
                 value={nuevaRegla.precio}
                 onChange={e => setNuevaRegla(f => ({ ...f, precio: e.target.value }))} />
             </div>
-            <div><div style={s.fieldLabel}>Tipo</div>
+            <div><div className="field-label">Tipo</div>
               <select className="input" style={{ width: 150 }} value={nuevaRegla.tipo}
                 onChange={e => setNuevaRegla(f => ({ ...f, tipo: e.target.value }))}>
                 {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -361,10 +341,10 @@ export default function Conceptos() {
   const cantGrupos = Object.keys(gruposFiltrados).length
 
   return (
-    <div style={s.page}>
+    <div className={styles.page}>
       {/* Topbar */}
-      <div style={s.topbar}>
-        <span style={s.title}>Maestro de Conceptos y Precios</span>
+      <div className={styles.topbar}>
+        <span className={styles.title}>Maestro de Conceptos y Precios</span>
         <select className="input" value={quincena}
           onChange={e => { setQuincena(e.target.value); setMostrarCopiar(false) }}
           style={{ width: 200 }}>
@@ -379,8 +359,8 @@ export default function Conceptos() {
 
       {/* Panel copiar */}
       {mostrarCopiar && (
-        <div style={s.copyPanel}>
-          <span style={{ color: 'var(--text-muted)' }}>Copiar desde:</span>
+        <div className={styles.copyPanel}>
+          <span className={styles.textoMuted}>Copiar desde:</span>
           <select className="input" value={quincenaOrigen}
             onChange={e => setQuincenaOrigen(e.target.value)} style={{ width: 180 }}>
             <option value="">— Seleccionar —</option>
@@ -388,7 +368,7 @@ export default function Conceptos() {
               <option key={q} value={q}>{q}</option>
             )}
           </select>
-          <span style={{ color: 'var(--text-muted)' }}>→ {quincena}</span>
+          <span className={styles.copyArrow}>→ {quincena}</span>
           <button className="btn btn-primary btn-sm"
             onClick={() => copiar()} disabled={!quincenaOrigen || copiando}>
             {copiando ? <><span className="spinner" /> Copiando...</> : 'Copiar'}
@@ -398,10 +378,10 @@ export default function Conceptos() {
       )}
 
       {/* Tabs */}
-      <div style={s.tabs}>
+      <div className={styles.tabs}>
         {TABS.map((t, i) => (
           <button key={i}
-            style={{ ...s.tab, ...(tab === i ? (t.alert ? s.tabAlert : s.tabActive) : {}) }}
+            className={`chip ${tab === i ? (t.alert ? 'chip-alert' : 'chip-active') : ''}`}
             onClick={() => { setTab(i); setBusqueda(''); setMostrarNuevo(false) }}>
             {t.label}
           </button>
@@ -410,9 +390,9 @@ export default function Conceptos() {
 
       {/* Tab 0: Faltantes */}
       {tab === 0 && (
-        <div style={{ flex: 1, overflow: 'auto' }}>
+        <div className={styles.tabPane}>
           {faltantes.length === 0 ? (
-            <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+            <div className={styles.emptyOk}>
               ✓ Todas las tareas de esta quincena tienen concepto cargado.
             </div>
           ) : (
@@ -426,9 +406,9 @@ export default function Conceptos() {
                 <tbody>
                   {faltantes.map((f, i) => (
                     <tr key={i}>
-                      <td style={{ fontSize: 12 }}>{f.tarea_nombre}</td>
-                      <td style={{ fontSize: 12 }}>{f.cliente_nombre || <span style={{ color: 'var(--text-muted)' }}>— (común)</span>}</td>
-                      <td style={{ fontSize: 12 }}>{f.finca_nombre || '—'}</td>
+                      <td>{f.tarea_nombre}</td>
+                      <td>{f.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
+                      <td>{f.finca_nombre || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -440,13 +420,13 @@ export default function Conceptos() {
 
       {/* Tabs 1 y 2: Comunes / Específicos */}
       {tab !== 0 && (
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className={styles.tabContent}>
           {/* Barra búsqueda + nuevo */}
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <div className={styles.searchBar}>
             <input className="input" style={{ width: 320 }}
               placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <label className={styles.checkboxLabel}>
               <input type="checkbox" checked={soloHeredados}
                 onChange={e => setSoloHeredados(e.target.checked)} />
               Mostrar solo heredados
@@ -454,15 +434,15 @@ export default function Conceptos() {
             <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
               {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
             </button>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', alignSelf: 'center' }}>
+            <span className={styles.searchCount}>
               {cantGrupos} {tab === 1 ? 'comunes' : 'específicos'}
             </span>
           </div>
 
           {/* Formulario nuevo grupo */}
           {mostrarNuevo && (
-            <div style={{ ...s.cardBody, border: '1px solid var(--accent-dim)', borderRadius: 6, flexShrink: 0, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              <div><div style={s.fieldLabel}>Tarea</div>
+            <div className={styles.newGroupForm}>
+              <div><div className="field-label">Tarea</div>
                 <select className="input" style={{ width: 220 }} value={formNuevo.tarea_nombre}
                   onChange={e => setFormNuevo(f => ({ ...f, tarea_nombre: e.target.value }))}>
                   <option value="">— Seleccionar —</option>
@@ -471,14 +451,14 @@ export default function Conceptos() {
               </div>
               {tab === 2 && (
                 <>
-                  <div><div style={s.fieldLabel}>Cliente</div>
+                  <div><div className="field-label">Cliente</div>
                     <select className="input" style={{ width: 180 }} value={formNuevo.cliente_nombre}
                       onChange={e => setFormNuevo(f => ({ ...f, cliente_nombre: e.target.value, finca_nombre: '' }))}>
                       <option value="">— Seleccionar —</option>
                       {clientes.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div><div style={s.fieldLabel}>Finca</div>
+                  <div><div className="field-label">Finca</div>
                     <select className="input" style={{ width: 160 }} value={formNuevo.finca_nombre}
                       onChange={e => setFormNuevo(f => ({ ...f, finca_nombre: e.target.value }))}
                       disabled={!formNuevo.cliente_nombre}>
@@ -488,23 +468,23 @@ export default function Conceptos() {
                   </div>
                 </>
               )}
-              <div><div style={s.fieldLabel}>Código</div>
+              <div><div className="field-label">Código</div>
                 <input className="input input-mono" type="number" style={{ width: 90 }} placeholder="—"
                   value={formNuevo.codigo}
                   onChange={e => setFormNuevo(f => ({ ...f, codigo: e.target.value }))} />
               </div>
-              <div><div style={s.fieldLabel}>Unidad</div>
+              <div><div className="field-label">Unidad</div>
                 <select className="input" style={{ width: 150 }} value={formNuevo.unidad_base}
                   onChange={e => setFormNuevo(f => ({ ...f, unidad_base: e.target.value }))}>
                   {UNIDADES.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
-              <div><div style={s.fieldLabel}>Precio</div>
+              <div><div className="field-label">Precio</div>
                 <input className="input input-mono" type="number" style={{ width: 120 }} placeholder="$0"
                   value={formNuevo.precio}
                   onChange={e => setFormNuevo(f => ({ ...f, precio: e.target.value }))} />
               </div>
-              <div><div style={s.fieldLabel}>Tipo</div>
+              <div><div className="field-label">Tipo</div>
                 <select className="input" style={{ width: 150 }} value={formNuevo.tipo}
                   onChange={e => setFormNuevo(f => ({ ...f, tipo: e.target.value }))}>
                   {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -518,10 +498,10 @@ export default function Conceptos() {
           )}
 
           {/* Lista colapsable */}
-          <div style={s.list}>
+          <div className={styles.list}>
             {isLoading && <CargandoContenido texto="Cargando conceptos…" />}
             {!isLoading && cantGrupos === 0 && (
-              <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+              <div className={styles.empty}>
                 No hay conceptos {tab === 1 ? 'comunes' : 'específicos'} para esta quincena.
                 Usá "+ Nuevo" para agregar.
               </div>

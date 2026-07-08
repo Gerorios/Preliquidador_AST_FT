@@ -156,6 +156,25 @@ select.input {
 .badge-info   { background: var(--info-dim); color: var(--info); border-color: rgba(90,159,212,0.3); }
 .badge-muted  { background: var(--bg-elevated); color: var(--text-muted); border-color: var(--border); }
 
+/* Chips (filtros/tabs tipo pastilla — mismo patrón que los chips de alerta de FiltrosBar) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.chip:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.chip-active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.chip-alert  { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+
 /* Tabla */
 .table-wrap { overflow: auto; }
 
