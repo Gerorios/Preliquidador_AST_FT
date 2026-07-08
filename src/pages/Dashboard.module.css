@@ -73,3 +73,8 @@
   gap: 10px;
 }
 
+/* Más aire vertical en las filas del historial (la densidad por defecto de la tabla global queda angosta acá) */
+.tableSection td {
+  padding: 14px 10px;
+}
+
