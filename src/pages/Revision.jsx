@@ -272,7 +272,7 @@ function LiquidacionPersona({ lineas, onCambio }) {
           <thead>
             <tr>
               <th style={{ width: 32 }}>
-                <input type="checkbox" checked={persona.lineas.length > 0 && persona.lineas.every(l => seleccionadas.has(l.id))} onChange={toggleTodas} />
+                <input type="checkbox" style={{ width: 'var(--control-size)', height: 'var(--control-size)' }} checked={persona.lineas.length > 0 && persona.lineas.every(l => seleccionadas.has(l.id))} onChange={toggleTodas} />
               </th>
               <th>Fecha</th><th>Tarea</th><th>Cliente · Finca</th><th>Hs.jorn</th><th>Importe</th><th>Conceptos</th>
             </tr>
@@ -281,7 +281,7 @@ function LiquidacionPersona({ lineas, onCambio }) {
             {persona.lineas.map(l => (
               <tr key={l.id} onClick={() => toggleLinea(l.id)} style={{ cursor: 'pointer', background: seleccionadas.has(l.id) ? 'var(--accent-glow)' : undefined }}>
                 <td onClick={e => e.stopPropagation()}>
-                  <input type="checkbox" checked={seleccionadas.has(l.id)} onChange={() => toggleLinea(l.id)} />
+                  <input type="checkbox" style={{ width: 'var(--control-size)', height: 'var(--control-size)' }} checked={seleccionadas.has(l.id)} onChange={() => toggleLinea(l.id)} />
                 </td>
                 <td className="mono" style={{ fontSize: 11 }}>{l.fecha_tarea || '—'}</td>
                 <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.nombre_tarea}</td>
@@ -407,10 +407,10 @@ export default function Revision() {
   }
 
   const iconoAlerta = (linea) => {
-    if (linea.es_duplicado)    return { icon: '⧉', color: 'var(--danger)', title: 'Duplicado' }
-    if (linea.linea_incompleta) return { icon: '$', color: 'var(--warn)',   title: 'Incompleta' }
-    if (linea.alerta_legajo)   return { icon: '#', color: 'var(--warn)',   title: 'Legajo inválido' }
-    if (linea.alerta_empresa)  return { icon: '!', color: 'var(--info)',   title: 'Verificar empresa' }
+    if (linea.es_duplicado)     return { label: 'DUPLICADO', badge: 'badge-danger' }
+    if (linea.linea_incompleta) return { label: 'INCOMPLETA', badge: 'badge-warn' }
+    if (linea.alerta_legajo)    return { label: 'LEGAJO', badge: 'badge-warn' }
+    if (linea.alerta_empresa)   return { label: 'EMPRESA', badge: 'badge-info' }
     return null
   }
 
@@ -440,24 +440,12 @@ export default function Revision() {
       {/* Banners */}
       <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         {stats?.incompletas > 0 && (
-          <div style={{
-            background: 'var(--warn-dim)', borderBottom: '1px solid rgba(232,168,74,0.3)',
-            padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 12,
-            fontSize: 12, color: 'var(--warn)',
-          }}>
-            <span>⚠</span>
-            <span><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</span>
-            <button
-              onClick={() => navigate('/conceptos')}
-              style={{
-                marginLeft: 'auto', background: 'var(--warn)', border: 'none',
-                color: 'var(--bg-base)', cursor: 'pointer', fontSize: 11,
-                fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)',
-              }}
-            >
-              Ir a Conceptos →
-            </button>
-          </div>
+          <AlertasBanner
+            mensaje={<><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</>}
+            ctaLabel="Ir a Conceptos →"
+            ctaSubrayada={false}
+            onFiltrar={() => navigate('/conceptos')}
+          />
         )}
         {stats?.lineas_con_alerta > 0 && stats?.incompletas === 0 && (
           <AlertasBanner
@@ -518,9 +506,9 @@ export default function Revision() {
                         ? { outline: '1px solid var(--accent)', outlineOffset: '-1px' }
                         : {}}
                     >
-                      <td style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <td>
                         {(() => { const a = iconoAlerta(linea); return a ? (
-                          <span title={a.title} style={{ fontSize: 10, color: a.color, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{a.icon}</span>
+                          <span className={`badge ${a.badge}`}>{a.label}</span>
                         ) : null })()}
                       </td>
                       <td className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
@@ -549,10 +537,11 @@ export default function Revision() {
                       <td className="mono" style={{ fontWeight: 500 }}>
                         {linea.importe_total ? `$${Number(linea.importe_total).toLocaleString('es-AR')}` : '—'}
                       </td>
-                      <td>
+                      <td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {linea.conceptos?.length > 0
                           ? <span className="badge badge-info">+{linea.conceptos.length}</span>
                           : '—'}
+                        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 12 }} aria-hidden="true">›</span>
                       </td>
                     </tr>
                   ))}

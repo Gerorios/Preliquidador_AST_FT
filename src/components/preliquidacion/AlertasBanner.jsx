@@ -1,4 +1,7 @@
-export default function AlertasBanner({ total, incompletas, duplicados, alertaLegajo, onFiltrar }) {
+export default function AlertasBanner({
+  total, incompletas, duplicados, alertaLegajo, onFiltrar,
+  mensaje, ctaLabel = 'Ver solo alertas →', ctaSubrayada = true,
+}) {
   return (
     <div style={{
       background: 'var(--warn-dim)',
@@ -13,25 +16,23 @@ export default function AlertasBanner({ total, incompletas, duplicados, alertaLe
     }}>
       <span>⚠</span>
       <span>
-        <strong>{total} alertas sin resolver:</strong>
-        {incompletas > 0 && ` ${incompletas} incompletas`}
-        {duplicados > 0 && ` · ${duplicados} duplicados`}
-        {alertaLegajo > 0 && ` · ${alertaLegajo} legajos`}
+        {mensaje ?? (
+          <>
+            <strong>{total} alertas sin resolver:</strong>
+            {incompletas > 0 && ` ${incompletas} incompletas`}
+            {duplicados > 0 && ` · ${duplicados} duplicados`}
+            {alertaLegajo > 0 && ` · ${alertaLegajo} legajos`}
+          </>
+        )}
       </span>
       <button
         onClick={onFiltrar}
-        style={{
-          marginLeft: 'auto',
-          background: 'none',
-          border: 'none',
-          color: 'var(--warn)',
-          cursor: 'pointer',
-          fontSize: 11,
-          textDecoration: 'underline',
-          padding: 0,
-        }}
+        style={ctaSubrayada
+          ? { marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--warn)', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', padding: 0 }
+          : { marginLeft: 'auto', background: 'var(--warn)', border: 'none', color: 'var(--bg-base)', cursor: 'pointer', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)' }
+        }
       >
-        Ver solo alertas →
+        {ctaLabel}
       </button>
     </div>
   )
