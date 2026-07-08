@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
-import ActivityBar from './ActivityBar'
+import CargandoOverlay from './CargandoOverlay'
 import styles from './Layout.module.css'
 
 const NAV = [
@@ -23,7 +23,7 @@ export default function Layout() {
 
   return (
     <div className={`${styles.shell} ${colapsado ? styles.shellCollapsed : ''}`}>
-      <ActivityBar />
+      <CargandoOverlay />
       <aside className={`${styles.sidebar} ${colapsado ? styles.collapsed : ''}`}>
         <div className={styles.brand}>
           <span className={styles.brandMark}>▲</span>

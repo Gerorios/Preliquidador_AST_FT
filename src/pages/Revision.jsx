@@ -12,6 +12,7 @@ import {
 import PanelLinea from '../components/preliquidacion/PanelLinea'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import AlertasBanner from '../components/preliquidacion/AlertasBanner'
+import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Revision.module.css'
 
 function fmt(v) {
@@ -485,7 +486,7 @@ export default function Revision() {
           />
 
           {isLoading ? (
-            <div className={styles.loading}><span className="spinner" /> Cargando líneas...</div>
+            <CargandoContenido texto="Cargando líneas…" />
           ) : (
             <div className="table-wrap" style={{ flex: 1, overflow: 'auto' }}>
               <table>

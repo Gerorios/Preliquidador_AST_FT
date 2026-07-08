@@ -6,6 +6,7 @@ import {
   copiarConceptos, listarQuincenasConConceptos, listarConceptosFaltantes,
   listarTareas, listarClientes, listarFincas,
 } from '../services/preliquidacion'
+import CargandoContenido from '../components/layout/CargandoContenido'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -502,11 +503,7 @@ export default function Conceptos() {
 
           {/* Lista colapsable */}
           <div style={s.list}>
-            {isLoading && (
-              <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)' }}>
-                <span className="spinner" /> Cargando...
-              </div>
-            )}
+            {isLoading && <CargandoContenido texto="Cargando conceptos…" />}
             {!isLoading && cantGrupos === 0 && (
               <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
                 No hay conceptos {tab === 1 ? 'comunes' : 'específicos'} para esta quincena.

@@ -4,6 +4,7 @@ import {
   listarLineas, listarPreliquidaciones,
 } from '../services/preliquidacion'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
+import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Verificacion.module.css'
 
 const SECCIONES = [
@@ -212,7 +213,7 @@ export default function Verificacion() {
           </div>
 
           {isLoading ? (
-            <div className={styles.loading}><span className="spinner" /> Cargando líneas...</div>
+            <CargandoContenido texto="Cargando líneas…" />
           ) : (
             <div className={styles.content}>
               {seccion === 'horas'         && <ListaExceso titulo="Empleados con más de 13 horas jornal en un mismo día" items={excesoHorasF} unidad="hs" expandido={expandido} setExpandido={setExpandido} />}

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { listarPreliquidaciones, generarPreliquidacion } from '../services/preliquidacion'
+import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Dashboard.module.css'
 
 const QUINCENAS = () => {
@@ -84,7 +85,7 @@ export default function Dashboard() {
       <div className={styles.tableSection}>
         <div className={styles.sectionTitle}>HISTORIAL</div>
         {isLoading ? (
-          <div className={styles.loading}><span className="spinner" /> Cargando...</div>
+          <CargandoContenido texto="Cargando preliquidaciones…" />
         ) : preliquidaciones.length === 0 ? (
           <div className={styles.empty}>No hay preliquidaciones aún.</div>
         ) : (
