@@ -1,28 +1,22 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   listarConceptos, crearConcepto, actualizarConcepto, eliminarConcepto2,
   copiarConceptos, listarQuincenasConConceptos, listarConceptosFaltantes,
-  listarTareas, listarClientes, listarFincas,
+  listarTareas, listarClientes, listarFincas, listarPreliquidaciones,
 } from '../services/preliquidacion'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Conceptos.module.css'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const QUINCENAS_RAPIDAS = () => {
-  const hoy = new Date()
-  const opts = []
-  for (let m = 0; m < 4; m++) {
-    const d = new Date(hoy.getFullYear(), hoy.getMonth() - m, 1)
-    const y = d.getFullYear()
-    const mo = String(d.getMonth() + 1).padStart(2, '0')
-    const mes = d.toLocaleString('es-AR', { month: 'short' }).toUpperCase()
-    opts.push({ label: `1ra ${mes} ${y}`, value: `${y}-${mo}-01` })
-    opts.push({ label: `2da ${mes} ${y}`, value: `${y}-${mo}-16` })
-  }
-  return opts
+// Convierte una fecha ISO (YYYY-MM-DD) de quincena en el label amigable
+// "1ra MAY 2026" / "2da MAY 2026" (día 1-15 = 1ra, 16+ = 2da).
+const formatQuincenaLabel = (fechaISO) => {
+  const [y, m, d] = fechaISO.split('-').map(Number)
+  const mes = new Date(y, m - 1, 1).toLocaleString('es-AR', { month: 'short' }).toUpperCase()
+  return `${d <= 15 ? '1ra' : '2da'} ${mes} ${y}`
 }
 
 const UNIDADES = [
@@ -209,12 +203,108 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
   )
 }
 
+// ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
+
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
+  const [abierta, setAbierta] = useState(false)
+  const [scope, setScope] = useState('especifico') // 'especifico' | 'comun'
+  const [form, setForm] = useState(EMPTY_REGLA)
+
+  const cantidadConMismaTarea = useMemo(
+    () => todasFaltantes.filter(x => x.tarea_nombre === f.tarea_nombre).length,
+    [todasFaltantes, f.tarea_nombre]
+  )
+
+  const handleGuardar = () => {
+    if (!form.codigo) { toast.error('Ingresá un código'); return }
+    mutCrear({
+      quincena,
+      tarea_nombre:   f.tarea_nombre,
+      cliente_nombre: scope === 'comun' ? null : f.cliente_nombre,
+      finca_nombre:   scope === 'comun' ? null : f.finca_nombre,
+      codigo:      parseInt(form.codigo),
+      unidad_base: form.unidad_base,
+      precio:      form.precio !== '' ? parseFloat(form.precio) : null,
+      tipo:        form.tipo,
+    })
+    setForm(EMPTY_REGLA)
+    setAbierta(false)
+  }
+
+  return (
+    <>
+      <tr className={styles.faltanteRow} onClick={() => setAbierta(o => !o)}>
+        <td>
+          <span className={styles.faltanteChevron}>{abierta ? '▲' : '▼'}</span>
+          {f.tarea_nombre}
+        </td>
+        <td>{f.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
+        <td>{f.finca_nombre || '—'}</td>
+      </tr>
+      {abierta && (
+        <tr className={styles.faltanteExpandRow}>
+          <td colSpan={3}>
+            <div className={styles.faltanteExpand}>
+              <div className={styles.faltanteTareaFija}>{f.tarea_nombre}</div>
+
+              <div className={styles.scopeChoice}>
+                <label className={styles.radioLabel}>
+                  <input type="radio" name={`faltante-scope-${idx}`} checked={scope === 'especifico'}
+                    onChange={() => setScope('especifico')} />
+                  Específico — {f.cliente_nombre}{f.finca_nombre ? ` / ${f.finca_nombre}` : ''}
+                </label>
+                <label className={styles.radioLabel}>
+                  <input type="radio" name={`faltante-scope-${idx}`} checked={scope === 'comun'}
+                    onChange={() => setScope('comun')} />
+                  Común
+                  {cantidadConMismaTarea > 1 && (
+                    <span className={styles.textoMuted}> — Afecta a {cantidadConMismaTarea} casos con esta tarea</span>
+                  )}
+                </label>
+              </div>
+
+              <div className={styles.reglaRow}>
+                <div><div className="field-label">Código</div>
+                  <input className="input input-mono" type="number" style={{ width: 90 }} placeholder="—"
+                    value={form.codigo}
+                    onChange={e => setForm(fo => ({ ...fo, codigo: e.target.value }))} />
+                </div>
+                <div><div className="field-label">Unidad</div>
+                  <select className="input" style={{ width: 150 }} value={form.unidad_base}
+                    onChange={e => setForm(fo => ({ ...fo, unidad_base: e.target.value }))}>
+                    {UNIDADES.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                  </select>
+                </div>
+                <div><div className="field-label">Precio</div>
+                  <input className="input input-mono" type="number" style={{ width: 120 }} placeholder="$0"
+                    value={form.precio}
+                    onChange={e => setForm(fo => ({ ...fo, precio: e.target.value }))} />
+                </div>
+                <div><div className="field-label">Tipo</div>
+                  <select className="input" style={{ width: 150 }} value={form.tipo}
+                    onChange={e => setForm(fo => ({ ...fo, tipo: e.target.value }))}>
+                    {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}
+                  onClick={handleGuardar}>
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function Conceptos() {
   const qc = useQueryClient()
   const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=específicos
-  const [quincena, setQuincena] = useState(QUINCENAS_RAPIDAS()[0].value)
+  const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
   const [busqueda, setBusqueda] = useState('')
@@ -226,6 +316,32 @@ export default function Conceptos() {
   })
 
   const scope = tab === 1 ? 'comun' : 'especifico'
+
+  const { data: preliquidaciones = [] } = useQuery({
+    queryKey: ['preliquidaciones-generadas'],
+    queryFn: listarPreliquidaciones,
+  })
+
+  // Quincenas realmente generadas (deduplicadas, más reciente primero).
+  const quincenasGeneradas = useMemo(() => {
+    const vistas = new Set()
+    const lista = []
+    for (const p of preliquidaciones) {
+      if (!vistas.has(p.quincena)) {
+        vistas.add(p.quincena)
+        lista.push({ value: p.quincena, label: formatQuincenaLabel(p.quincena) })
+      }
+    }
+    lista.sort((a, b) => b.value.localeCompare(a.value))
+    return lista
+  }, [preliquidaciones])
+
+  // Arranca en la quincena generada más reciente apenas llega la data.
+  useEffect(() => {
+    if (!quincena && quincenasGeneradas.length > 0) {
+      setQuincena(quincenasGeneradas[0].value)
+    }
+  }, [quincena, quincenasGeneradas])
 
   const { data: faltantes = [] } = useQuery({
     queryKey: ['conceptos-faltantes', quincena],
@@ -347,8 +463,11 @@ export default function Conceptos() {
         <span className={styles.title}>Maestro de Conceptos y Precios</span>
         <select className="input" value={quincena}
           onChange={e => { setQuincena(e.target.value); setMostrarCopiar(false) }}
-          style={{ width: 200 }}>
-          {QUINCENAS_RAPIDAS().map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          style={{ width: 200 }}
+          disabled={quincenasGeneradas.length === 0}>
+          {quincenasGeneradas.length === 0
+            ? <option value="">— Sin quincenas generadas —</option>
+            : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         {tab !== 0 && (
           <button className="btn btn-sm" onClick={() => setMostrarCopiar(o => !o)}>
@@ -405,11 +524,14 @@ export default function Conceptos() {
                 </thead>
                 <tbody>
                   {faltantes.map((f, i) => (
-                    <tr key={i}>
-                      <td>{f.tarea_nombre}</td>
-                      <td>{f.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
-                      <td>{f.finca_nombre || '—'}</td>
-                    </tr>
+                    <FilaFaltante
+                      key={i}
+                      idx={i}
+                      f={f}
+                      quincena={quincena}
+                      todasFaltantes={faltantes}
+                      mutCrear={mutCrear}
+                    />
                   ))}
                 </tbody>
               </table>
