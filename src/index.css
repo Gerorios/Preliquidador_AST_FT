@@ -10,7 +10,7 @@
 
   --text-primary:  #f0ece2;
   --text-secondary:#b5a999;
-  --text-muted:    #6e6256;
+  --text-muted:    #8f816f; /* WCAG AA (>=4.5:1) contra bg-base y bg-surface */
 
   /* Verde del logo como acento principal */
   --accent:        #6D8B46;
@@ -39,6 +39,9 @@
   --radius:        5px;
   --radius-lg:     8px;
 
+  /* Click-target de controles (checkbox/radio) */
+  --control-size:  18px;
+
   /* Sidebar */
   --sidebar-w:     220px;
   --sidebar-w-collapsed: 56px;
@@ -52,7 +55,7 @@ html, body, #root {
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -140,9 +143,9 @@ select.input {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 7px;
+  padding: 3px 8px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
@@ -159,7 +162,7 @@ select.input {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
 }
 thead th {
   position: sticky;
@@ -169,7 +172,7 @@ thead th {
   padding: 7px 10px;
   text-align: left;
   font-weight: 500;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-strong);
   letter-spacing: 0.3px;
@@ -185,7 +188,7 @@ tbody tr.selected { background: var(--accent-glow); }
 tbody tr.alerta td:first-child { border-left: 2px solid var(--warn); }
 tbody tr.duplicado td:first-child { border-left: 2px solid var(--danger); }
 td {
-  padding: 6px 10px;
+  padding: 9px 10px;
   color: var(--text-primary);
   white-space: nowrap;
   vertical-align: middle;
@@ -208,7 +211,7 @@ td {
 
 /* Label */
 .field-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.6px;
   text-transform: uppercase;
