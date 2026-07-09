@@ -40,9 +40,6 @@ export const eliminarConcepto = (conceptoId) =>
 export const agregarConceptoPorCodigo = (lineaId, codigo) =>
   api.post(`/preliquidacion/linea/${lineaId}/conceptos/por-codigo`, { codigo }).then(r => r.data)
 
-export const aplicarConceptos = (preliqId) =>
-  api.post(`/preliquidacion/${preliqId}/aplicar-conceptos`).then(r => r.data)
-
 export const agregarConceptoMasivo = (lineaIds, codigo) =>
   api.post('/preliquidacion/lineas/concepto-masivo', { linea_ids: lineaIds, codigo }).then(r => r.data)
 
@@ -100,6 +97,3 @@ export const listarConceptosFaltantes = (quincena) =>
 
 export const buscarConceptosParaCombo = (q, quincena) =>
   api.get('/precios/conceptos/buscar', { params: { q, quincena } }).then(r => r.data)
-
-export const aplicar = (preliqId) =>
-  api.post(`/preliquidacion/${preliqId}/aplicar`).then(r => r.data)

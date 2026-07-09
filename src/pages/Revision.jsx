@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import {
   listarLineas, obtenerEstadisticas,
   actualizarLinea, eliminarConcepto,
-  listarPreliquidaciones, aplicar,
+  listarPreliquidaciones,
   buscarConceptosParaCombo, agregarConceptoMasivo, eliminarConceptoMasivo,
   legajosPorCuil, reasignarEmpresaMasivo,
 } from '../services/preliquidacion'
@@ -366,15 +366,6 @@ export default function Revision() {
     qc.invalidateQueries(['stats', id])
   }
 
-  const { mutate: aplicarTodo, isPending: aplicandoTodo } = useMutation({
-    mutationFn: () => aplicar(id),
-    onSuccess: async (data) => {
-      toast.success(data.detalle || 'Precios y conceptos aplicados')
-      await refrescarYSincronizarPanel()
-    },
-    onError: (err) => toast.error(err.message),
-  })
-
   const { mutate: guardar, isPending: guardando } = useMutation({
     mutationFn: ({ lineaId, datos }) => actualizarLinea(lineaId, datos),
     onSuccess: async (data) => {
@@ -430,9 +421,6 @@ export default function Revision() {
         </div>
         <button className="btn btn-sm" onClick={() => { setModoLiquidacion(m => !m); setLineaSeleccionada(null) }}>
           {modoLiquidacion ? '← Volver a tabla' : '⊞ Liquidación masiva'}
-        </button>
-        <button className="btn btn-sm" onClick={() => aplicarTodo()} disabled={aplicandoTodo || modoLiquidacion}>
-          {aplicandoTodo ? <><span className="spinner" /> Aplicando...</> : '↻ Aplicar'}
         </button>
         <button className="btn btn-primary btn-sm">↓ Exportar Excel</button>
       </div>
