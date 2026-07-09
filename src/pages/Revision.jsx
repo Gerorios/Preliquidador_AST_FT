@@ -138,18 +138,18 @@ function LiquidacionPersona({ lineas, onCambio }) {
   }
 
   const liqStyles = {
-    wrap:      { padding: '0 16px 16px', overflow: 'auto', flex: 1 },
-    lista:     { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 },
+    wrap:      { padding: '0 16px 16px', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
+    lista:     { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, flex: 1, overflow: 'auto', minHeight: 0 },
     card:      { border: '1px solid var(--border)', borderRadius: 6, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', background: 'var(--bg-surface)' },
     nombre:    { fontWeight: 600, fontSize: 13 },
     sub:       { fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 },
-    acciones:  { background: 'var(--accent-glow)', border: '1px solid var(--accent-dim)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+    acciones:  { background: 'var(--accent-glow)', border: '1px solid var(--accent-dim)', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', flexShrink: 0 },
   }
 
   if (!personaSeleccionada) {
     return (
       <div style={liqStyles.wrap}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexShrink: 0 }}>
           <span style={{ fontWeight: 600, fontSize: 13 }}>Liquidación masiva — seleccioná un empleado</span>
           <input
             className="input"
@@ -185,7 +185,7 @@ function LiquidacionPersona({ lineas, onCambio }) {
 
   return (
     <div style={liqStyles.wrap}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap', flexShrink: 0 }}>
         <button className="btn btn-sm" onClick={() => { setPersonaSeleccionada(null); setSeleccionadas(new Set()) }}>← Volver</button>
         <span style={liqStyles.nombre}>{persona.nombre_empleado}</span>
         <span style={liqStyles.sub}>legajo {persona.legajo}</span>
@@ -267,7 +267,7 @@ function LiquidacionPersona({ lineas, onCambio }) {
         </div>
       )}
 
-      <div className="table-wrap" style={{ maxHeight: 'calc(100vh - 320px)', overflow: 'auto' }}>
+      <div className="table-wrap" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         <table>
           <thead>
             <tr>
