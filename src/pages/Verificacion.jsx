@@ -293,8 +293,8 @@ function ResumenEmpleados({ items, expandido, setExpandido }) {
                       </div>
                       {l.conceptos.length > 0 && (
                         <div className={styles.conceptosDia}>
-                          {l.conceptos.map((c, i) => (
-                            <span key={i} className="badge badge-muted mono">
+                          {l.conceptos.map(c => (
+                            <span key={c.id} className="badge badge-muted mono">
                               {c.codigo_concepto === null || c.codigo_concepto === undefined
                                 ? `Manual — $${Number(c.importe || 0).toLocaleString('es-AR')}`
                                 : `Cód. ${c.codigo_concepto} — $${Number(c.importe || 0).toLocaleString('es-AR')}`}
