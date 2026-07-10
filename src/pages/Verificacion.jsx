@@ -1,18 +1,20 @@
-import { useState, useMemo, Fragment } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useMemo, useEffect, Fragment } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
+  obtenerControlTancadasJornal, setValorHoraPulv,
 } from '../services/preliquidacion'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Verificacion.module.css'
 
 const SECCIONES = [
-  { key: 'horas',         label: '⏱ Horas excedidas',      umbral: '> 13 hs/día' },
-  { key: 'tancadas',      label: '📦 Tancadas excedidas',   umbral: '> 35/día' },
-  { key: 'plantas',       label: '🌱 Plantas excedidas',    umbral: '> 6.000/día' },
-  { key: 'empleados',     label: '👤 Resumen por empleado', umbral: 'importe · días · $/día' },
-  { key: 'plantas-jornal',label: '📊 Plantas vs Jornal',    umbral: 'rendimiento por tarea' },
+  { key: 'horas',          label: '⏱ Horas excedidas',      umbral: '> 13 hs/día' },
+  { key: 'tancadas',       label: '📦 Tancadas excedidas',   umbral: '> 35/día' },
+  { key: 'plantas',        label: '🌱 Plantas excedidas',    umbral: '> 6.000/día' },
+  { key: 'empleados',      label: '👤 Resumen por empleado', umbral: 'importe · días · $/día' },
+  { key: 'plantas-jornal', label: '📊 Plantas vs Jornal',    umbral: 'rendimiento por tarea' },
+  { key: 'tancadas-jornal',label: '📊 Tancadas vs Jornal',   umbral: 'tancada vs jornal' },
 ]
 
 const UMBRAL_PROM_JORNAL_ALTO = 50000
@@ -119,6 +121,17 @@ export default function Verificacion() {
     enabled: !!preliqId && seccion === 'plantas-jornal',
   })
 
+  const queryClient = useQueryClient()
+  const { data: tancadasJornal = { filas: [], totales: {}, valor_hora_pulv: null } } = useQuery({
+    queryKey: ['control-tancadas-jornal', preliqId],
+    queryFn: () => obtenerControlTancadasJornal(preliqId),
+    enabled: !!preliqId && seccion === 'tancadas-jornal',
+  })
+  const guardarValorHora = useMutation({
+    mutationFn: (valor) => setValorHoraPulv(preliqId, valor),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['control-tancadas-jornal', preliqId] }),
+  })
+
   const filtrarBusqueda = (lista) => {
     if (!busqueda) return lista
     const q = busqueda.toLowerCase()
@@ -178,6 +191,7 @@ export default function Verificacion() {
                 plantas:        excesoPlantasF.length,
                 empleados:      resumenEmpleados.length,
                 'plantas-jornal': null,
+                'tancadas-jornal': null,
               }[s.key]
               return (
                 <button
@@ -204,6 +218,7 @@ export default function Verificacion() {
               {seccion === 'plantas'       && <ListaExceso titulo="Empleados con más de 6.000 plantas en un mismo día" items={excesoPlantasF} unidad="plantas" expandido={expandido} setExpandido={setExpandido} />}
               {seccion === 'empleados'     && <ResumenEmpleados items={resumenEmpleados} expandido={expandido} setExpandido={setExpandido} />}
               {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} />}
+              {seccion === 'tancadas-jornal'&& <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} />}
             </div>
           )}
         </>
@@ -358,6 +373,97 @@ function PlantasJornal({ data }) {
           )}
         </table>
       </div>
+    </div>
+  )
+}
+
+function TancadasJornal({ data, onGuardar, guardando }) {
+  const filas = data?.filas || []
+  const totales = data?.totales
+  const valorHora = data?.valor_hora_pulv ?? null
+
+  const [input, setInput] = useState(valorHora == null ? '' : String(valorHora))
+  // Re-sincroniza el input cuando llega/cambia el valor del backend (ej. al
+  // cambiar de quincena o tras guardar).
+  useEffect(() => { setInput(valorHora == null ? '' : String(valorHora)) }, [valorHora])
+
+  const guardar = () => {
+    const t = input.trim()
+    onGuardar(t === '' ? null : Number(t))
+  }
+
+  const fmt = (n) => n == null ? '—' : n.toLocaleString('es-AR', { maximumFractionDigits: 2 })
+  const fmtMoney = (n) => n == null ? '—' : `$${n.toLocaleString('es-AR')}`
+  // DIFF viene como ratio crudo; se muestra en %. Positivo = tancada más caro.
+  const fmtPct = (d) => d == null ? '—' : `${d > 0 ? '+' : ''}${(d * 100).toLocaleString('es-AR', { maximumFractionDigits: 1 })}%`
+
+  return (
+    <div>
+      <div className={styles.seccionTitulo}>Control pago — Tancadas vs Jornal · {filas.length} combinaciones cliente/finca/tarea</div>
+
+      <div className={styles.vhpBar}>
+        <label className={styles.vhpLabel}>Valor hora pulverización</label>
+        <input
+          className="input"
+          type="number"
+          step="0.01"
+          style={{ width: 160 }}
+          placeholder="sin cargar"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') guardar() }}
+        />
+        <button className="btn btn-primary btn-sm" onClick={guardar} disabled={guardando}>
+          {guardando ? 'Guardando…' : 'Guardar'}
+        </button>
+        {valorHora == null && (
+          <span className={styles.vhpAviso}>Cargá el valor hora para ver la comparación a jornal.</span>
+        )}
+      </div>
+
+      {filas.length === 0 ? (
+        <div className={styles.empty}>No hay líneas pagadas por tancada en esta quincena.</div>
+      ) : (
+        <div className={styles.pjTableWrap}>
+          <table className={styles.pjTable}>
+            <thead>
+              <tr>
+                <th>Cliente</th><th>Finca</th><th>Tarea</th>
+                <th className="mono">Tancadas</th><th className="mono">Hs jornal</th><th className="mono">Hs máquina</th>
+                <th className="mono">Valor s/jornal</th><th className="mono">Precio</th><th className="mono">Valor s/tancada</th><th className="mono">Diff</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f, i) => (
+                <tr key={i}>
+                  <td>{f.nombre_cliente}</td><td>{f.nombre_finca}</td><td>{f.nombre_tarea}</td>
+                  <td className="mono">{fmt(f.tancadas)}</td>
+                  <td className="mono">{fmt(f.hsjornal)}</td>
+                  <td className="mono">{fmt(f.hsmaquina)}</td>
+                  <td className="mono">{fmtMoney(f.valor_jornal)}</td>
+                  <td className="mono">{fmt(f.precio)}</td>
+                  <td className="mono">{fmtMoney(f.valor_tancada)}</td>
+                  <td className={`mono ${f.diff != null && f.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(f.diff)}</td>
+                </tr>
+              ))}
+            </tbody>
+            {totales && (
+              <tfoot>
+                <tr className={styles.pjTotalRow}>
+                  <td colSpan={3}>Total</td>
+                  <td className="mono">{fmt(totales.tancadas)}</td>
+                  <td className="mono">{fmt(totales.hsjornal)}</td>
+                  <td className="mono">{fmt(totales.hsmaquina)}</td>
+                  <td className="mono">{fmtMoney(totales.valor_jornal)}</td>
+                  <td className="mono">{fmt(totales.precio)}</td>
+                  <td className="mono">{fmtMoney(totales.valor_tancada)}</td>
+                  <td className={`mono ${totales.diff != null && totales.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(totales.diff)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      )}
     </div>
   )
 }

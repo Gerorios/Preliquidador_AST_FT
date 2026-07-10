@@ -307,3 +307,25 @@
   border-bottom: none;
   color: var(--text-primary);
 }
+
+.vhpBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.vhpLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.vhpAviso {
+  font-size: 12px;
+  color: var(--warn);
+}
