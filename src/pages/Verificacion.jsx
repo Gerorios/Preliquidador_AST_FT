@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  listarLineas, listarPreliquidaciones,
+  listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
 } from '../services/preliquidacion'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import CargandoContenido from '../components/layout/CargandoContenido'
@@ -77,32 +77,6 @@ function calcularResumenEmpleados(lineas) {
   }).sort((a,b) => b.importe_total - a.importe_total)
 }
 
-function calcularPlantasJornal(lineas) {
-  const grupos = {}
-  for (const l of lineas.filter(l => (l.grupo_pago_aplicado||'').trim().toUpperCase() === 'PLANTA')) {
-    const clave = `${l.nombre_cliente||''}__${l.nombre_finca||''}__${l.nombre_tarea||''}`
-    if (!grupos[clave]) grupos[clave] = { nombre_cliente: l.nombre_cliente, nombre_finca: l.nombre_finca, nombre_tarea: l.nombre_tarea, sumaPrecio: 0, cantidadPrecios: 0, unidades: 0, hs: 0 }
-    const g = grupos[clave]
-    if (l.precio_a != null) { g.sumaPrecio += Number(l.precio_a); g.cantidadPrecios++ }
-    g.unidades += Number(l.unidades || 0)
-    g.hs += Number(l.hsmaquina || 0)
-  }
-  const filas = Object.values(grupos).map(g => {
-    const p = g.cantidadPrecios ? g.sumaPrecio / g.cantidadPrecios : 0
-    const phsm = g.hs ? g.unidades / g.hs : 0
-    return {
-      nombre_cliente: g.nombre_cliente, nombre_finca: g.nombre_finca, nombre_tarea: g.nombre_tarea,
-      precio_promedio: Math.round(p*100)/100, unidades: Math.round(g.unidades*100)/100, hs: Math.round(g.hs*100)/100,
-      plantas_por_hsm: Math.round(phsm*100)/100, plantas_por_hsm_x8: Math.round(phsm*8*100)/100,
-      prom_jornal: Math.round(phsm*8*p*100)/100,
-    }
-  }).sort((a,b) => (a.nombre_cliente||'').localeCompare(b.nombre_cliente||'') || (a.nombre_finca||'').localeCompare(b.nombre_finca||''))
-  const tu = filas.reduce((s,f) => s+f.unidades, 0), th = filas.reduce((s,f) => s+f.hs, 0)
-  const tp = filas.length ? filas.reduce((s,f) => s+f.precio_promedio, 0)/filas.length : 0
-  const tphsm = th ? tu/th : 0
-  return { filas, totales: { unidades: Math.round(tu*100)/100, hs: Math.round(th*100)/100, precio_promedio: Math.round(tp*100)/100, plantas_por_hsm: Math.round(tphsm*100)/100, plantas_por_hsm_x8: Math.round(tphsm*8*100)/100, prom_jornal: Math.round(tphsm*8*tp*100)/100 } }
-}
-
 export default function Verificacion() {
   const [preliqId, setPreliqId] = useState(null)
   const [seccion, setSeccion] = useState('horas')
@@ -134,7 +108,15 @@ export default function Verificacion() {
 
   const { excesoHoras, excesoTancadas, excesoPlantas } = useMemo(() => calcularExcesos(lineasFiltradas), [lineasFiltradas])
   const resumenEmpleadosCompleto = useMemo(() => calcularResumenEmpleados(lineasFiltradas), [lineasFiltradas])
-  const plantasJornal = useMemo(() => calcularPlantasJornal(lineasFiltradas), [lineasFiltradas])
+
+  // El precio por planta sale del maestro de conceptos (backend), no de un
+  // campo local — precio_a quedó vacío desde WS1 (modelo viejo, sin reemplazo
+  // en el frontend). El backend ya tenía el cálculo correcto expuesto.
+  const { data: plantasJornal = { filas: [], totales: {} } } = useQuery({
+    queryKey: ['control-plantas-jornal', preliqId],
+    queryFn: () => obtenerControlPlantasJornal(preliqId),
+    enabled: !!preliqId && seccion === 'plantas-jornal',
+  })
 
   const filtrarBusqueda = (lista) => {
     if (!busqueda) return lista
