@@ -5,7 +5,7 @@ export default function AlertasBanner({
   return (
     <div style={{
       background: 'var(--warn-dim)',
-      borderBottom: '1px solid rgba(232,168,74,0.3)',
+      borderBottom: '1px solid rgba(150,96,15,0.35)',
       padding: '7px 16px',
       display: 'flex',
       alignItems: 'center',

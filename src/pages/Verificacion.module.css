@@ -291,7 +291,7 @@
 }
 
 .pjAlto {
-  background: rgba(195, 64, 58, 0.18);
+  background: rgba(192, 64, 56, 0.16);
   color: var(--danger);
   font-weight: 600;
   border-radius: var(--radius-sm);

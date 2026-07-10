@@ -7,8 +7,8 @@
 .sidebar {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -39,26 +39,27 @@
   align-items: center;
   gap: 10px;
   padding: 16px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--sidebar-border);
 }
 
 .brandMark {
-  font-size: 22px;
-  color: var(--accent);
-  line-height: 1;
+  width: 26px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .brandName {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 1.2px;
-  color: var(--text-primary);
+  color: var(--sidebar-text);
 }
 
 .brandSub {
   font-size: 9px;
   letter-spacing: 0.8px;
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
   font-family: var(--font-mono);
   margin-top: 1px;
 }
@@ -78,21 +79,21 @@
   padding: 8px 16px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--sidebar-text-secondary);
   text-decoration: none;
   border-left: 2px solid transparent;
   transition: all 0.12s;
 }
 
 .navItem:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
+  background: var(--sidebar-bg-elevated);
+  color: var(--sidebar-text);
 }
 
 .navItem.active {
-  color: var(--accent);
-  border-left-color: var(--accent);
-  background: var(--accent-glow);
+  color: var(--sidebar-accent);
+  border-left-color: var(--sidebar-accent);
+  background: var(--sidebar-accent-glow);
 }
 
 .navIcon {
@@ -104,20 +105,20 @@
 
 .sidebarFooter {
   padding: 12px 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--sidebar-border);
 }
 
 .versionTag {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
 }
 
 .collapseBtn {
   width: 100%;
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
   font-size: 11px;
   padding: 6px 0;
   cursor: pointer;
@@ -127,15 +128,15 @@
 }
 
 .collapseBtn:hover {
-  color: var(--text-primary);
+  color: var(--sidebar-text);
 }
 
 .logoutBtnIcon {
   width: 100%;
   background: none;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--sidebar-border);
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
   font-size: 14px;
   padding: 6px 0;
   cursor: pointer;
@@ -145,8 +146,8 @@
 }
 
 .logoutBtnIcon:hover {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--sidebar-danger);
+  border-color: var(--sidebar-danger);
 }
 
 .main {
@@ -157,14 +158,14 @@
 
 .userBox {
   padding: 10px 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--sidebar-border);
   margin-bottom: 8px;
 }
 
 .userName {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--sidebar-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -173,7 +174,7 @@
 .userRole {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
   margin-top: 1px;
   margin-bottom: 8px;
   text-transform: uppercase;
@@ -182,9 +183,9 @@
 
 .logoutBtn {
   background: none;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--sidebar-border);
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
   font-size: 11px;
   padding: 4px 8px;
   cursor: pointer;
@@ -194,6 +195,6 @@
 }
 
 .logoutBtn:hover {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--sidebar-danger);
+  border-color: var(--sidebar-danger);
 }

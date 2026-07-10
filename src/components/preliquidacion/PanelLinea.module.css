@@ -68,7 +68,7 @@
 
 .alertaBox {
   background: var(--warn-dim);
-  border: 1px solid rgba(232,168,74,0.3);
+  border: 1px solid rgba(150,96,15,0.35);
   border-radius: var(--radius);
   padding: 8px 10px;
   margin-bottom: 8px;

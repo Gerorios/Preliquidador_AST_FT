@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import useAuthStore from '../store/authStore'
+import logo from '../assets/logo-asturiana.png'
 import styles from './Login.module.css'
 
 export default function Login() {
@@ -42,8 +43,7 @@ export default function Login() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <div className={styles.brandMark}>▲</div>
-        <div className={styles.brandName}>LA ASTURIANA SRL</div>
+        <img src={logo} alt="La Asturiana SRL" className={styles.brandMark} />
         <div className={styles.brandSub}>SISTEMA DE PRELIQUIDACIÓN</div>
 
         <form className={styles.form} onSubmit={handleSubmit}>

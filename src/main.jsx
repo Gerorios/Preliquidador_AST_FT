@@ -25,16 +25,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           toastOptions={{
             duration: 3500,
             style: {
-              background: '#222520',
-              color: '#e8ead4',
-              border: '1px solid #3d4238',
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-strong)',
               fontFamily: 'IBM Plex Sans, sans-serif',
               fontSize: '13px',
               padding: '10px 16px',
-              boxShadow: '0 6px 20px rgba(0,0,0,0.45)',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
             },
-            success: { iconTheme: { primary: '#6D8B46', secondary: '#151210' } },
-            error: { duration: 5000, iconTheme: { primary: '#C3403A', secondary: '#151210' } },
+            success: { iconTheme: { primary: '#557032', secondary: '#faf8f5' } },
+            error: { duration: 5000, iconTheme: { primary: '#c04038', secondary: '#faf8f5' } },
           }}
         />
       </BrowserRouter>

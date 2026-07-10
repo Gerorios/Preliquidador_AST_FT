@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
 import CargandoOverlay from './CargandoOverlay'
+import logoIcono from '../../assets/logo-asturiana-icono.png'
 import styles from './Layout.module.css'
 
 const NAV = [
@@ -26,7 +27,7 @@ export default function Layout() {
       <CargandoOverlay />
       <aside className={`${styles.sidebar} ${colapsado ? styles.collapsed : ''}`}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}>▲</span>
+          <img src={logoIcono} alt="La Asturiana" className={styles.brandMark} />
           {!colapsado && (
             <div>
               <div className={styles.brandName}>LA ASTURIANA</div>

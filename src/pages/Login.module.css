@@ -21,18 +21,10 @@
 }
 
 .brandMark {
-  font-size: 32px;
-  color: var(--accent);
-  margin-bottom: 12px;
-  line-height: 1;
-}
-
-.brandName {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  margin-bottom: 14px;
 }
 
 .brandSub {
