@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
@@ -65,6 +65,7 @@ function calcularResumenEmpleados(lineas) {
       id: l.id, fecha_tarea: l.fecha_tarea, nombre_tarea: l.nombre_tarea,
       nombre_cliente: l.nombre_cliente, nombre_finca: l.nombre_finca,
       hsjornal: Number(l.hsjornal || 0), importe_total: Number(l.importe_total || 0),
+      conceptos: l.conceptos || [],
     })
   }
   return Object.values(porEmpleado).map(emp => {
@@ -282,13 +283,26 @@ function ResumenEmpleados({ items, expandido, setExpandido }) {
                 <div className={styles.cardBody}>
                   <div className={styles.lineasHeadEmpleado}><span>Fecha</span><span>Tarea</span><span>Cliente · Finca</span><span>Hs.jorn.</span><span>Importe</span></div>
                   {emp.lineas.map(l => (
-                    <div key={l.id} className={styles.lineaRowEmpleado}>
-                      <span className="mono">{l.fecha_tarea || '—'}</span>
-                      <span>{l.nombre_tarea}</span>
-                      <span className={styles.lineaMuted}>{l.nombre_cliente} · {l.nombre_finca}</span>
-                      <span className="mono">{l.hsjornal || '—'}</span>
-                      <span className="mono">${l.importe_total.toLocaleString('es-AR')}</span>
-                    </div>
+                    <Fragment key={l.id}>
+                      <div className={styles.lineaRowEmpleado}>
+                        <span className="mono">{l.fecha_tarea || '—'}</span>
+                        <span>{l.nombre_tarea}</span>
+                        <span className={styles.lineaMuted}>{l.nombre_cliente} · {l.nombre_finca}</span>
+                        <span className="mono">{l.hsjornal || '—'}</span>
+                        <span className="mono">${l.importe_total.toLocaleString('es-AR')}</span>
+                      </div>
+                      {l.conceptos.length > 0 && (
+                        <div className={styles.conceptosDia}>
+                          {l.conceptos.map((c, i) => (
+                            <span key={i} className="badge badge-muted mono">
+                              {c.codigo_concepto === null || c.codigo_concepto === undefined
+                                ? `Manual — $${Number(c.importe || 0).toLocaleString('es-AR')}`
+                                : `Cód. ${c.codigo_concepto} — $${Number(c.importe || 0).toLocaleString('es-AR')}`}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </Fragment>
                   ))}
                 </div>
               )}

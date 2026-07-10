@@ -213,6 +213,14 @@
   color: var(--text-muted);
 }
 
+.conceptosDia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 0 6px 0;
+  margin-top: -2px;
+}
+
 .resumenStats {
   display: flex;
   gap: 18px;
