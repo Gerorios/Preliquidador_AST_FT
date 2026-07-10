@@ -137,6 +137,19 @@ function LiquidacionPersona({ lineas, onCambio }) {
     setSeleccionadas(todasSel ? new Set() : new Set(todos))
   }
 
+  // Limpia todo el estado de acciones en curso (agregar concepto, reasignar
+  // empresa) al cambiar de persona — si no, un panel abierto sin confirmar
+  // (ej. "Reasignar empresa" sin elegir empresa) queda pegado y reaparece
+  // con los datos de la persona anterior al seleccionar otra.
+  const cambiarPersona = (legajo) => {
+    setPersonaSeleccionada(legajo)
+    setSeleccionadas(new Set())
+    setMostrarCombo(false)
+    setCodigoConcepto('')
+    setGruposCuil(null)
+    setEmpresaPorGrupo({})
+  }
+
   const liqStyles = {
     wrap:      { padding: '0 16px 16px', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 },
     lista:     { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, flex: 1, overflow: 'auto', minHeight: 0 },
@@ -162,7 +175,7 @@ function LiquidacionPersona({ lineas, onCambio }) {
         </div>
         <div style={liqStyles.lista}>
           {empleadosFiltrados.map(emp => (
-            <div key={emp.legajo} style={liqStyles.card} onClick={() => { setPersonaSeleccionada(emp.legajo); setSeleccionadas(new Set()) }}>
+            <div key={emp.legajo} style={liqStyles.card} onClick={() => cambiarPersona(emp.legajo)}>
               <div>
                 <span style={liqStyles.nombre}>{emp.nombre_empleado || '—'}</span>
                 <span style={liqStyles.sub}>legajo {emp.legajo || '—'}</span>
@@ -186,7 +199,7 @@ function LiquidacionPersona({ lineas, onCambio }) {
   return (
     <div style={liqStyles.wrap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap', flexShrink: 0 }}>
-        <button className="btn btn-sm" onClick={() => { setPersonaSeleccionada(null); setSeleccionadas(new Set()) }}>← Volver</button>
+        <button className="btn btn-sm" onClick={() => cambiarPersona(null)}>← Volver</button>
         <span style={liqStyles.nombre}>{persona.nombre_empleado}</span>
         <span style={liqStyles.sub}>legajo {persona.legajo}</span>
         <span className="badge badge-muted">{persona.empresa_asignada}</span>
