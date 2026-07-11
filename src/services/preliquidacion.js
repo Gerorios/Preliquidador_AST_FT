@@ -104,3 +104,36 @@ export const listarConceptosFaltantes = (quincena) =>
 
 export const buscarConceptosParaCombo = (q, quincena) =>
   api.get('/precios/conceptos/buscar', { params: { q, quincena } }).then(r => r.data)
+
+// ─── Categorías de operarios de mantenimiento ────────────────────────────────
+
+export const listarOperariosMantenimiento = (preliqId) =>
+  api.get(`/preliquidacion/${preliqId}/operarios-mantenimiento`).then(r => r.data)
+
+export const setCategoriaOperario = (preliqId, cuil, categoria) =>
+  api.put(`/preliquidacion/${preliqId}/categoria-operario`, { cuil, categoria }).then(r => r.data)
+
+export const heredarCategoriasOperario = (preliqId) =>
+  api.post(`/preliquidacion/${preliqId}/categorias-operario/heredar`).then(r => r.data)
+
+// ─── Exportación a Excel ──────────────────────────────────────────────────────
+// Descarga directa en el browser: pide el blob, arma un objectURL, dispara un
+// <a download> con el nombre de archivo del header (si viene) y limpia todo.
+export const exportarQuincenaExcel = async (preliqId) => {
+  const res = await api.get(`/preliquidacion/${preliqId}/export-excel`, { responseType: 'blob' })
+
+  const disposition = res.headers?.['content-disposition'] || ''
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)
+  const filename = match ? decodeURIComponent(match[1]) : 'preliquidacion.xlsx'
+
+  const url = window.URL.createObjectURL(new Blob([res.data]))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+
+  return { filename }
+}

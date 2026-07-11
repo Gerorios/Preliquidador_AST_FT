@@ -8,6 +8,7 @@ import {
   listarPreliquidaciones,
   buscarConceptosParaCombo, agregarConceptoMasivo, eliminarConceptoMasivo,
   legajosPorCuil, reasignarEmpresaMasivo,
+  exportarQuincenaExcel,
 } from '../services/preliquidacion'
 import PanelLinea from '../components/preliquidacion/PanelLinea'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
@@ -324,6 +325,7 @@ export default function Revision() {
   const [lineaSeleccionada, setLineaSeleccionada] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [modoLiquidacion, setModoLiquidacion] = useState(false)
+  const [exportando, setExportando] = useState(false)
 
   const { data: preliqData } = useQuery({
     queryKey: ['preliq', id],
@@ -403,6 +405,19 @@ export default function Revision() {
     onError: (err) => toast.error(err.message),
   })
 
+  const handleExportarExcel = async () => {
+    if (!id) return
+    setExportando(true)
+    try {
+      await exportarQuincenaExcel(id)
+    } catch (err) {
+      console.error(err)
+      toast.error('No se pudo exportar el Excel')
+    } finally {
+      setExportando(false)
+    }
+  }
+
   const claseLinea = (linea) => {
     if (linea.es_duplicado) return 'duplicado'
     if (linea.linea_incompleta) return 'alerta'
@@ -435,7 +450,9 @@ export default function Revision() {
         <button className="btn btn-sm" onClick={() => { setModoLiquidacion(m => !m); setLineaSeleccionada(null) }}>
           {modoLiquidacion ? '← Volver a tabla' : '⊞ Liquidación masiva'}
         </button>
-        <button className="btn btn-primary btn-sm">↓ Exportar Excel</button>
+        <button className="btn btn-primary btn-sm" onClick={handleExportarExcel} disabled={!id || exportando}>
+          {exportando ? 'Exportando…' : '↓ Exportar Excel'}
+        </button>
       </div>
 
       {/* Banners */}

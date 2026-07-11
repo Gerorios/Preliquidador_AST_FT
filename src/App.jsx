@@ -7,6 +7,7 @@ import Revision from './pages/Revision'
 import Verificacion from './pages/Verificacion'
 import Conceptos from './pages/Conceptos'
 import Historial from './pages/Historial'
+import CategoriasOperarios from './pages/CategoriasOperarios'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="revision/:id" element={<Revision />} />
         <Route path="verificacion" element={<Verificacion />} />
         <Route path="conceptos" element={<Conceptos />} />
+        <Route path="categorias-operarios" element={<CategoriasOperarios />} />
         <Route path="historial" element={<Historial />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
