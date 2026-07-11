@@ -279,25 +279,25 @@ const UNIDAD_LABEL = {
   jornal_tope1: 'jornal',
 }
 
-// Texto del badge de un concepto adicional. Muestra la ecuación
-// "cantidad unidad × $precio = $importe" cuando la unidad tiene una cantidad
-// significativa; los casos sin cantidad real (fijo, manual, o datos faltantes)
-// caen a "— $importe".
+// Texto del badge de un concepto adicional: "Cód. N — cantidad unidad — $precio"
+// (el precio unitario por el que se paga, sin el importe total). Los casos sin
+// cantidad real (fijo) muestran "— fijo — $precio"; los manuales, sin código ni
+// precio, muestran solo su "— $importe".
 function etiquetaConcepto(c) {
   const importe = Number(c.importe || 0).toLocaleString('es-AR')
   const esManual = c.codigo_concepto === null || c.codigo_concepto === undefined
   if (esManual) return `Manual — $${importe}`
 
   const cod = `Cód. ${c.codigo_concepto}`
-  // fijo: la cantidad es siempre 1 y no hay unidad real → sin ecuación.
-  if (c.unidad_base === 'fijo') return `${cod} — fijo — $${importe}`
+  const precio = c.precio != null ? Number(c.precio).toLocaleString('es-AR') : null
+  // fijo: la cantidad es siempre 1 y no hay unidad real → sin cantidad.
+  if (c.unidad_base === 'fijo') return `${cod} — fijo — $${precio ?? importe}`
 
   const label = UNIDAD_LABEL[c.unidad_base]
-  if (!label || c.cantidad == null || c.precio == null) return `${cod} — $${importe}`
+  if (!label || c.cantidad == null || precio == null) return `${cod} — $${precio ?? importe}`
 
   const cant = Number(c.cantidad).toLocaleString('es-AR', { maximumFractionDigits: 2 })
-  const precio = Number(c.precio).toLocaleString('es-AR')
-  return `${cod} — ${cant} ${label} × $${precio} = $${importe}`
+  return `${cod} — ${cant} ${label} — $${precio}`
 }
 
 function ResumenEmpleados({ items, expandido, setExpandido }) {
