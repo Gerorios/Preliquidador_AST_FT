@@ -66,7 +66,7 @@ function calcularResumenEmpleados(lineas) {
     emp.lineas.push({
       id: l.id, fecha_tarea: l.fecha_tarea, nombre_tarea: l.nombre_tarea,
       nombre_cliente: l.nombre_cliente, nombre_finca: l.nombre_finca,
-      hsjornal: Number(l.hsjornal || 0), importe_total: Number(l.importe_total || 0),
+      importe_total: Number(l.importe_total || 0),
       conceptos: l.conceptos || [],
     })
   }
@@ -271,6 +271,35 @@ function ListaExceso({ titulo, items, unidad, expandido, setExpandido }) {
   )
 }
 
+const UNIDAD_LABEL = {
+  hsjornal: 'hs jornal',
+  hsmaquina: 'hs máquina',
+  tancadas: 'tancadas',
+  unidades: 'unidades',
+  jornal_tope1: 'jornal',
+}
+
+// Texto del badge de un concepto adicional. Muestra la ecuación
+// "cantidad unidad × $precio = $importe" cuando la unidad tiene una cantidad
+// significativa; los casos sin cantidad real (fijo, manual, o datos faltantes)
+// caen a "— $importe".
+function etiquetaConcepto(c) {
+  const importe = Number(c.importe || 0).toLocaleString('es-AR')
+  const esManual = c.codigo_concepto === null || c.codigo_concepto === undefined
+  if (esManual) return `Manual — $${importe}`
+
+  const cod = `Cód. ${c.codigo_concepto}`
+  // fijo: la cantidad es siempre 1 y no hay unidad real → sin ecuación.
+  if (c.unidad_base === 'fijo') return `${cod} — fijo — $${importe}`
+
+  const label = UNIDAD_LABEL[c.unidad_base]
+  if (!label || c.cantidad == null || c.precio == null) return `${cod} — $${importe}`
+
+  const cant = Number(c.cantidad).toLocaleString('es-AR', { maximumFractionDigits: 2 })
+  const precio = Number(c.precio).toLocaleString('es-AR')
+  return `${cod} — ${cant} ${label} × $${precio} = $${importe}`
+}
+
 function ResumenEmpleados({ items, expandido, setExpandido }) {
   if (items.length === 0) return <div className={styles.empty}>No hay datos para mostrar.</div>
   return (
@@ -296,23 +325,20 @@ function ResumenEmpleados({ items, expandido, setExpandido }) {
               </div>
               {abierto && (
                 <div className={styles.cardBody}>
-                  <div className={styles.lineasHeadEmpleado}><span>Fecha</span><span>Tarea</span><span>Cliente · Finca</span><span>Hs.jorn.</span><span>Importe</span></div>
+                  <div className={styles.lineasHeadEmpleado}><span>Fecha</span><span>Tarea</span><span>Cliente · Finca</span><span>Importe</span></div>
                   {emp.lineas.map(l => (
                     <Fragment key={l.id}>
                       <div className={styles.lineaRowEmpleado}>
                         <span className="mono">{l.fecha_tarea || '—'}</span>
                         <span>{l.nombre_tarea}</span>
                         <span className={styles.lineaMuted}>{l.nombre_cliente} · {l.nombre_finca}</span>
-                        <span className="mono">{l.hsjornal || '—'}</span>
                         <span className="mono">${l.importe_total.toLocaleString('es-AR')}</span>
                       </div>
                       {l.conceptos.length > 0 && (
                         <div className={styles.conceptosDia}>
                           {l.conceptos.map(c => (
                             <span key={c.id} className="badge badge-muted mono">
-                              {c.codigo_concepto === null || c.codigo_concepto === undefined
-                                ? `Manual — $${Number(c.importe || 0).toLocaleString('es-AR')}`
-                                : `Cód. ${c.codigo_concepto} — $${Number(c.precio || 0).toLocaleString('es-AR')}`}
+                              {etiquetaConcepto(c)}
                             </span>
                           ))}
                         </div>

@@ -188,7 +188,7 @@
 
 .lineasHeadEmpleado {
   display: grid;
-  grid-template-columns: 0.9fr 1.6fr 1.6fr 0.7fr 0.9fr;
+  grid-template-columns: 0.9fr 1.6fr 1.6fr 0.9fr;
   gap: 8px;
   font-size: 10px;
   font-weight: 600;
@@ -202,7 +202,7 @@
 
 .lineaRowEmpleado {
   display: grid;
-  grid-template-columns: 0.9fr 1.6fr 1.6fr 0.7fr 0.9fr;
+  grid-template-columns: 0.9fr 1.6fr 1.6fr 0.9fr;
   gap: 8px;
   font-size: 11px;
   color: var(--text-secondary);
