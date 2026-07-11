@@ -20,6 +20,13 @@ export const obtenerDashboardVerificacion = (id) =>
 export const obtenerControlPlantasJornal = (id) =>
   api.get(`/preliquidacion/${id}/control-plantas-jornal`).then(r => r.data)
 
+export const obtenerControlTancadasJornal = (id) =>
+  api.get(`/preliquidacion/${id}/control-tancadas-jornal`).then(r => r.data)
+
+// valor: número (valor hora de pulverización de la quincena) o null para limpiar
+export const setValorHoraPulv = (id, valor) =>
+  api.patch(`/preliquidacion/${id}/valor-hora-pulv`, { valor_hora_pulv: valor }).then(r => r.data)
+
 export const listarLineas = (id, filtros = {}) => {
   const params = new URLSearchParams()
   if (filtros.empresa)         params.append('empresa', filtros.empresa)
