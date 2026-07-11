@@ -181,7 +181,7 @@ export default function Verificacion() {
         </div>
       ) : (
         <>
-          <FiltrosBar lineas={lineas} filtros={filtros} onChange={setFiltros} busqueda="" onBusqueda={() => {}} mostrarAlertas={false} />
+          <FiltrosBar lineas={lineas} filtros={filtros} onChange={setFiltros} busqueda={busqueda} onBusqueda={setBusqueda} mostrarAlertas={false} mostrarBusqueda={false} />
 
           <div className={styles.nav}>
             {SECCIONES.map(s => {
