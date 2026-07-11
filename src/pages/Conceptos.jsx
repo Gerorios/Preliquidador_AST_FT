@@ -36,7 +36,9 @@ const TIPOS = [
   { value: 'OTRO',            label: 'Otro' },
 ]
 
-const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO' }
+const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7]
+
+const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '' }
 
 // ─── ReglaRow: fila editable de una regla ────────────────────────────────────
 
@@ -47,6 +49,7 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
     unidad_base: regla.unidad_base,
     precio:      regla.precio ?? '',
     tipo:        regla.tipo,
+    categoria:   regla.categoria ?? '',
   })
 
   const guardar = () => {
@@ -55,6 +58,7 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
       unidad_base: form.unidad_base,
       precio:      form.precio !== '' ? parseFloat(form.precio) : null,
       tipo:        form.tipo,
+      categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
     })
     setEditando(false)
   }
@@ -73,6 +77,9 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
       <span className="badge badge-info">
         {TIPOS.find(t => t.value === regla.tipo)?.label || regla.tipo}
       </span>
+      {regla.categoria != null && (
+        <span className="badge badge-muted mono">Cat. {regla.categoria}</span>
+      )}
       {regla.heredado && (
         <span className="badge badge-warn">Heredado</span>
       )}
@@ -105,6 +112,13 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
           {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
+      <div><div className="field-label">Categoría</div>
+        <select className="input" style={{ width: 130 }} value={form.categoria}
+          onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
+          <option value="">— Sin categoría —</option>
+          {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
+        </select>
+      </div>
       <div className={styles.rowActions} style={{ marginLeft: 0, alignSelf: 'flex-end' }}>
         <button className="btn btn-primary btn-sm" onClick={guardar}>✓</button>
         <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
@@ -135,6 +149,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       unidad_base: nuevaRegla.unidad_base,
       precio:      nuevaRegla.precio !== '' ? parseFloat(nuevaRegla.precio) : null,
       tipo:        nuevaRegla.tipo,
+      categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
     })
     setNuevaRegla(EMPTY_REGLA)
   }
@@ -192,6 +207,13 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
                 {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
+            <div><div className="field-label">Categoría</div>
+              <select className="input" style={{ width: 130 }} value={nuevaRegla.categoria}
+                onChange={e => setNuevaRegla(f => ({ ...f, categoria: e.target.value }))}>
+                <option value="">— Sin categoría —</option>
+                {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
+              </select>
+            </div>
             <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}
               onClick={handleAgregar}>
               + Agregar regla
@@ -226,6 +248,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
       unidad_base: form.unidad_base,
       precio:      form.precio !== '' ? parseFloat(form.precio) : null,
       tipo:        form.tipo,
+      categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
     })
     setForm(EMPTY_REGLA)
     setAbierta(false)
@@ -286,6 +309,13 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
                     {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
+                <div><div className="field-label">Categoría</div>
+                  <select className="input" style={{ width: 130 }} value={form.categoria}
+                    onChange={e => setForm(fo => ({ ...fo, categoria: e.target.value }))}>
+                    <option value="">— Sin categoría —</option>
+                    {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
+                  </select>
+                </div>
                 <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}
                   onClick={handleGuardar}>
                   Guardar
@@ -312,7 +342,7 @@ export default function Conceptos() {
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [formNuevo, setFormNuevo] = useState({
     tarea_nombre: '', cliente_nombre: '', finca_nombre: '',
-    codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO',
+    codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '',
   })
 
   const scope = tab === 1 ? 'comun' : 'especifico'
@@ -443,8 +473,9 @@ export default function Conceptos() {
       unidad_base: formNuevo.unidad_base,
       precio:      formNuevo.precio !== '' ? parseFloat(formNuevo.precio) : null,
       tipo:        formNuevo.tipo,
+      categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
     })
-    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO' })
+    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '' })
     setMostrarNuevo(false)
   }
 
@@ -610,6 +641,13 @@ export default function Conceptos() {
                 <select className="input" style={{ width: 150 }} value={formNuevo.tipo}
                   onChange={e => setFormNuevo(f => ({ ...f, tipo: e.target.value }))}>
                   {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div><div className="field-label">Categoría</div>
+                <select className="input" style={{ width: 130 }} value={formNuevo.categoria}
+                  onChange={e => setFormNuevo(f => ({ ...f, categoria: e.target.value }))}>
+                  <option value="">— Sin categoría —</option>
+                  {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
                 </select>
               </div>
               <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}
