@@ -35,7 +35,7 @@ function opcionesPara(campo, lineas, filtros) {
   return [...new Set(subset.map(l => l[campoLinea]).filter(Boolean))].sort()
 }
 
-export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, onBusqueda, mostrarAlertas = true }) {
+export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, onBusqueda, mostrarAlertas = true, mostrarBusqueda = true }) {
   const [abierto, setAbierto] = useState(false)
 
   const set = (k, v) => onChange(f => ({ ...f, [k]: v || undefined }))
@@ -63,13 +63,17 @@ export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, o
 
       {/* Barra principal */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', flexWrap: 'wrap' }}>
-        <input
-          className="input"
-          style={{ width: 240 }}
-          placeholder="Buscar empleado, legajo, tarea..."
-          value={busqueda}
-          onChange={e => onBusqueda(e.target.value)}
-        />
+        {/* La búsqueda se oculta cuando la pantalla ya tiene su propia barra
+            (ej. Verificación), para no duplicarla. Ver mostrarBusqueda. */}
+        {mostrarBusqueda && (
+          <input
+            className="input"
+            style={{ width: 240 }}
+            placeholder="Buscar empleado, legajo, tarea..."
+            value={busqueda}
+            onChange={e => onBusqueda(e.target.value)}
+          />
+        )}
 
         <button
           className={`btn btn-sm ${abierto ? 'btn-primary' : ''}`}
