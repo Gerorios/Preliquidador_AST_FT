@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -15,6 +15,17 @@ import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import AlertasBanner from '../components/preliquidacion/AlertasBanner'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Revision.module.css'
+
+// Debounce simple: retrasa la propagación de `value` hasta que pasen `delay`ms
+// sin cambios, para no recalcular el filtrado de la tabla en cada tecla.
+function useDebounce(value, delay = 200) {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
 
 function fmt(v) {
   if (v === null || v === undefined || v === '' || Number(v) === 0) return '—'
@@ -354,10 +365,12 @@ export default function Revision() {
     placeholderData: keepPreviousData,
   })
 
+  const busquedaDebounced = useDebounce(busqueda, 200)
+
   const lineasFiltradas = useMemo(() => {
     let resultado = lineas
-    if (busqueda) {
-      const q = busqueda.toLowerCase()
+    if (busquedaDebounced) {
+      const q = busquedaDebounced.toLowerCase()
       resultado = resultado.filter(l =>
         l.nombre_empleado?.toLowerCase().includes(q) ||
         l.legajo_campo?.toLowerCase().includes(q) ||
@@ -388,7 +401,7 @@ export default function Revision() {
       resultado = resultado.filter(l => l.nombre_empleado?.toLowerCase().includes(qn))
     }
     return resultado
-  }, [lineas, busqueda, filtros])
+  }, [lineas, busquedaDebounced, filtros])
 
   // Refetch masivo — se usa solo para operaciones donde la respuesta de la
   // mutación no trae suficiente info para actualizar el caché a mano

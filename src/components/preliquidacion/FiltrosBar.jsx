@@ -17,22 +17,46 @@ const CAMPO = {
   supervisor: 'nombre_supervisor',
 }
 
+// Nombre de la clave del resultado (opciones.xxx) para cada campo de filtro.
+const CLAVE_OPCIONES = {
+  cliente: 'clientes',
+  finca: 'fincas',
+  tarea: 'tareas',
+  empresa: 'empresas',
+  grupo_pago: 'grupos_pago',
+  supervisor: 'supervisores',
+}
+
 /**
- * Calcula las opciones disponibles para un campo de filtro,
- * considerando los DEMÁS filtros activos (cascada).
+ * Calcula, en un solo recorrido de `lineas`, las opciones disponibles para
+ * cada campo de filtro considerando los DEMÁS filtros activos (cascada).
  * Si el cliente=CITRUSVIL está seleccionado, las fincas/tareas/supervisores
  * que se muestran son solo los que tienen registros con ese cliente.
+ * Reemplaza 6 pasadas O(n) independientes (una por campo, cada una con hasta
+ * 5 filtros encadenados) por una sola pasada O(n).
  */
-function opcionesPara(campo, lineas, filtros) {
-  let subset = lineas
-  for (const [key, valor] of Object.entries(filtros)) {
-    if (key === campo || !valor) continue
-    const campoLinea = CAMPO[key]
-    if (!campoLinea) continue
-    subset = subset.filter(l => l[campoLinea] === valor)
+function calcularOpcionesCascada(lineas, filtros) {
+  const campos = Object.keys(CAMPO)
+  const activos = Object.entries(filtros).filter(([k, v]) => v && CAMPO[k])
+  const sets = {}
+  for (const c of campos) sets[c] = new Set()
+
+  for (const l of lineas) {
+    for (const campo of campos) {
+      let ok = true
+      for (const [k, v] of activos) {
+        if (k === campo) continue
+        if (l[CAMPO[k]] !== v) { ok = false; break }
+      }
+      if (!ok) continue
+      const val = l[CAMPO[campo]]
+      if (val) sets[campo].add(val)
+    }
   }
-  const campoLinea = CAMPO[campo]
-  return [...new Set(subset.map(l => l[campoLinea]).filter(Boolean))].sort()
+
+  const resultado = {}
+  for (const campo of campos) resultado[CLAVE_OPCIONES[campo]] = [...sets[campo]].sort()
+  return resultado
 }
 
 export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, onBusqueda, mostrarAlertas = true, mostrarBusqueda = true }) {
@@ -48,15 +72,13 @@ export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, o
     onBusqueda('')
   }
 
-  // Opciones en cascada — se recalculan según los demás filtros activos
-  const opciones = useMemo(() => ({
-    clientes: opcionesPara('cliente', lineas, filtros),
-    fincas: opcionesPara('finca', lineas, filtros),
-    tareas: opcionesPara('tarea', lineas, filtros),
-    empresas: opcionesPara('empresa', lineas, filtros),
-    grupos_pago: opcionesPara('grupo_pago', lineas, filtros),
-    supervisores: opcionesPara('supervisor', lineas, filtros),
-  }), [lineas, filtros])
+  // Opciones en cascada — se recalculan según los demás filtros activos.
+  // Solo se computan mientras el panel está abierto: colapsado, no tiene
+  // sentido pagar el recorrido de `lineas` en cada cambio de filtro.
+  const opciones = useMemo(() => {
+    if (!abierto) return { clientes: [], fincas: [], tareas: [], empresas: [], grupos_pago: [], supervisores: [] }
+    return calcularOpcionesCascada(lineas, filtros)
+  }, [lineas, filtros, abierto])
 
   return (
     <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
