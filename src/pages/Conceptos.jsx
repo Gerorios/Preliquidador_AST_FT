@@ -39,11 +39,11 @@ const TIPOS = [
 
 const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7]
 
-const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '' }
+const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: false }
 
 // ─── ReglaRow: fila editable de una regla ────────────────────────────────────
 
-function ReglaRow({ regla, onActualizar, onEliminar }) {
+function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({
     codigo:      regla.codigo ?? '',
@@ -51,6 +51,7 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
     precio:      regla.precio ?? '',
     tipo:        regla.tipo,
     categoria:   regla.categoria ?? '',
+    reemplaza_comun: regla.reemplaza_comun ?? false,
   })
 
   const guardar = () => {
@@ -60,6 +61,7 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
       precio:      form.precio !== '' ? parseFloat(form.precio) : null,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
+      ...(esComun ? {} : { reemplaza_comun: form.reemplaza_comun }),
     })
     setEditando(false)
   }
@@ -83,6 +85,11 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
       )}
       {regla.heredado && (
         <span className="badge badge-warn">Heredado</span>
+      )}
+      {!esComun && regla.reemplaza_comun && (
+        <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
+          Reemplaza al común
+        </span>
       )}
       <div className={styles.rowActions}>
         <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
@@ -120,6 +127,13 @@ function ReglaRow({ regla, onActualizar, onEliminar }) {
           {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
         </select>
       </div>
+      {!esComun && (
+        <label className={styles.checkboxLabel} title="La línea de esta finca paga solo lo específico, sin sumar los comunes de la tarea">
+          <input type="checkbox" checked={form.reemplaza_comun}
+            onChange={e => setForm(f => ({ ...f, reemplaza_comun: e.target.checked }))} />
+          Reemplaza al común
+        </label>
+      )}
       <div className={styles.rowActions} style={{ marginLeft: 0, alignSelf: 'flex-end' }}>
         <button className="btn btn-primary btn-sm" onClick={guardar}>✓</button>
         <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
@@ -151,6 +165,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       precio:      nuevaRegla.precio !== '' ? parseFloat(nuevaRegla.precio) : null,
       tipo:        nuevaRegla.tipo,
       categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
+      reemplaza_comun: esComun ? false : nuevaRegla.reemplaza_comun,
     })
     setNuevaRegla(EMPTY_REGLA)
   }
@@ -179,6 +194,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
             <ReglaRow
               key={r.id}
               regla={r}
+              esComun={esComun}
               onActualizar={(datos) => mutActualizar({ id: r.id, datos })}
               onEliminar={() => mutEliminar(r.id)}
             />
@@ -215,6 +231,13 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
                 {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
               </select>
             </div>
+            {!esComun && (
+              <label className={styles.checkboxLabel} title="La línea de esta finca paga solo lo específico, sin sumar los comunes de la tarea">
+                <input type="checkbox" checked={nuevaRegla.reemplaza_comun}
+                  onChange={e => setNuevaRegla(f => ({ ...f, reemplaza_comun: e.target.checked }))} />
+                Reemplaza al común
+              </label>
+            )}
             <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}
               onClick={handleAgregar}>
               + Agregar regla
@@ -250,6 +273,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
       precio:      form.precio !== '' ? parseFloat(form.precio) : null,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
+      reemplaza_comun: scope === 'comun' ? false : form.reemplaza_comun,
     })
     setForm(EMPTY_REGLA)
     setAbierta(false)
@@ -317,6 +341,13 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
                     {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
                   </select>
                 </div>
+                {scope === 'especifico' && (
+                  <label className={styles.checkboxLabel} title="La línea de esta finca paga solo lo específico, sin sumar los comunes de la tarea">
+                    <input type="checkbox" checked={form.reemplaza_comun}
+                      onChange={e => setForm(fo => ({ ...fo, reemplaza_comun: e.target.checked }))} />
+                    Reemplaza al común
+                  </label>
+                )}
                 <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}
                   onClick={handleGuardar}>
                   Guardar
@@ -355,6 +386,13 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
       <td>{fila.finca_nombre || '—'}</td>
       <td>{fila.categoria != null ? `Cat. ${fila.categoria}` : '—'}</td>
       <td>{UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base}</td>
+      <td>
+        {fila.reemplaza_comun && (
+          <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
+            Reemplaza
+          </span>
+        )}
+      </td>
       <td className="mono">
         {fila.precio_anterior != null ? `$${Number(fila.precio_anterior).toLocaleString('es-AR')}` : '—'}
       </td>
@@ -392,10 +430,14 @@ export default function Conceptos() {
   const [soloHeredados, setSoloHeredados] = useState(false)
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
+  const [filtroClientePanel, setFiltroClientePanel] = useState('')
+  const [filtroFincaPanel, setFiltroFincaPanel] = useState('')
+  const [filtroTareaPanel, setFiltroTareaPanel] = useState('')
   const [precioMasivo, setPrecioMasivo] = useState('')
   const [formNuevo, setFormNuevo] = useState({
     tarea_nombre: '', cliente_nombre: '', finca_nombre: '',
     codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '',
+    reemplaza_comun: false,
   })
 
   const scope = tab === 1 ? 'comun' : 'especifico'
@@ -536,12 +578,27 @@ export default function Conceptos() {
     return Object.fromEntries(entradas)
   }, [grupos, busqueda, soloHeredados])
 
-  // Panel de precios: filtro client-side por código (prefijo o igualdad).
+  // Panel de precios: filtros client-side combinables (código, cliente, finca, tarea).
   const panelFiltrado = useMemo(() => {
-    const q = filtroCodigoPanel.trim()
-    if (!q) return panelPrecios
-    return panelPrecios.filter(f => String(f.codigo ?? '').startsWith(q))
-  }, [panelPrecios, filtroCodigoPanel])
+    let filas = panelPrecios
+    const qCodigo = filtroCodigoPanel.trim()
+    if (qCodigo) {
+      filas = filas.filter(f => String(f.codigo ?? '').startsWith(qCodigo))
+    }
+    const qCliente = filtroClientePanel.trim().toLowerCase()
+    if (qCliente) {
+      filas = filas.filter(f => (f.cliente_nombre || '').toLowerCase().includes(qCliente))
+    }
+    const qFinca = filtroFincaPanel.trim().toLowerCase()
+    if (qFinca) {
+      filas = filas.filter(f => (f.finca_nombre || '').toLowerCase().includes(qFinca))
+    }
+    const qTarea = filtroTareaPanel.trim().toLowerCase()
+    if (qTarea) {
+      filas = filas.filter(f => (f.tarea_nombre || '').toLowerCase().includes(qTarea))
+    }
+    return filas
+  }, [panelPrecios, filtroCodigoPanel, filtroClientePanel, filtroFincaPanel, filtroTareaPanel])
 
   const handleAplicarPrecioMasivo = () => {
     const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
@@ -565,8 +622,9 @@ export default function Conceptos() {
       precio:      formNuevo.precio !== '' ? parseFloat(formNuevo.precio) : null,
       tipo:        formNuevo.tipo,
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
+      reemplaza_comun: tab === 2 ? formNuevo.reemplaza_comun : false,
     })
-    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '' })
+    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: false })
     setMostrarNuevo(false)
   }
 
@@ -742,6 +800,13 @@ export default function Conceptos() {
                   {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
                 </select>
               </div>
+              {tab === 2 && (
+                <label className={styles.checkboxLabel} title="La línea de esta finca paga solo lo específico, sin sumar los comunes de la tarea">
+                  <input type="checkbox" checked={formNuevo.reemplaza_comun}
+                    onChange={e => setFormNuevo(f => ({ ...f, reemplaza_comun: e.target.checked }))} />
+                  Reemplaza al común
+                </label>
+              )}
               <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}
                 onClick={handleCrearNuevo}>
                 Guardar
@@ -777,9 +842,18 @@ export default function Conceptos() {
       {tab === 3 && (
         <div className={styles.tabContent}>
           <div className={styles.searchBar}>
-            <input className="input input-mono" style={{ width: 160 }}
+            <input className="input input-mono" style={{ width: 140 }}
               placeholder="Filtrar por código..."
               value={filtroCodigoPanel} onChange={e => setFiltroCodigoPanel(e.target.value)} />
+            <input className="input" style={{ width: 160 }}
+              placeholder="Filtrar por tarea..."
+              value={filtroTareaPanel} onChange={e => setFiltroTareaPanel(e.target.value)} />
+            <input className="input" style={{ width: 160 }}
+              placeholder="Filtrar por cliente..."
+              value={filtroClientePanel} onChange={e => setFiltroClientePanel(e.target.value)} />
+            <input className="input" style={{ width: 160 }}
+              placeholder="Filtrar por finca..."
+              value={filtroFincaPanel} onChange={e => setFiltroFincaPanel(e.target.value)} />
             <span className={styles.panelDivider} />
             <input className="input input-mono" type="number" style={{ width: 120 }}
               placeholder="$ precio"
@@ -800,7 +874,7 @@ export default function Conceptos() {
               <div className={styles.empty}>
                 {panelPrecios.length === 0
                   ? 'No hay conceptos cargados para esta quincena.'
-                  : 'Ningún concepto coincide con el filtro de código.'}
+                  : 'Ningún concepto coincide con los filtros aplicados.'}
               </div>
             )}
             {!cargandoPanel && panelFiltrado.length > 0 && (
@@ -809,7 +883,7 @@ export default function Conceptos() {
                   <thead>
                     <tr>
                       <th>TAREA</th><th>CÓDIGO</th><th>CLIENTE</th><th>FINCA</th>
-                      <th>CAT</th><th>UNIDAD</th><th>PRECIO ANTERIOR</th><th>PRECIO</th>
+                      <th>CAT</th><th>UNIDAD</th><th>REEMPLAZA</th><th>PRECIO ANTERIOR</th><th>PRECIO</th>
                     </tr>
                   </thead>
                   <tbody>
