@@ -5,6 +5,7 @@ import {
   listarConceptos, crearConcepto, actualizarConcepto, eliminarConcepto2,
   copiarConceptos, listarQuincenasConConceptos, listarConceptosFaltantes,
   listarTareas, listarClientes, listarFincas, listarPreliquidaciones,
+  obtenerPanelPrecios, aplicarPrecioMasivo,
 } from '../services/preliquidacion'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Conceptos.module.css'
@@ -329,17 +330,69 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
   )
 }
 
+// ─── PanelPrecioRow: fila plana editable del Panel de precios ───────────────
+
+function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
+  const [editando, setEditando] = useState(false)
+  const [precio, setPrecio] = useState(fila.precio ?? '')
+
+  useEffect(() => {
+    if (!editando) setPrecio(fila.precio ?? '')
+  }, [fila.precio, editando])
+
+  const confirmar = () => {
+    const valor = precio !== '' ? parseFloat(precio) : null
+    if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
+    onGuardarPrecio(fila.id, valor)
+    setEditando(false)
+  }
+
+  return (
+    <tr className={fila.heredado ? styles.panelRowHeredado : undefined}>
+      <td>{fila.tarea_nombre}</td>
+      <td className="mono">{fila.codigo ?? '—'}</td>
+      <td>{fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
+      <td>{fila.finca_nombre || '—'}</td>
+      <td>{fila.categoria != null ? `Cat. ${fila.categoria}` : '—'}</td>
+      <td>{UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base}</td>
+      <td className="mono">
+        {fila.precio_anterior != null ? `$${Number(fila.precio_anterior).toLocaleString('es-AR')}` : '—'}
+      </td>
+      <td>
+        {editando ? (
+          <div className={styles.panelPrecioEdit}>
+            <input className="input input-mono" type="number" style={{ width: 100 }}
+              autoFocus
+              value={precio}
+              onChange={e => setPrecio(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setEditando(false) }} />
+            <button className="btn btn-primary btn-sm" onClick={confirmar} disabled={guardando}>✓</button>
+            <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
+          </div>
+        ) : (
+          <span className={styles.panelPrecioValor} onClick={() => setEditando(true)}>
+            {fila.precio != null ? `$${Number(fila.precio).toLocaleString('es-AR')}` : <span className={styles.precioVacio}>sin precio</span>}
+            {fila.heredado && <span className="badge badge-warn" style={{ marginLeft: 8 }}>Heredado</span>}
+          </span>
+        )}
+      </td>
+    </tr>
+  )
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function Conceptos() {
   const qc = useQueryClient()
-  const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=específicos
+  const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=específicos 3=panel de precios
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [soloHeredados, setSoloHeredados] = useState(false)
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
+  const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
+  const [precioMasivo, setPrecioMasivo] = useState('')
   const [formNuevo, setFormNuevo] = useState({
     tarea_nombre: '', cliente_nombre: '', finca_nombre: '',
     codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '',
@@ -382,7 +435,13 @@ export default function Conceptos() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['conceptos', quincena, scope],
     queryFn: () => listarConceptos(quincena, scope),
-    enabled: !!quincena && tab !== 0,
+    enabled: !!quincena && (tab === 1 || tab === 2),
+  })
+
+  const { data: panelPrecios = [], isLoading: cargandoPanel } = useQuery({
+    queryKey: ['panel-precios', quincena],
+    queryFn: () => obtenerPanelPrecios(quincena),
+    enabled: !!quincena && tab === 3,
   })
 
   const { data: quincenasExistentes = [] } = useQuery({
@@ -402,6 +461,7 @@ export default function Conceptos() {
     qc.invalidateQueries({ queryKey: ['conceptos'] })
     qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })
     qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
+    qc.invalidateQueries({ queryKey: ['panel-precios'] })
     // Impacto reactivo (WS2): un cambio de concepto recalcula líneas en el
     // backend, así que refrescamos también Revisión y sus estadísticas.
     qc.invalidateQueries({ queryKey: ['lineas'] })
@@ -423,6 +483,22 @@ export default function Conceptos() {
   const { mutate: mutEliminar } = useMutation({
     mutationFn: eliminarConcepto2,
     onSuccess: () => { toast.success('Regla eliminada'); invalidar() },
+    onError: err => toast.error(err.message),
+  })
+
+  const { mutate: mutGuardarPrecioPanel, isPending: guardandoPrecioPanel } = useMutation({
+    mutationFn: ({ id, precio }) => actualizarConcepto(id, { precio }),
+    onSuccess: () => { toast.success('Precio actualizado'); invalidar() },
+    onError: err => toast.error(err.message),
+  })
+
+  const { mutate: mutPrecioMasivo, isPending: aplicandoMasivo } = useMutation({
+    mutationFn: ({ ids, precio }) => aplicarPrecioMasivo(ids, precio),
+    onSuccess: data => {
+      toast.success(`Precio aplicado a ${data.lineas_afectadas ?? data.actualizados ?? ''} línea(s)`.trim())
+      setPrecioMasivo('')
+      invalidar()
+    },
     onError: err => toast.error(err.message),
   })
 
@@ -460,6 +536,21 @@ export default function Conceptos() {
     return Object.fromEntries(entradas)
   }, [grupos, busqueda, soloHeredados])
 
+  // Panel de precios: filtro client-side por código (prefijo o igualdad).
+  const panelFiltrado = useMemo(() => {
+    const q = filtroCodigoPanel.trim()
+    if (!q) return panelPrecios
+    return panelPrecios.filter(f => String(f.codigo ?? '').startsWith(q))
+  }, [panelPrecios, filtroCodigoPanel])
+
+  const handleAplicarPrecioMasivo = () => {
+    const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
+    if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
+    if (panelFiltrado.length === 0) { toast.error('No hay filas para aplicar'); return }
+    if (!window.confirm(`¿Aplicar $${valor.toLocaleString('es-AR')} a ${panelFiltrado.length} fila(s)?`)) return
+    mutPrecioMasivo({ ids: panelFiltrado.map(f => f.id), precio: valor })
+  }
+
   const handleCrearNuevo = () => {
     if (!formNuevo.tarea_nombre) { toast.error('Completá la tarea'); return }
     if (tab === 2 && !formNuevo.cliente_nombre) { toast.error('Completá el cliente'); return }
@@ -483,6 +574,7 @@ export default function Conceptos() {
     { label: `Sin concepto${faltantes.length > 0 ? ` (${faltantes.length})` : ''}`, alert: faltantes.length > 0 },
     { label: 'Comunes' },
     { label: 'Específicos' },
+    { label: 'Panel de precios' },
   ]
 
   const cantGrupos = Object.keys(gruposFiltrados).length
@@ -500,7 +592,7 @@ export default function Conceptos() {
             ? <option value="">— Sin quincenas generadas —</option>
             : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        {tab !== 0 && (
+        {(tab === 1 || tab === 2) && (
           <button className="btn btn-sm" onClick={() => setMostrarCopiar(o => !o)}>
             ⧉ Copiar de quincena anterior
           </button>
@@ -572,7 +664,7 @@ export default function Conceptos() {
       )}
 
       {/* Tabs 1 y 2: Comunes / Específicos */}
-      {tab !== 0 && (
+      {(tab === 1 || tab === 2) && (
         <div className={styles.tabContent}>
           {/* Barra búsqueda + nuevo */}
           <div className={styles.searchBar}>
@@ -677,6 +769,62 @@ export default function Conceptos() {
                 mutEliminar={mutEliminar}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Panel de precios */}
+      {tab === 3 && (
+        <div className={styles.tabContent}>
+          <div className={styles.searchBar}>
+            <input className="input input-mono" style={{ width: 160 }}
+              placeholder="Filtrar por código..."
+              value={filtroCodigoPanel} onChange={e => setFiltroCodigoPanel(e.target.value)} />
+            <span className={styles.panelDivider} />
+            <input className="input input-mono" type="number" style={{ width: 120 }}
+              placeholder="$ precio"
+              value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
+            <button className="btn btn-sm btn-primary"
+              onClick={handleAplicarPrecioMasivo}
+              disabled={aplicandoMasivo || panelFiltrado.length === 0}>
+              {aplicandoMasivo ? <><span className="spinner" /> Aplicando...</> : `Aplicar a los filtrados (${panelFiltrado.length})`}
+            </button>
+            <span className={styles.searchCount}>
+              {panelFiltrado.length} de {panelPrecios.length} conceptos
+            </span>
+          </div>
+
+          <div className={styles.list}>
+            {cargandoPanel && <CargandoContenido texto="Cargando panel de precios…" />}
+            {!cargandoPanel && panelFiltrado.length === 0 && (
+              <div className={styles.empty}>
+                {panelPrecios.length === 0
+                  ? 'No hay conceptos cargados para esta quincena.'
+                  : 'Ningún concepto coincide con el filtro de código.'}
+              </div>
+            )}
+            {!cargandoPanel && panelFiltrado.length > 0 && (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>TAREA</th><th>CÓDIGO</th><th>CLIENTE</th><th>FINCA</th>
+                      <th>CAT</th><th>UNIDAD</th><th>PRECIO ANTERIOR</th><th>PRECIO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {panelFiltrado.map(fila => (
+                      <PanelPrecioRow
+                        key={fila.id}
+                        fila={fila}
+                        onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
+                        guardando={guardandoPrecioPanel}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -52,6 +52,7 @@ function calcularExcesos(lineas) {
       id: l.id, nombre_tarea: l.nombre_tarea,
       nombre_cliente: l.nombre_cliente, nombre_finca: l.nombre_finca,
       hsjornal: Number(l.hsjornal || 0), tancadas: Number(l.tancadas || 0), unidades: Number(l.unidades || 0),
+      nombre_supervisor: l.nombre_supervisor,
     })
   }
   const grupos = Object.values(porEmpleadoFecha)
@@ -269,11 +270,12 @@ function ListaExceso({ titulo, items, unidad, expandido, setExpandido }) {
               </div>
               {abierto && (
                 <div className={styles.cardBody}>
-                  <div className={styles.lineasHead}><span>Tarea</span><span>Cliente · Finca</span><span>Hs.jorn.</span><span>Tanc.</span><span>Unid.</span></div>
+                  <div className={styles.lineasHead}><span>Tarea</span><span>Cliente · Finca</span><span>Superv.</span><span>Hs.jorn.</span><span>Tanc.</span><span>Unid.</span></div>
                   {item.lineas.map(l => (
                     <div key={l.id} className={styles.lineaRow}>
                       <span>{l.nombre_tarea}</span>
                       <span className={styles.lineaMuted}>{l.nombre_cliente} · {l.nombre_finca}</span>
+                      <span className={styles.lineaMuted}>{l.nombre_supervisor || '—'}</span>
                       <span className="mono">{l.hsjornal || '—'}</span>
                       <span className="mono">{l.tancadas || '—'}</span>
                       <span className="mono">{l.unidades || '—'}</span>
@@ -373,6 +375,13 @@ function ResumenEmpleados({ items, expandido, setExpandido }) {
   )
 }
 
+// Null-safe formatters compartidos entre PlantasJornal y TancadasJornal —
+// los campos comun/especial/var_pct pueden venir null cuando no hay datos
+// suficientes para separar el precio común del especial.
+const fmtMoneyN = (n) => n == null ? '—' : `$${n.toLocaleString('es-AR')}`
+// var_pct viene como ratio crudo; se muestra en %. Positivo = especial más caro/alto que común.
+const fmtPctN  = (d) => d == null ? '—' : `${d > 0 ? '+' : ''}${(d * 100).toLocaleString('es-AR', { maximumFractionDigits: 1 })}%`
+
 function PlantasJornal({ data }) {
   const filas = data?.filas || []
   const totales = data?.totales
@@ -387,6 +396,8 @@ function PlantasJornal({ data }) {
               <th>Cliente</th><th>Finca</th><th>Tarea</th>
               <th className="mono">Precio</th><th className="mono">Un</th><th className="mono">Hs</th>
               <th className="mono">Plantas/Hsm</th><th className="mono">Plantas/Hsm×8</th><th className="mono">Prom Jornal</th>
+              <th className="mono">P. Común</th><th className="mono">P. Especial</th>
+              <th className="mono">PJ Común</th><th className="mono">PJ Especial</th><th className="mono">%Var</th>
             </tr>
           </thead>
           <tbody>
@@ -399,6 +410,11 @@ function PlantasJornal({ data }) {
                 <td className="mono">{f.plantas_por_hsm.toLocaleString('es-AR')}</td>
                 <td className="mono">{f.plantas_por_hsm_x8.toLocaleString('es-AR')}</td>
                 <td className={`mono ${f.prom_jornal >= UMBRAL_PROM_JORNAL_ALTO ? styles.pjAlto : ''}`}>${f.prom_jornal.toLocaleString('es-AR')}</td>
+                <td className="mono">{fmtMoneyN(f.precio_comun)}</td>
+                <td className="mono">{fmtMoneyN(f.precio_especial)}</td>
+                <td className="mono">{fmtMoneyN(f.prom_jornal_comun)}</td>
+                <td className="mono">{fmtMoneyN(f.prom_jornal_especial)}</td>
+                <td className={`mono ${f.var_pct != null && f.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.var_pct)}</td>
               </tr>
             ))}
           </tbody>
@@ -412,6 +428,11 @@ function PlantasJornal({ data }) {
                 <td className="mono">{totales.plantas_por_hsm.toLocaleString('es-AR')}</td>
                 <td className="mono">{totales.plantas_por_hsm_x8.toLocaleString('es-AR')}</td>
                 <td className="mono">${totales.prom_jornal.toLocaleString('es-AR')}</td>
+                <td className="mono">{fmtMoneyN(totales.precio_comun)}</td>
+                <td className="mono">{fmtMoneyN(totales.precio_especial)}</td>
+                <td className="mono">{fmtMoneyN(totales.prom_jornal_comun)}</td>
+                <td className="mono">{fmtMoneyN(totales.prom_jornal_especial)}</td>
+                <td className={`mono ${totales.var_pct != null && totales.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(totales.var_pct)}</td>
               </tr>
             </tfoot>
           )}
@@ -475,6 +496,8 @@ function TancadasJornal({ data, onGuardar, guardando }) {
                 <th>Cliente</th><th>Finca</th><th>Tarea</th>
                 <th className="mono">Tancadas</th><th className="mono">Hs jornal</th><th className="mono">Hs máquina</th>
                 <th className="mono">Valor s/jornal</th><th className="mono">Precio</th><th className="mono">Valor s/tancada</th><th className="mono">Diff</th>
+                <th className="mono">P. Común</th><th className="mono">P. Especial</th>
+                <th className="mono">V.Tanc Común</th><th className="mono">V.Tanc Especial</th><th className="mono">%Var</th>
               </tr>
             </thead>
             <tbody>
@@ -488,6 +511,11 @@ function TancadasJornal({ data, onGuardar, guardando }) {
                   <td className="mono">{fmt(f.precio)}</td>
                   <td className="mono">{fmtMoney(f.valor_tancada)}</td>
                   <td className={`mono ${f.diff != null && f.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(f.diff)}</td>
+                  <td className="mono">{fmtMoneyN(f.precio_comun)}</td>
+                  <td className="mono">{fmtMoneyN(f.precio_especial)}</td>
+                  <td className="mono">{fmtMoneyN(f.valor_tancada_comun)}</td>
+                  <td className="mono">{fmtMoneyN(f.valor_tancada_especial)}</td>
+                  <td className={`mono ${f.var_pct != null && f.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.var_pct)}</td>
                 </tr>
               ))}
             </tbody>
@@ -502,6 +530,11 @@ function TancadasJornal({ data, onGuardar, guardando }) {
                   <td className="mono">{fmt(totales.precio)}</td>
                   <td className="mono">{fmtMoney(totales.valor_tancada)}</td>
                   <td className={`mono ${totales.diff != null && totales.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(totales.diff)}</td>
+                  <td className="mono">{fmtMoneyN(totales.precio_comun)}</td>
+                  <td className="mono">{fmtMoneyN(totales.precio_especial)}</td>
+                  <td className="mono">{fmtMoneyN(totales.valor_tancada_comun)}</td>
+                  <td className="mono">{fmtMoneyN(totales.valor_tancada_especial)}</td>
+                  <td className={`mono ${totales.var_pct != null && totales.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(totales.var_pct)}</td>
                 </tr>
               </tfoot>
             )}
