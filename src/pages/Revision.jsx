@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   listarLineas, obtenerEstadisticas,
@@ -337,12 +337,21 @@ export default function Revision() {
   const { data: stats } = useQuery({
     queryKey: ['stats', id],
     queryFn: () => obtenerEstadisticas(id),
-    refetchInterval: 10_000,
+    // Sin polling agresivo: se invalida explícitamente tras cada mutación
+    // (ver refrescarYSincronizarPanel y `guardar`). Este intervalo es solo
+    // una red de seguridad por si algo externo cambia el estado.
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
   })
 
+  // La queryKey NO incluye `filtros`: todo el filtrado se hace en cliente
+  // (ver lineasFiltradas) para no re-pegarle al server ni perder el caché
+  // cada vez que cambia un filtro. `placeholderData: keepPreviousData`
+  // evita el parpadeo a "cargando" entre refetchs.
   const { data: lineas = [], isLoading } = useQuery({
-    queryKey: ['lineas', id, filtros],
-    queryFn: () => listarLineas(id, filtros),
+    queryKey: ['lineas', id],
+    queryFn: () => listarLineas(id),
+    placeholderData: keepPreviousData,
   })
 
   const lineasFiltradas = useMemo(() => {
@@ -368,25 +377,44 @@ export default function Revision() {
     if (filtros.alerta === 'alerta_legajo')  resultado = resultado.filter(l => l.alerta_legajo)
     if (filtros.alerta === 'alerta_empresa') resultado = resultado.filter(l => l.alerta_empresa)
     if (filtros.alerta === 'es_duplicado')   resultado = resultado.filter(l => l.es_duplicado)
+    // Estos dos filtros antes iban al server (listarLineas); ahora que la
+    // queryKey ya no incluye `filtros` y siempre se trae todo, se replican
+    // en cliente para no perder funcionalidad. `solo_alertas` reproduce
+    // exactamente la condición de preliquidacion_service.listar_lineas
+    // (es_duplicado | alerta_legajo | linea_incompleta — sin alerta_empresa).
+    if (filtros.solo_alertas) resultado = resultado.filter(l => l.es_duplicado || l.alerta_legajo || l.linea_incompleta)
+    if (filtros.nombre_empleado) {
+      const qn = filtros.nombre_empleado.toLowerCase()
+      resultado = resultado.filter(l => l.nombre_empleado?.toLowerCase().includes(qn))
+    }
     return resultado
   }, [lineas, busqueda, filtros])
 
+  // Refetch masivo — se usa solo para operaciones donde la respuesta de la
+  // mutación no trae suficiente info para actualizar el caché a mano
+  // (agregar/eliminar concepto individual y las operaciones masivas de
+  // LiquidacionPersona no devuelven la línea recalculada con su nuevo
+  // importe_total/conceptos, ver services/preliquidacion_service.py
+  // agregar_concepto / agregar_concepto_por_codigo / eliminar_concepto).
   const refrescarYSincronizarPanel = async () => {
-    await qc.refetchQueries({ queryKey: ['lineas', id], exact: false })
-    const lineasFrescas = qc.getQueryData(['lineas', id, filtros])
+    await qc.refetchQueries({ queryKey: ['lineas', id] })
+    const lineasFrescas = qc.getQueryData(['lineas', id])
     if (lineasFrescas && lineaSeleccionada) {
       const lineFresca = lineasFrescas.find(l => l.id === lineaSeleccionada.id)
       if (lineFresca) setLineaSeleccionada(lineFresca)
     }
-    qc.invalidateQueries(['stats', id])
+    qc.invalidateQueries({ queryKey: ['stats', id] })
   }
 
   const { mutate: guardar, isPending: guardando } = useMutation({
     mutationFn: ({ lineaId, datos }) => actualizarLinea(lineaId, datos),
-    onSuccess: async (data) => {
+    // actualizarLinea devuelve la línea completa ya recalculada, así que
+    // acá no hace falta refetch: se actualiza el caché puntualmente.
+    onSuccess: (data) => {
       toast.success('Línea actualizada')
       setLineaSeleccionada(data)
-      await refrescarYSincronizarPanel()
+      qc.setQueryData(['lineas', id], (old) => old ? old.map(l => l.id === data.id ? data : l) : old)
+      qc.invalidateQueries({ queryKey: ['stats', id] })
     },
     onError: (err) => toast.error(err.message),
   })
