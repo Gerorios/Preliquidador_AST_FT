@@ -161,11 +161,16 @@
   padding: 10px 14px 14px;
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
+  /* Acotado para que, si el detalle tiene muchas líneas, sea el propio
+     cardBody (no la página) el que scrollea — así el header sticky de
+     abajo tiene un contenedor real contra el cual quedar fijo. */
+  max-height: 320px;
+  overflow-y: auto;
 }
 
 .lineasHead {
   display: grid;
-  grid-template-columns: 1.6fr 1.6fr 0.7fr 0.7fr 0.7fr;
+  grid-template-columns: 1.6fr 1.6fr 1.1fr 0.7fr 0.7fr 0.7fr;
   gap: 8px;
   font-size: 10px;
   font-weight: 600;
@@ -175,11 +180,15 @@
   padding-bottom: 6px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
 }
 
 .lineaRow {
   display: grid;
-  grid-template-columns: 1.6fr 1.6fr 0.7fr 0.7fr 0.7fr;
+  grid-template-columns: 1.6fr 1.6fr 1.1fr 0.7fr 0.7fr 0.7fr;
   gap: 8px;
   font-size: 11px;
   color: var(--text-secondary);
@@ -198,6 +207,10 @@
   padding-bottom: 6px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
 }
 
 .lineaRowEmpleado {
@@ -258,6 +271,10 @@
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  /* Acotado a la altura visible: sin esto pjTableWrap crece con la tabla y
+     nunca scrollea por su cuenta (el scroll termina siendo el de .content),
+     lo que impide que el thead sticky funcione contra este contenedor. */
+  max-height: calc(100vh - 260px);
 }
 
 .pjTable {
@@ -277,6 +294,10 @@
   color: var(--text-muted);
   text-transform: uppercase;
   white-space: nowrap;
+  /* Fijo contra el scroll de .pjTableWrap (ver max-height ahí arriba). */
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .pjTable td {

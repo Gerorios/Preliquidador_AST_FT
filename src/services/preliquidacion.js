@@ -105,6 +105,14 @@ export const listarConceptosFaltantes = (quincena) =>
 export const buscarConceptosParaCombo = (q, quincena) =>
   api.get('/precios/conceptos/buscar', { params: { q, quincena } }).then(r => r.data)
 
+// ─── Panel de precios (vista plana, edición masiva) ──────────────────────────
+
+export const obtenerPanelPrecios = (quincena) =>
+  api.get('/precios/conceptos/panel', { params: { quincena } }).then(r => r.data)
+
+export const aplicarPrecioMasivo = (ids, precio) =>
+  api.patch('/precios/conceptos/precio-masivo', { ids, precio }).then(r => r.data)
+
 // ─── Categorías de operarios de mantenimiento ────────────────────────────────
 
 export const listarOperariosMantenimiento = (preliqId) =>

@@ -545,6 +545,7 @@ export default function Revision() {
                     <th>LEGAJO</th>
                     <th>EMPRESA</th>
                     <th>TAREA</th>
+                    <th>SUPERVISOR</th>
                     <th>CLIENTE · FINCA</th>
                     <th>GRUPO PAGO</th>
                     <th title="Horas jornal">HS. JORN.</th>
@@ -580,6 +581,9 @@ export default function Revision() {
                       <td><span className="badge badge-muted">{linea.empresa_asignada || '—'}</span></td>
                       <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {linea.nombre_tarea || '—'}
+                      </td>
+                      <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {linea.nombre_supervisor || '—'}
                       </td>
                       <td className="mono" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                         {linea.nombre_cliente} · {linea.nombre_finca}

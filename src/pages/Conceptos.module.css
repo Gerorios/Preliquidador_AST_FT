@@ -255,6 +255,36 @@
   cursor: pointer;
 }
 
+/* ── Panel de precios ─────────────────────────────────────────────── */
+.panelDivider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+  flex-shrink: 0;
+}
+
+.panelRowHeredado td {
+  background: var(--warn-dim);
+}
+
+.panelPrecioValor {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.panelPrecioValor:hover {
+  text-decoration: underline;
+}
+
+.panelPrecioEdit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ── Estado vacío ─────────────────────────────────────────────────── */
 .empty {
   padding: 48px;
