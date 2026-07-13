@@ -844,20 +844,21 @@ export default function Conceptos() {
       {/* Tab 3: Panel de precios */}
       {tab === 3 && (
         <div className={styles.tabContent}>
+          {/* Una sola barra de filtros: código (texto) + cliente/finca/tarea
+              (cascada), todo dentro de FiltrosBar. */}
           <FiltrosBar
             datos={panelPrecios}
             campos={CAMPOS_PANEL}
             filtros={filtrosPanel}
             onChange={setFiltrosPanel}
+            busqueda={filtroCodigoPanel}
+            onBusqueda={setFiltroCodigoPanel}
+            placeholderBusqueda="Filtrar por código..."
             mostrarAlertas={false}
-            mostrarBusqueda={false}
           />
 
+          {/* Barra de acción: precio masivo sobre lo filtrado (no es un filtro). */}
           <div className={styles.searchBar}>
-            <input className="input input-mono" style={{ width: 140 }}
-              placeholder="Filtrar por código..."
-              value={filtroCodigoPanel} onChange={e => setFiltroCodigoPanel(e.target.value)} />
-            <span className={styles.panelDivider} />
             <input className="input input-mono" type="number" style={{ width: 120 }}
               placeholder="$ precio"
               value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
