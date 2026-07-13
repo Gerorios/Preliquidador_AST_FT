@@ -8,7 +8,15 @@ import {
   obtenerPanelPrecios, aplicarPrecioMasivo,
 } from '../services/preliquidacion'
 import CargandoContenido from '../components/layout/CargandoContenido'
+import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import styles from './Conceptos.module.css'
+
+// Descriptores de filtro para el Panel de precios (FiltrosBar generalizado).
+const CAMPOS_PANEL = [
+  { key: 'tarea',   label: 'Tarea',   field: 'tarea_nombre' },
+  { key: 'cliente', label: 'Cliente', field: 'cliente_nombre' },
+  { key: 'finca',   label: 'Finca',   field: 'finca_nombre' },
+]
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -430,9 +438,7 @@ export default function Conceptos() {
   const [soloHeredados, setSoloHeredados] = useState(false)
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
-  const [filtroClientePanel, setFiltroClientePanel] = useState('')
-  const [filtroFincaPanel, setFiltroFincaPanel] = useState('')
-  const [filtroTareaPanel, setFiltroTareaPanel] = useState('')
+  const [filtrosPanel, setFiltrosPanel] = useState({})
   const [precioMasivo, setPrecioMasivo] = useState('')
   const [formNuevo, setFormNuevo] = useState({
     tarea_nombre: '', cliente_nombre: '', finca_nombre: '',
@@ -578,27 +584,24 @@ export default function Conceptos() {
     return Object.fromEntries(entradas)
   }, [grupos, busqueda, soloHeredados])
 
-  // Panel de precios: filtros client-side combinables (código, cliente, finca, tarea).
+  // Panel de precios: filtro por código (texto, "tipeo y aplico") combinado
+  // con los filtros de FiltrosBar (match exacto por tarea/cliente/finca).
+  // Los comunes tienen cliente_nombre/finca_nombre en null: al filtrar por
+  // esos campos, esas filas simplemente no matchean (no rompen).
   const panelFiltrado = useMemo(() => {
     let filas = panelPrecios
     const qCodigo = filtroCodigoPanel.trim()
     if (qCodigo) {
       filas = filas.filter(f => String(f.codigo ?? '').startsWith(qCodigo))
     }
-    const qCliente = filtroClientePanel.trim().toLowerCase()
-    if (qCliente) {
-      filas = filas.filter(f => (f.cliente_nombre || '').toLowerCase().includes(qCliente))
-    }
-    const qFinca = filtroFincaPanel.trim().toLowerCase()
-    if (qFinca) {
-      filas = filas.filter(f => (f.finca_nombre || '').toLowerCase().includes(qFinca))
-    }
-    const qTarea = filtroTareaPanel.trim().toLowerCase()
-    if (qTarea) {
-      filas = filas.filter(f => (f.tarea_nombre || '').toLowerCase().includes(qTarea))
+    for (const c of CAMPOS_PANEL) {
+      const valor = filtrosPanel[c.key]
+      if (valor) {
+        filas = filas.filter(f => f[c.field] === valor)
+      }
     }
     return filas
-  }, [panelPrecios, filtroCodigoPanel, filtroClientePanel, filtroFincaPanel, filtroTareaPanel])
+  }, [panelPrecios, filtroCodigoPanel, filtrosPanel])
 
   const handleAplicarPrecioMasivo = () => {
     const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
@@ -841,19 +844,19 @@ export default function Conceptos() {
       {/* Tab 3: Panel de precios */}
       {tab === 3 && (
         <div className={styles.tabContent}>
+          <FiltrosBar
+            datos={panelPrecios}
+            campos={CAMPOS_PANEL}
+            filtros={filtrosPanel}
+            onChange={setFiltrosPanel}
+            mostrarAlertas={false}
+            mostrarBusqueda={false}
+          />
+
           <div className={styles.searchBar}>
             <input className="input input-mono" style={{ width: 140 }}
               placeholder="Filtrar por código..."
               value={filtroCodigoPanel} onChange={e => setFiltroCodigoPanel(e.target.value)} />
-            <input className="input" style={{ width: 160 }}
-              placeholder="Filtrar por tarea..."
-              value={filtroTareaPanel} onChange={e => setFiltroTareaPanel(e.target.value)} />
-            <input className="input" style={{ width: 160 }}
-              placeholder="Filtrar por cliente..."
-              value={filtroClientePanel} onChange={e => setFiltroClientePanel(e.target.value)} />
-            <input className="input" style={{ width: 160 }}
-              placeholder="Filtrar por finca..."
-              value={filtroFincaPanel} onChange={e => setFiltroFincaPanel(e.target.value)} />
             <span className={styles.panelDivider} />
             <input className="input input-mono" type="number" style={{ width: 120 }}
               placeholder="$ precio"

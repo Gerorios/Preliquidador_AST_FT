@@ -7,60 +7,67 @@ const ALERTAS = [
   { value: 'es_duplicado', label: 'Duplicado' },
 ]
 
-// Mapeo de filtro -> campo de la línea
-const CAMPO = {
-  cliente: 'nombre_cliente',
-  finca: 'nombre_finca',
-  tarea: 'nombre_tarea',
-  empresa: 'empresa_asignada',
-  grupo_pago: 'grupo_pago_aplicado',
-  supervisor: 'nombre_supervisor',
-}
-
-// Nombre de la clave del resultado (opciones.xxx) para cada campo de filtro.
-const CLAVE_OPCIONES = {
-  cliente: 'clientes',
-  finca: 'fincas',
-  tarea: 'tareas',
-  empresa: 'empresas',
-  grupo_pago: 'grupos_pago',
-  supervisor: 'supervisores',
-}
+// Set de filtros por defecto — el usado históricamente por Revisión/Verificación,
+// operando sobre `lineas`. Si el consumidor no pasa `campos`, se usa este set
+// para que el comportamiento quede idéntico al de antes de generalizar el
+// componente.
+const CAMPOS_DEFAULT = [
+  { key: 'cliente',     label: 'Cliente',        field: 'nombre_cliente' },
+  { key: 'finca',       label: 'Finca',          field: 'nombre_finca' },
+  { key: 'tarea',       label: 'Tarea',          field: 'nombre_tarea' },
+  { key: 'empresa',     label: 'Empresa',        field: 'empresa_asignada' },
+  { key: 'grupo_pago',  label: 'Grupo de pago',  field: 'grupo_pago_aplicado' },
+  { key: 'supervisor',  label: 'Supervisor',     field: 'nombre_supervisor' },
+]
 
 /**
- * Calcula, en un solo recorrido de `lineas`, las opciones disponibles para
+ * Calcula, en un solo recorrido de `datos`, las opciones disponibles para
  * cada campo de filtro considerando los DEMÁS filtros activos (cascada).
  * Si el cliente=CITRUSVIL está seleccionado, las fincas/tareas/supervisores
  * que se muestran son solo los que tienen registros con ese cliente.
- * Reemplaza 6 pasadas O(n) independientes (una por campo, cada una con hasta
- * 5 filtros encadenados) por una sola pasada O(n).
+ * Reemplaza N pasadas O(n) independientes (una por campo) por una sola
+ * pasada O(n). `campos` es la lista de descriptores { key, field } a calcular.
  */
-function calcularOpcionesCascada(lineas, filtros) {
-  const campos = Object.keys(CAMPO)
-  const activos = Object.entries(filtros).filter(([k, v]) => v && CAMPO[k])
+function calcularOpcionesCascada(datos, filtros, campos) {
+  const activos = campos.filter(c => filtros[c.key])
   const sets = {}
-  for (const c of campos) sets[c] = new Set()
+  for (const c of campos) sets[c.key] = new Set()
 
-  for (const l of lineas) {
+  for (const item of datos) {
     for (const campo of campos) {
       let ok = true
-      for (const [k, v] of activos) {
-        if (k === campo) continue
-        if (l[CAMPO[k]] !== v) { ok = false; break }
+      for (const act of activos) {
+        if (act.key === campo.key) continue
+        if (item[act.field] !== filtros[act.key]) { ok = false; break }
       }
       if (!ok) continue
-      const val = l[CAMPO[campo]]
-      if (val) sets[campo].add(val)
+      const val = item[campo.field]
+      if (val) sets[campo.key].add(val)
     }
   }
 
   const resultado = {}
-  for (const campo of campos) resultado[CLAVE_OPCIONES[campo]] = [...sets[campo]].sort()
+  for (const c of campos) resultado[c.key] = [...sets[c.key]].sort()
   return resultado
 }
 
-export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, onBusqueda, mostrarAlertas = true, mostrarBusqueda = true }) {
+export default function FiltrosBar({
+  lineas = [],
+  datos,
+  campos,
+  filtros,
+  onChange,
+  busqueda,
+  onBusqueda,
+  mostrarAlertas = true,
+  mostrarBusqueda = true,
+}) {
   const [abierto, setAbierto] = useState(false)
+
+  // Retrocompatibilidad: si no se pasa `datos`/`campos`, se usa `lineas` y el
+  // set de campos histórico (Revisión/Verificación no cambian de comportamiento).
+  const datosEfectivos = datos ?? lineas
+  const camposEfectivos = campos ?? CAMPOS_DEFAULT
 
   const set = (k, v) => onChange(f => ({ ...f, [k]: v || undefined }))
   const setAlerta = (v) => onChange(f => ({ ...f, alerta: f.alerta === v ? undefined : v }))
@@ -69,16 +76,20 @@ export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, o
 
   const limpiar = () => {
     onChange({})
-    onBusqueda('')
+    onBusqueda?.('')
   }
 
   // Opciones en cascada — se recalculan según los demás filtros activos.
   // Solo se computan mientras el panel está abierto: colapsado, no tiene
-  // sentido pagar el recorrido de `lineas` en cada cambio de filtro.
+  // sentido pagar el recorrido de `datos` en cada cambio de filtro.
   const opciones = useMemo(() => {
-    if (!abierto) return { clientes: [], fincas: [], tareas: [], empresas: [], grupos_pago: [], supervisores: [] }
-    return calcularOpcionesCascada(lineas, filtros)
-  }, [lineas, filtros, abierto])
+    if (!abierto) {
+      const vacio = {}
+      for (const c of camposEfectivos) vacio[c.key] = []
+      return vacio
+    }
+    return calcularOpcionesCascada(datosEfectivos, filtros, camposEfectivos)
+  }, [datosEfectivos, filtros, abierto, camposEfectivos])
 
   return (
     <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
@@ -151,42 +162,15 @@ export default function FiltrosBar({ lineas = [], filtros, onChange, busqueda, o
           gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
           gap: 10,
         }}>
-          <FiltroSelect
-            label="Cliente"
-            opciones={opciones.clientes}
-            valor={filtros.cliente}
-            onChange={v => set('cliente', v)}
-          />
-          <FiltroSelect
-            label="Finca"
-            opciones={opciones.fincas}
-            valor={filtros.finca}
-            onChange={v => set('finca', v)}
-          />
-          <FiltroSelect
-            label="Tarea"
-            opciones={opciones.tareas}
-            valor={filtros.tarea}
-            onChange={v => set('tarea', v)}
-          />
-          <FiltroSelect
-            label="Empresa"
-            opciones={opciones.empresas}
-            valor={filtros.empresa}
-            onChange={v => set('empresa', v)}
-          />
-          <FiltroSelect
-            label="Grupo de pago"
-            opciones={opciones.grupos_pago}
-            valor={filtros.grupo_pago}
-            onChange={v => set('grupo_pago', v)}
-          />
-          <FiltroSelect
-            label="Supervisor"
-            opciones={opciones.supervisores}
-            valor={filtros.supervisor}
-            onChange={v => set('supervisor', v)}
-          />
+          {camposEfectivos.map(c => (
+            <FiltroSelect
+              key={c.key}
+              label={c.label}
+              opciones={opciones[c.key]}
+              valor={filtros[c.key]}
+              onChange={v => set(c.key, v)}
+            />
+          ))}
         </div>
       )}
     </div>
