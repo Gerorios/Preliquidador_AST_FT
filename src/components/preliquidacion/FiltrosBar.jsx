@@ -59,6 +59,7 @@ export default function FiltrosBar({
   onChange,
   busqueda,
   onBusqueda,
+  placeholderBusqueda = 'Buscar empleado, legajo, tarea...',
   mostrarAlertas = true,
   mostrarBusqueda = true,
 }) {
@@ -102,7 +103,7 @@ export default function FiltrosBar({
           <input
             className="input"
             style={{ width: 240 }}
-            placeholder="Buscar empleado, legajo, tarea..."
+            placeholder={placeholderBusqueda}
             value={busqueda}
             onChange={e => onBusqueda(e.target.value)}
           />
