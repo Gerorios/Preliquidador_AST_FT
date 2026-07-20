@@ -154,7 +154,9 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
 
 function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar }) {
   const [abierto, setAbierto] = useState(false)
-  const [nuevaRegla, setNuevaRegla] = useState(EMPTY_REGLA)
+  // Un concepto específico nuevo nace con "Reemplaza al común" tildado; los
+  // comunes no muestran el checkbox y viajan siempre en false.
+  const [nuevaRegla, setNuevaRegla] = useState({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
 
   const primera = reglas[0]
   const titulo = esComun
@@ -175,7 +177,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
       reemplaza_comun: esComun ? false : nuevaRegla.reemplaza_comun,
     })
-    setNuevaRegla(EMPTY_REGLA)
+    setNuevaRegla({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
   }
 
   return (
@@ -262,7 +264,11 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
   const [abierta, setAbierta] = useState(false)
   const [scope, setScope] = useState('especifico') // 'especifico' | 'comun'
-  const [form, setForm] = useState(EMPTY_REGLA)
+  // Arranca en 'especifico', así que "Reemplaza al común" nace tildado.
+  const [form, setForm] = useState({ ...EMPTY_REGLA, reemplaza_comun: true })
+  // Una vez que el usuario toca el checkbox a mano, dejamos de pisarlo al
+  // cambiar el radio específico/común.
+  const [reemplazaTocado, setReemplazaTocado] = useState(false)
 
   const cantidadConMismaTarea = useMemo(
     () => todasFaltantes.filter(x => x.tarea_nombre === f.tarea_nombre).length,
@@ -283,7 +289,8 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       reemplaza_comun: scope === 'comun' ? false : form.reemplaza_comun,
     })
-    setForm(EMPTY_REGLA)
+    setForm({ ...EMPTY_REGLA, reemplaza_comun: true })
+    setReemplazaTocado(false)
     setAbierta(false)
   }
 
@@ -306,12 +313,18 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
               <div className={styles.scopeChoice}>
                 <label className={styles.radioLabel}>
                   <input type="radio" name={`faltante-scope-${idx}`} checked={scope === 'especifico'}
-                    onChange={() => setScope('especifico')} />
+                    onChange={() => {
+                      setScope('especifico')
+                      if (!reemplazaTocado) setForm(fo => ({ ...fo, reemplaza_comun: true }))
+                    }} />
                   Específico — {f.cliente_nombre}{f.finca_nombre ? ` / ${f.finca_nombre}` : ''}
                 </label>
                 <label className={styles.radioLabel}>
                   <input type="radio" name={`faltante-scope-${idx}`} checked={scope === 'comun'}
-                    onChange={() => setScope('comun')} />
+                    onChange={() => {
+                      setScope('comun')
+                      if (!reemplazaTocado) setForm(fo => ({ ...fo, reemplaza_comun: false }))
+                    }} />
                   Común
                   {cantidadConMismaTarea > 1 && (
                     <span className={styles.textoMuted}> — Afecta a {cantidadConMismaTarea} casos con esta tarea</span>
@@ -352,7 +365,10 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
                 {scope === 'especifico' && (
                   <label className={styles.checkboxLabel} title="La línea de esta finca paga solo lo específico, sin sumar los comunes de la tarea">
                     <input type="checkbox" checked={form.reemplaza_comun}
-                      onChange={e => setForm(fo => ({ ...fo, reemplaza_comun: e.target.checked }))} />
+                      onChange={e => {
+                        setReemplazaTocado(true)
+                        setForm(fo => ({ ...fo, reemplaza_comun: e.target.checked }))
+                      }} />
                     Reemplaza al común
                   </label>
                 )}
@@ -440,10 +456,13 @@ export default function Conceptos() {
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
   const [precioMasivo, setPrecioMasivo] = useState('')
+  // reemplaza_comun nace en true: solo se usa/muestra en tab 2 (Específicos),
+  // donde handleCrearNuevo lo manda tal cual; en tab 1 (Comunes) se fuerza a
+  // false y el checkbox ni se renderiza, así que este default no lo afecta.
   const [formNuevo, setFormNuevo] = useState({
     tarea_nombre: '', cliente_nombre: '', finca_nombre: '',
     codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '',
-    reemplaza_comun: false,
+    reemplaza_comun: true,
   })
 
   const scope = tab === 1 ? 'comun' : 'especifico'
@@ -627,7 +646,7 @@ export default function Conceptos() {
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
       reemplaza_comun: tab === 2 ? formNuevo.reemplaza_comun : false,
     })
-    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: false })
+    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
     setMostrarNuevo(false)
   }
 
