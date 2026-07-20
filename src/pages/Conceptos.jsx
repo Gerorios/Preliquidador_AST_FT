@@ -91,9 +91,6 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
       {regla.categoria != null && (
         <span className="badge badge-muted mono">Cat. {regla.categoria}</span>
       )}
-      {regla.heredado && (
-        <span className="badge badge-warn">Heredado</span>
-      )}
       {!esComun && regla.reemplaza_comun && (
         <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
           Reemplaza al común
@@ -190,9 +187,6 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
           ))}
           {reglas.every(r => r.codigo == null) && (
             <span className="badge badge-warn">Sin código</span>
-          )}
-          {reglas.some(r => r.heredado) && (
-            <span className="badge badge-warn">Heredado</span>
           )}
         </div>
         <span className={styles.cardChevron}>{abierto ? '▲' : '▼'}</span>
@@ -403,7 +397,7 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
   }
 
   return (
-    <tr className={fila.heredado ? styles.panelRowHeredado : undefined}>
+    <tr>
       <td>{fila.tarea_nombre}</td>
       <td className="mono">{fila.codigo ?? '—'}</td>
       <td>{fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
@@ -434,7 +428,6 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
         ) : (
           <span className={styles.panelPrecioValor} onClick={() => setEditando(true)}>
             {fila.precio != null ? `$${Number(fila.precio).toLocaleString('es-AR')}` : <span className={styles.precioVacio}>sin precio</span>}
-            {fila.heredado && <span className="badge badge-warn" style={{ marginLeft: 8 }}>Heredado</span>}
           </span>
         )}
       </td>
@@ -451,7 +444,6 @@ export default function Conceptos() {
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
   const [busqueda, setBusqueda] = useState('')
-  const [soloHeredados, setSoloHeredados] = useState(false)
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
@@ -597,11 +589,8 @@ export default function Conceptos() {
       const q = busqueda.toLowerCase()
       entradas = entradas.filter(([key]) => key.toLowerCase().includes(q))
     }
-    if (soloHeredados) {
-      entradas = entradas.filter(([, reglas]) => reglas.some(r => r.heredado))
-    }
     return Object.fromEntries(entradas)
-  }, [grupos, busqueda, soloHeredados])
+  }, [grupos, busqueda])
 
   // Panel de precios: filtro por código (texto, "tipeo y aplico") combinado
   // con los filtros de FiltrosBar (match exacto por tarea/cliente/finca).
@@ -751,11 +740,6 @@ export default function Conceptos() {
             <input className="input" style={{ width: 320 }}
               placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-            <label className={styles.checkboxLabel}>
-              <input type="checkbox" checked={soloHeredados}
-                onChange={e => setSoloHeredados(e.target.checked)} />
-              Mostrar solo heredados
-            </label>
             <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
               {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
             </button>
