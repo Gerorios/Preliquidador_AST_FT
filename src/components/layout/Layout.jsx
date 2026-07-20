@@ -8,7 +8,7 @@ import styles from './Layout.module.css'
 const NAV = [
   { to: '/dashboard',     label: 'Inicio',        icon: '🏠' },
   { to: '/conceptos',     label: 'Conceptos',     icon: '💲' },
-  { to: '/verificacion',  label: 'Verificación',  icon: '🔍' },
+  { to: '/verificacion',  label: 'Verificación',  icon: '✅' },
   { to: '/categorias-operarios', label: 'Mantenimiento', icon: '🔧' },
 ]
 
