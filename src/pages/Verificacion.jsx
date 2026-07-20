@@ -113,12 +113,12 @@ export default function Verificacion() {
 
   const lineasFiltradas = useMemo(() => {
     let r = lineas
-    if (filtros.cliente)    r = r.filter(l => l.nombre_cliente === filtros.cliente)
-    if (filtros.finca)      r = r.filter(l => l.nombre_finca === filtros.finca)
-    if (filtros.tarea)      r = r.filter(l => l.nombre_tarea === filtros.tarea)
-    if (filtros.empresa)    r = r.filter(l => l.empresa_asignada === filtros.empresa)
-    if (filtros.grupo_pago) r = r.filter(l => l.grupo_pago_aplicado === filtros.grupo_pago)
-    if (filtros.supervisor) r = r.filter(l => l.nombre_supervisor === filtros.supervisor)
+    if (filtros.cliente?.length)    r = r.filter(l => filtros.cliente.includes(l.nombre_cliente))
+    if (filtros.finca?.length)      r = r.filter(l => filtros.finca.includes(l.nombre_finca))
+    if (filtros.tarea?.length)      r = r.filter(l => filtros.tarea.includes(l.nombre_tarea))
+    if (filtros.empresa?.length)    r = r.filter(l => filtros.empresa.includes(l.empresa_asignada))
+    if (filtros.grupo_pago?.length) r = r.filter(l => filtros.grupo_pago.includes(l.grupo_pago_aplicado))
+    if (filtros.supervisor?.length) r = r.filter(l => filtros.supervisor.includes(l.nombre_supervisor))
     return r
   }, [lineas, filtros])
 

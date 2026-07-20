@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 
 const ALERTAS = [
   { value: 'incompleta', label: 'Incompleta' },
@@ -23,13 +23,15 @@ const CAMPOS_DEFAULT = [
 /**
  * Calcula, en un solo recorrido de `datos`, las opciones disponibles para
  * cada campo de filtro considerando los DEMÁS filtros activos (cascada).
- * Si el cliente=CITRUSVIL está seleccionado, las fincas/tareas/supervisores
- * que se muestran son solo los que tienen registros con ese cliente.
+ * Cada `filtros[key]` es ahora un array de valores seleccionados (multi):
+ * una fila pasa el filtro de un campo si ese array está vacío/ausente, o si
+ * incluye el valor de la fila para ese campo (unión dentro del campo,
+ * intersección entre campos — lo natural de una cascada multi-select).
  * Reemplaza N pasadas O(n) independientes (una por campo) por una sola
  * pasada O(n). `campos` es la lista de descriptores { key, field } a calcular.
  */
 function calcularOpcionesCascada(datos, filtros, campos) {
-  const activos = campos.filter(c => filtros[c.key])
+  const activos = campos.filter(c => filtros[c.key]?.length)
   const sets = {}
   for (const c of campos) sets[c.key] = new Set()
 
@@ -38,7 +40,7 @@ function calcularOpcionesCascada(datos, filtros, campos) {
       let ok = true
       for (const act of activos) {
         if (act.key === campo.key) continue
-        if (item[act.field] !== filtros[act.key]) { ok = false; break }
+        if (!filtros[act.key].includes(item[act.field])) { ok = false; break }
       }
       if (!ok) continue
       const val = item[campo.field]
@@ -70,10 +72,23 @@ export default function FiltrosBar({
   const datosEfectivos = datos ?? lineas
   const camposEfectivos = campos ?? CAMPOS_DEFAULT
 
-  const set = (k, v) => onChange(f => ({ ...f, [k]: v || undefined }))
+  // Togglea un valor dentro del array de un campo: si ya está lo saca, si no
+  // lo agrega. Array vacío se guarda como undefined para que `cantFiltros` y
+  // la cascada lo traten uniformemente como "sin filtro".
+  const toggle = (k, valor) => onChange(f => {
+    const actual = f[k] || []
+    const next = actual.includes(valor) ? actual.filter(v => v !== valor) : [...actual, valor]
+    return { ...f, [k]: next.length ? next : undefined }
+  })
+
+  const quitar = (k, valor) => onChange(f => {
+    const next = (f[k] || []).filter(v => v !== valor)
+    return { ...f, [k]: next.length ? next : undefined }
+  })
+
   const setAlerta = (v) => onChange(f => ({ ...f, alerta: f.alerta === v ? undefined : v }))
 
-  const cantFiltros = Object.values(filtros).filter(Boolean).length
+  const cantFiltros = camposEfectivos.filter(c => filtros[c.key]?.length).length + (filtros.alerta ? 1 : 0)
 
   const limpiar = () => {
     onChange({})
@@ -160,16 +175,17 @@ export default function FiltrosBar({
           padding: '12px 12px 14px',
           borderTop: '1px solid var(--border)',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
           gap: 10,
         }}>
           {camposEfectivos.map(c => (
-            <FiltroSelect
+            <FiltroMultiSelect
               key={c.key}
               label={c.label}
               opciones={opciones[c.key]}
-              valor={filtros[c.key]}
-              onChange={v => set(c.key, v)}
+              valores={filtros[c.key] || []}
+              onToggle={v => toggle(c.key, v)}
+              onQuitar={v => quitar(c.key, v)}
             />
           ))}
         </div>
@@ -178,29 +194,115 @@ export default function FiltrosBar({
   )
 }
 
-function FiltroSelect({ label, opciones = [], valor, onChange }) {
-  // Si el valor actualmente seleccionado ya no está disponible (por la cascada),
-  // se mantiene visible como opción para no perder la selección abruptamente.
-  const todasOpciones = valor && !opciones.includes(valor)
-    ? [valor, ...opciones]
-    : opciones
+// Dropdown multi-select: un botón que muestra los valores elegidos como chips
+// removibles (o "Todas" si no hay ninguno), y una lista con checkboxes que se
+// abre debajo. Se cierra al hacer click afuera (ref + listener en document).
+function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQuitar }) {
+  const [abierto, setAbierto] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!abierto) return
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setAbierto(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [abierto])
+
+  // Si algún valor actualmente seleccionado ya no está entre las opciones
+  // disponibles (por la cascada), se mantiene visible igual para no perder
+  // la selección abruptamente.
+  const todasOpciones = useMemo(() => {
+    const faltantes = valores.filter(v => !opciones.includes(v))
+    return faltantes.length ? [...faltantes, ...opciones].sort() : opciones
+  }, [opciones, valores])
 
   return (
-    <div>
+    <div style={{ position: 'relative' }} ref={ref}>
       <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 4 }}>
         {label}
       </div>
-      <select
+
+      <button
+        type="button"
         className="input"
-        value={valor || ''}
-        onChange={e => onChange(e.target.value)}
-        style={{ width: '100%' }}
+        onClick={() => setAbierto(o => !o)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 4,
+          minHeight: 30,
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
       >
-        <option value="">— Todas —</option>
-        {todasOpciones.map(o => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
+        {valores.length === 0 ? (
+          <span style={{ color: 'var(--text-muted)' }}>— Todas —</span>
+        ) : (
+          valores.map(v => (
+            <span
+              key={v}
+              className="badge badge-info"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              onClick={e => { e.stopPropagation(); onQuitar(v) }}
+            >
+              {v}
+              <span style={{ cursor: 'pointer', fontWeight: 700 }}>✕</span>
+            </span>
+          ))
+        )}
+        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 10 }}>▾</span>
+      </button>
+
+      {abierto && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            marginTop: 2,
+            maxHeight: 220,
+            overflowY: 'auto',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            padding: 4,
+          }}
+        >
+          {todasOpciones.length === 0 && (
+            <div style={{ padding: '6px 8px', fontSize: 12, color: 'var(--text-muted)' }}>Sin opciones.</div>
+          )}
+          {todasOpciones.map(o => (
+            <label
+              key={o}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '5px 8px',
+                fontSize: 12,
+                borderRadius: 4,
+                cursor: 'pointer',
+              }}
+              onMouseDown={e => e.preventDefault()}
+            >
+              <input
+                type="checkbox"
+                checked={valores.includes(o)}
+                onChange={() => onToggle(o)}
+                style={{ width: 'var(--control-size)', height: 'var(--control-size)' }}
+              />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o}</span>
+            </label>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
