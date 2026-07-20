@@ -603,9 +603,9 @@ export default function Conceptos() {
       filas = filas.filter(f => String(f.codigo ?? '').startsWith(qCodigo))
     }
     for (const c of CAMPOS_PANEL) {
-      const valor = filtrosPanel[c.key]
-      if (valor) {
-        filas = filas.filter(f => f[c.field] === valor)
+      const valores = filtrosPanel[c.key]
+      if (valores?.length) {
+        filas = filas.filter(f => valores.includes(f[c.field]))
       }
     }
     return filas
