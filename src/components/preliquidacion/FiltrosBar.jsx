@@ -245,18 +245,20 @@ function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQui
       >
         {valores.length === 0 ? (
           <span style={{ color: 'var(--text-muted)' }}>— Todas —</span>
-        ) : (
+        ) : valores.length <= 2 ? (
           valores.map(v => (
             <span
               key={v}
               className="badge badge-info"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%', overflow: 'hidden' }}
               onClick={e => { e.stopPropagation(); onQuitar(v) }}
             >
-              {v}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
               <span style={{ cursor: 'pointer', fontWeight: 700 }}>✕</span>
             </span>
           ))
+        ) : (
+          <span className="badge badge-info">{valores.length} seleccionadas</span>
         )}
         <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 10 }}>▾</span>
       </button>
