@@ -264,10 +264,6 @@
   flex-shrink: 0;
 }
 
-.panelRowHeredado td {
-  background: var(--warn-dim);
-}
-
 .panelPrecioValor {
   font-family: var(--font-mono);
   color: var(--accent);
