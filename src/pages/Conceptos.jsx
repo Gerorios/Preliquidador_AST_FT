@@ -33,8 +33,8 @@ const UNIDADES = [
   { value: 'hsmaquina',    label: 'Hs. Máquina' },
   { value: 'tancadas',     label: 'Tancadas' },
   { value: 'unidades',     label: 'Unidades' },
-  { value: 'jornal_tope1', label: 'Jornal (tope 1)' },
-  { value: 'fijo',         label: 'Fijo' },
+  { value: 'jornal_tope1', label: '1 Jornal' },
+  { value: 'fijo',         label: '1 Jornal Fijo' },
 ]
 
 const TIPOS = [
