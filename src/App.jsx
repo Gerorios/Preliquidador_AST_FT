@@ -9,7 +9,6 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Revision = lazy(() => import('./pages/Revision'))
 const Verificacion = lazy(() => import('./pages/Verificacion'))
 const Conceptos = lazy(() => import('./pages/Conceptos'))
-const Historial = lazy(() => import('./pages/Historial'))
 const CategoriasOperarios = lazy(() => import('./pages/CategoriasOperarios'))
 
 export default function App() {
@@ -24,7 +23,6 @@ export default function App() {
           <Route path="verificacion" element={<Verificacion />} />
           <Route path="conceptos" element={<Conceptos />} />
           <Route path="categorias-operarios" element={<CategoriasOperarios />} />
-          <Route path="historial" element={<Historial />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
