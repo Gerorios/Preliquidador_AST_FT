@@ -86,6 +86,9 @@ export default function FiltrosBar({
     return { ...f, [k]: next.length ? next : undefined }
   })
 
+  // Setea de una todo el array de un campo (para "Seleccionar todos" / limpiar).
+  const setValores = (k, arr) => onChange(f => ({ ...f, [k]: arr && arr.length ? arr : undefined }))
+
   const setAlerta = (v) => onChange(f => ({ ...f, alerta: f.alerta === v ? undefined : v }))
 
   const cantFiltros = camposEfectivos.filter(c => filtros[c.key]?.length).length + (filtros.alerta ? 1 : 0)
@@ -186,6 +189,7 @@ export default function FiltrosBar({
               valores={filtros[c.key] || []}
               onToggle={v => toggle(c.key, v)}
               onQuitar={v => quitar(c.key, v)}
+              onSetTodos={arr => setValores(c.key, arr)}
             />
           ))}
         </div>
@@ -197,7 +201,7 @@ export default function FiltrosBar({
 // Dropdown multi-select: un botón que muestra los valores elegidos como chips
 // removibles (o "Todas" si no hay ninguno), y una lista con checkboxes que se
 // abre debajo. Se cierra al hacer click afuera (ref + listener en document).
-function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQuitar }) {
+function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQuitar, onSetTodos }) {
   const [abierto, setAbierto] = useState(false)
   const ref = useRef(null)
 
@@ -277,6 +281,24 @@ function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQui
         >
           {todasOpciones.length === 0 && (
             <div style={{ padding: '6px 8px', fontSize: 12, color: 'var(--text-muted)' }}>Sin opciones.</div>
+          )}
+          {todasOpciones.length > 0 && (
+            <label
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
+                fontSize: 12, fontWeight: 600, borderRadius: 4, cursor: 'pointer',
+                borderBottom: '1px solid var(--border)', marginBottom: 2,
+              }}
+              onMouseDown={e => e.preventDefault()}
+            >
+              <input
+                type="checkbox"
+                checked={todasOpciones.every(o => valores.includes(o))}
+                onChange={e => onSetTodos(e.target.checked ? todasOpciones : [])}
+                style={{ width: 'var(--control-size)', height: 'var(--control-size)' }}
+              />
+              <span>Seleccionar todos</span>
+            </label>
           )}
           {todasOpciones.map(o => (
             <label
