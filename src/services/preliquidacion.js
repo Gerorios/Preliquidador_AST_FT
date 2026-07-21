@@ -1,5 +1,11 @@
 import api from './api'
 
+// ─── Asistente de ayuda de uso ────────────────────────────────────────────────
+
+// pregunta: string; historial: [{ rol: 'user'|'assistant', contenido }]; pantalla: string|null
+export const consultarAsistente = ({ pregunta, historial = [], pantalla = null }) =>
+  api.post('/asistente/chat', { pregunta, historial, pantalla }).then(r => r.data)
+
 // ─── Preliquidación ───────────────────────────────────────────────────────────
 
 export const listarEmpresas = () =>

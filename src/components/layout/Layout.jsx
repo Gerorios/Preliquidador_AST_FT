@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
 import CargandoOverlay from './CargandoOverlay'
+import AsistenteChat from '../asistente/AsistenteChat'
 import logoIcono from '../../assets/logo-asturiana-icono.png'
 import styles from './Layout.module.css'
 
@@ -80,6 +81,8 @@ export default function Layout() {
       <main className={styles.main}>
         <Outlet />
       </main>
+
+      <AsistenteChat />
     </div>
   )
 }
