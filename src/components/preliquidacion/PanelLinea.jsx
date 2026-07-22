@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { listarGruposPago, listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo } from '../../services/preliquidacion'
+import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obtenerLegajosDisponibles } from '../../services/preliquidacion'
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados
@@ -21,23 +21,28 @@ export default function PanelLinea({
   // (mismo id), se descartan del estado local para no duplicar.
   const [conceptosOptimistas, setConceptosOptimistas] = useState([])
 
-  const { data: gruposPago = [] } = useQuery({
-    queryKey: ['grupos-pago'],
-    queryFn: listarGruposPago,
-    staleTime: Infinity,
-  })
-
+  // Empresas del maestro completo — solo se usan en el fallback (línea sin CUIL).
   const { data: empresas = [] } = useQuery({
     queryKey: ['empresas'],
     queryFn: listarEmpresas,
     staleTime: Infinity,
   })
 
+  // Pares (empresa, legajo) reales de esta persona. Si viene vacío (línea sin
+  // CUIL / persona fuera del maestro) → fallback al campo manual.
+  const { data: legajosData } = useQuery({
+    queryKey: ['legajos-disponibles', linea.id],
+    queryFn: () => obtenerLegajosDisponibles(linea.id),
+    enabled: !!linea.id,
+    staleTime: 5 * 60 * 1000,
+  })
+  const legajosDisponibles = legajosData?.legajos_disponibles || []
+  const tienePares = legajosDisponibles.length > 0
+
   useEffect(() => {
     setForm({
       empresa_asignada:    linea.empresa_asignada || 'ASTURIANA',
       legajo_asignado:     linea.legajo_asignado || linea.legajo_campo || '',
-      grupo_pago_aplicado: linea.grupo_pago_aplicado || '',
       observacion:         linea.observacion || '',
     })
     setMostrarConcepto(false)
@@ -94,6 +99,25 @@ export default function PanelLinea({
 
   const importeTotal = conceptosLinea.reduce((s, c) => s + Number(c.importe || 0), 0)
 
+  // Opciones del desplegable "EMPRESA — legajo". Si la empresa que la línea
+  // tiene asignada no está entre los pares reales de la persona, la agregamos
+  // arriba para no perder el valor actual.
+  const opcionesEmpresa = tienePares
+    ? (legajosDisponibles.some(p => p.empresa === form.empresa_asignada)
+        ? legajosDisponibles
+        : [{ empresa: form.empresa_asignada, legajo: form.legajo_asignado }, ...legajosDisponibles])
+    : []
+
+  // Al elegir una empresa, el legajo la acompaña (un legajo por empresa).
+  const elegirEmpresa = (empresa) => {
+    const par = legajosDisponibles.find(p => p.empresa === empresa)
+    setForm(f => ({
+      ...f,
+      empresa_asignada: empresa,
+      legajo_asignado: par ? par.legajo : f.legajo_asignado,
+    }))
+  }
+
   return (
     <div className={styles.panel}>
       <div className={styles.panelHead}>
@@ -137,42 +161,53 @@ export default function PanelLinea({
         {/* Asignación */}
         <div className={styles.section}>
           <div className={styles.sectionTitle}>ASIGNACIÓN</div>
-          <div className="field-label">Empresa</div>
-          <div className={styles.radioRow}>
-            {empresas.map(e => (
-              <button
-                key={e}
-                className={`${styles.radioBtn} ${form.empresa_asignada === e ? styles.radioBtnSel : ''}`}
-                onClick={() => set('empresa_asignada', e)}
+          {tienePares ? (
+            <>
+              <div className="field-label">Empresa / Legajo</div>
+              <select
+                className="input input-mono"
+                value={form.empresa_asignada || ''}
+                onChange={e => elegirEmpresa(e.target.value)}
+                disabled={opcionesEmpresa.length <= 1}
               >
-                {e}
-              </button>
-            ))}
-          </div>
-          <div className="field-label" style={{ marginTop: 10 }}>Legajo asignado</div>
-          <input
-            className="input input-mono"
-            value={form.legajo_asignado || ''}
-            onChange={e => set('legajo_asignado', e.target.value)}
-          />
-        </div>
-
-        <hr className="divider" />
-
-        {/* Precio */}
-        <div className={styles.section}>
-          <div className={styles.sectionTitle}>PRECIO</div>
-          <div className="field-label">Grupo de pago</div>
-          <select
-            className="input input-mono"
-            value={form.grupo_pago_aplicado || ''}
-            onChange={e => set('grupo_pago_aplicado', e.target.value)}
-          >
-            <option value="">— Seleccionar —</option>
-            {gruposPago.map(gp => (
-              <option key={gp} value={gp}>{gp}</option>
-            ))}
-          </select>
+                {opcionesEmpresa.map(p => (
+                  <option key={p.empresa} value={p.empresa}>
+                    {p.empresa} — {p.legajo}
+                  </option>
+                ))}
+              </select>
+              {opcionesEmpresa.length <= 1 && (
+                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Esta persona tiene una sola empresa/legajo.
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Fallback: línea sin CUIL — asignación manual */}
+              <div className="field-label">Empresa</div>
+              <div className={styles.radioRow}>
+                {empresas.map(e => (
+                  <button
+                    key={e}
+                    className={`${styles.radioBtn} ${form.empresa_asignada === e ? styles.radioBtnSel : ''}`}
+                    onClick={() => set('empresa_asignada', e)}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+              <div className="field-label" style={{ marginTop: 10 }}>Legajo asignado</div>
+              <input
+                className="input input-mono"
+                value={form.legajo_asignado || ''}
+                onChange={e => set('legajo_asignado', e.target.value)}
+              />
+              <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 4 }}>
+                Sin CUIL: asignación manual.
+              </div>
+            </>
+          )}
         </div>
 
         <hr className="divider" />

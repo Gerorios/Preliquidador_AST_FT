@@ -44,6 +44,11 @@ export const listarLineas = (id, filtros = {}) => {
 export const actualizarLinea = (lineaId, datos) =>
   api.patch(`/preliquidacion/linea/${lineaId}`, datos).then(r => r.data)
 
+// Pares (empresa, legajo) reales de la persona de una línea, para el
+// desplegable "EMPRESA — legajo" del panel. legajos_disponibles vacío = sin CUIL.
+export const obtenerLegajosDisponibles = (lineaId) =>
+  api.get(`/preliquidacion/linea/${lineaId}/legajos-disponibles`).then(r => r.data)
+
 export const agregarConcepto = (lineaId, datos) =>
   api.post(`/preliquidacion/linea/${lineaId}/concepto`, datos).then(r => r.data)
 
