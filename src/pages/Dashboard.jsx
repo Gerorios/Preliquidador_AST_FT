@@ -35,7 +35,9 @@ export default function Dashboard() {
     mutationFn: () => generarPreliquidacion(quincena),
     onSuccess: (data) => {
       toast.success(data.detalle || 'Preliquidación generada')
-      qc.invalidateQueries(['preliquidaciones'])
+      // Firma v5: el array pelado (v4) no matchea la key y react-query
+      // terminaba invalidando TODAS las queries del caché.
+      qc.invalidateQueries({ queryKey: ['preliquidaciones'] })
     },
     onError: (err) => toast.error(err.message),
   })
