@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import toast from 'react-hot-toast'
 import {
   listarLineas, obtenerEstadisticas,
@@ -15,17 +16,6 @@ import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import AlertasBanner from '../components/preliquidacion/AlertasBanner'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Revision.module.css'
-
-// Debounce simple: retrasa la propagación de `value` hasta que pasen `delay`ms
-// sin cambios, para no recalcular el filtrado de la tabla en cada tecla.
-function useDebounce(value, delay = 200) {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(t)
-  }, [value, delay])
-  return debounced
-}
 
 function fmt(v) {
   if (v === null || v === undefined || v === '' || Number(v) === 0) return '—'
@@ -365,12 +355,12 @@ export default function Revision() {
     placeholderData: keepPreviousData,
   })
 
-  const busquedaDebounced = useDebounce(busqueda, 200)
-
+  // `busqueda` llega ya debounceada desde FiltrosBar (que es dueño del input):
+  // tipear no re-renderiza esta página hasta que el valor se asienta.
   const lineasFiltradas = useMemo(() => {
     let resultado = lineas
-    if (busquedaDebounced) {
-      const q = busquedaDebounced.toLowerCase()
+    if (busqueda) {
+      const q = busqueda.toLowerCase()
       resultado = resultado.filter(l =>
         l.nombre_empleado?.toLowerCase().includes(q) ||
         l.legajo_campo?.toLowerCase().includes(q) ||
@@ -401,7 +391,23 @@ export default function Revision() {
       resultado = resultado.filter(l => l.nombre_empleado?.toLowerCase().includes(qn))
     }
     return resultado
-  }, [lineas, busquedaDebounced, filtros])
+  }, [lineas, busqueda, filtros])
+
+  // Virtualización de la tabla: solo se montan en el DOM las filas visibles
+  // (más un margen de overscan). Con 1.500-2.500 líneas, renderizarlas todas
+  // congelaba el hilo principal ~1s por cada cambio de filtro o búsqueda.
+  const scrollRef = useRef(null)
+  const virtualizador = useVirtualizer({
+    count: lineasFiltradas.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 38,
+    overscan: 12,
+  })
+  const filasVirtuales = virtualizador.getVirtualItems()
+  const padTop = filasVirtuales.length ? filasVirtuales[0].start : 0
+  const padBottom = filasVirtuales.length
+    ? virtualizador.getTotalSize() - filasVirtuales[filasVirtuales.length - 1].end
+    : 0
 
   // Refetch masivo — se usa solo para operaciones donde la respuesta de la
   // mutación no trae suficiente info para actualizar el caché a mano
@@ -535,7 +541,7 @@ export default function Revision() {
           {isLoading ? (
             <CargandoContenido texto="Cargando líneas…" />
           ) : (
-            <div className="table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+            <div className="table-wrap" style={{ flex: 1, overflow: 'auto' }} ref={scrollRef}>
               <table>
                 <thead>
                   <tr>
@@ -557,7 +563,10 @@ export default function Revision() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lineasFiltradas.map(linea => (
+                  {padTop > 0 && <tr aria-hidden="true" style={{ height: padTop, border: 0 }} />}
+                  {filasVirtuales.map(fila => {
+                    const linea = lineasFiltradas[fila.index]
+                    return (
                     <tr
                       key={linea.id}
                       className={claseLinea(linea)}
@@ -607,7 +616,9 @@ export default function Revision() {
                         <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 12 }} aria-hidden="true">›</span>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
+                  {padBottom > 0 && <tr aria-hidden="true" style={{ height: padBottom, border: 0 }} />}
                 </tbody>
               </table>
               {lineasFiltradas.length === 0 && (

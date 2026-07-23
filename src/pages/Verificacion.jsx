@@ -5,6 +5,7 @@ import {
   obtenerControlTancadasJornal, setValorHoraPulv,
 } from '../services/preliquidacion'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
+import InputBusqueda from '../components/preliquidacion/InputBusqueda'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Verificacion.module.css'
 
@@ -18,18 +19,6 @@ const SECCIONES = [
 ]
 
 const UMBRAL_PROM_JORNAL_ALTO = 50000
-
-// Debounce simple: retrasa la propagación de `value` hasta que pasen `delay`ms
-// sin cambios. Se usa para que el filtrado por texto no recalcule las listas
-// en cada tecla, solo cuando el usuario hace una pausa al tipear.
-function useDebounce(value, delay = 200) {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(t)
-  }, [value, delay])
-  return debounced
-}
 
 function calcularExcesos(lineas) {
   const porEmpleadoFecha = {}
@@ -145,22 +134,18 @@ export default function Verificacion() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['control-tancadas-jornal', preliqId] }),
   })
 
-  // El filtrado por texto usa el valor debounced: los agregados pesados
-  // (calcularExcesos/calcularResumenEmpleados) ya se computan arriba sobre
-  // lineasFiltradas SIN depender de la búsqueda, y acá solo se recorta la
-  // lista ya agregada — con debounce para no repetir ese recorte en cada tecla.
-  const busquedaDebounced = useDebounce(busqueda, 200)
-
+  // `busqueda` llega ya debounceada desde InputBusqueda (dueño del input):
+  // tipear no re-renderiza esta página hasta que el valor se asienta.
   const filtrarBusqueda = (lista) => {
-    if (!busquedaDebounced) return lista
-    const q = busquedaDebounced.toLowerCase()
+    if (!busqueda) return lista
+    const q = busqueda.toLowerCase()
     return lista.filter(item => item.nombre_empleado?.toLowerCase().includes(q) || item.legajo?.toLowerCase().includes(q))
   }
 
-  const excesoHorasF    = useMemo(() => filtrarBusqueda(excesoHoras),            [excesoHoras, busquedaDebounced])
-  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas),         [excesoTancadas, busquedaDebounced])
-  const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas),          [excesoPlantas, busquedaDebounced])
-  const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto), [resumenEmpleadosCompleto, busquedaDebounced])
+  const excesoHorasF    = useMemo(() => filtrarBusqueda(excesoHoras),            [excesoHoras, busqueda])
+  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas),         [excesoTancadas, busqueda])
+  const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas),          [excesoPlantas, busqueda])
+  const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto), [resumenEmpleadosCompleto, busqueda])
 
   return (
     <div className={styles.page}>
@@ -184,12 +169,12 @@ export default function Verificacion() {
           ))}
         </select>
         {preliqId && seccion !== 'plantas-jornal' && (
-          <input
-            className="input"
+          <InputBusqueda
+            key={preliqId}
             style={{ width: 240, marginLeft: 'auto' }}
             placeholder="Buscar empleado o legajo..."
             value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
+            onChange={setBusqueda}
           />
         )}
       </div>

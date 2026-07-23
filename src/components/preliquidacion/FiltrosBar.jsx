@@ -67,6 +67,17 @@ export default function FiltrosBar({
 }) {
   const [abierto, setAbierto] = useState(false)
 
+  // El input de búsqueda vive acá (no en la página) para que cada tecla
+  // re-renderice solo esta barra y no la tabla entera. `onBusqueda` recibe
+  // el valor ya debounceado.
+  const [textoBusqueda, setTextoBusqueda] = useState(busqueda || '')
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (textoBusqueda !== busqueda) onBusqueda?.(textoBusqueda)
+    }, 200)
+    return () => clearTimeout(t)
+  }, [textoBusqueda])
+
   // Retrocompatibilidad: si no se pasa `datos`/`campos`, se usa `lineas` y el
   // set de campos histórico (Revisión/Verificación no cambian de comportamiento).
   const datosEfectivos = datos ?? lineas
@@ -95,6 +106,7 @@ export default function FiltrosBar({
 
   const limpiar = () => {
     onChange({})
+    setTextoBusqueda('')
     onBusqueda?.('')
   }
 
@@ -122,8 +134,8 @@ export default function FiltrosBar({
             className="input"
             style={{ width: 240 }}
             placeholder={placeholderBusqueda}
-            value={busqueda}
-            onChange={e => onBusqueda(e.target.value)}
+            value={textoBusqueda}
+            onChange={e => setTextoBusqueda(e.target.value)}
           />
         )}
 
@@ -165,7 +177,7 @@ export default function FiltrosBar({
           </div>
         )}
 
-        {cantFiltros > 0 || busqueda ? (
+        {cantFiltros > 0 || textoBusqueda || busqueda ? (
           <button className="btn btn-sm" style={{ marginLeft: 'auto' }} onClick={limpiar}>
             ✕ Limpiar
           </button>
