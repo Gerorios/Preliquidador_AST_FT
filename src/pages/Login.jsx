@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import useAuthStore from '../store/authStore'
+import { homeDeRol } from '../components/layout/ProtectedRoute'
 import logo from '../assets/logo-asturiana.png'
 import styles from './Login.module.css'
 
@@ -31,7 +32,7 @@ export default function Login() {
 
       login(res.data.access_token, res.data.usuario)
       toast.success(`Bienvenido, ${res.data.usuario.nombre}`)
-      navigate('/dashboard')
+      navigate(homeDeRol(res.data.usuario.rol))
     } catch (err) {
       const msg = err.response?.data?.detail || 'Error al iniciar sesión'
       toast.error(msg)

@@ -9,6 +9,7 @@ import {
 } from '../services/preliquidacion'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
+import useAuthStore from '../store/authStore'
 import styles from './Conceptos.module.css'
 
 // Descriptores de filtro para el Panel de precios (FiltrosBar generalizado).
@@ -51,7 +52,7 @@ const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNE
 
 // ─── ReglaRow: fila editable de una regla ────────────────────────────────────
 
-function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
+function ReglaRow({ regla, esComun, onActualizar, onEliminar, soloLectura }) {
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({
     codigo:      regla.codigo ?? '',
@@ -96,10 +97,12 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
           Reemplaza al común
         </span>
       )}
-      <div className={styles.rowActions}>
-        <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
-        <button className="btn btn-sm btn-danger" onClick={onEliminar}>✕</button>
-      </div>
+      {!soloLectura && (
+        <div className={styles.rowActions}>
+          <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
+          <button className="btn btn-sm btn-danger" onClick={onEliminar}>✕</button>
+        </div>
+      )}
     </div>
   )
 
@@ -149,7 +152,7 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
 
 // ─── GrupoCard: card colapsable para tarea+cliente+finca ─────────────────────
 
-function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar }) {
+function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar, soloLectura }) {
   const [abierto, setAbierto] = useState(false)
   // Un concepto específico nuevo nace con "Reemplaza al común" tildado; los
   // comunes no muestran el checkbox y viajan siempre en false.
@@ -199,12 +202,14 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
               key={r.id}
               regla={r}
               esComun={esComun}
+              soloLectura={soloLectura}
               onActualizar={(datos) => mutActualizar({ id: r.id, datos })}
               onEliminar={() => mutEliminar(r.id)}
             />
           ))}
 
           {/* Agregar nueva regla */}
+          {!soloLectura && (
           <div className={`${styles.reglaRow} ${styles.reglaRowNew}`}>
             <div><div className="field-label">Código</div>
               <input className="input input-mono" type="number" style={{ width: 90 }} placeholder="—"
@@ -247,6 +252,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
               + Agregar regla
             </button>
           </div>
+          )}
         </div>
       )}
     </div>
@@ -255,7 +261,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, soloLectura }) {
   const [abierta, setAbierta] = useState(false)
   const [scope, setScope] = useState('especifico') // 'especifico' | 'comun'
   // Arranca en 'especifico', así que "Reemplaza al común" nace tildado.
@@ -290,9 +296,9 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
 
   return (
     <>
-      <tr className={styles.faltanteRow} onClick={() => setAbierta(o => !o)}>
+      <tr className={styles.faltanteRow} onClick={soloLectura ? undefined : () => setAbierta(o => !o)}>
         <td>
-          <span className={styles.faltanteChevron}>{abierta ? '▲' : '▼'}</span>
+          {!soloLectura && <span className={styles.faltanteChevron}>{abierta ? '▲' : '▼'}</span>}
           {f.tarea_nombre}
         </td>
         <td>{f.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
@@ -381,7 +387,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
 
 // ─── PanelPrecioRow: fila plana editable del Panel de precios ───────────────
 
-function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
+function PanelPrecioRow({ fila, onGuardarPrecio, guardando, soloLectura }) {
   const [editando, setEditando] = useState(false)
   const [precio, setPrecio] = useState(fila.precio ?? '')
 
@@ -426,7 +432,10 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
             <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
           </div>
         ) : (
-          <span className={styles.panelPrecioValor} onClick={() => setEditando(true)}>
+          <span
+            className={soloLectura ? undefined : styles.panelPrecioValor}
+            onClick={soloLectura ? undefined : () => setEditando(true)}
+          >
             {fila.precio != null ? `$${Number(fila.precio).toLocaleString('es-AR')}` : <span className={styles.precioVacio}>sin precio</span>}
           </span>
         )}
@@ -439,6 +448,10 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
 
 export default function Conceptos() {
   const qc = useQueryClient()
+  // El gerente ve el maestro en solo lectura: sin crear/editar/borrar/copiar
+  // (el backend además rechaza esas mutaciones con 403).
+  const { usuario } = useAuthStore()
+  const soloLectura = usuario?.rol === 'gerente'
   const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=específicos 3=panel de precios
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
@@ -462,10 +475,23 @@ export default function Conceptos() {
   const { data: preliquidaciones = [] } = useQuery({
     queryKey: ['preliquidaciones-generadas'],
     queryFn: listarPreliquidaciones,
+    // El endpoint de preliquidaciones está vedado al gerente (403): su
+    // selector se arma con las quincenas que tienen conceptos.
+    enabled: !soloLectura,
+  })
+
+  const { data: quincenasExistentes = [] } = useQuery({
+    queryKey: ['quincenas-conceptos'],
+    queryFn: listarQuincenasConConceptos,
   })
 
   // Quincenas realmente generadas (deduplicadas, más reciente primero).
   const quincenasGeneradas = useMemo(() => {
+    if (soloLectura) {
+      return [...quincenasExistentes]
+        .sort((a, b) => b.localeCompare(a))
+        .map(q => ({ value: q, label: formatQuincenaLabel(q) }))
+    }
     const vistas = new Set()
     const lista = []
     for (const p of preliquidaciones) {
@@ -476,7 +502,7 @@ export default function Conceptos() {
     }
     lista.sort((a, b) => b.value.localeCompare(a.value))
     return lista
-  }, [preliquidaciones])
+  }, [preliquidaciones, quincenasExistentes, soloLectura])
 
   // Arranca en la quincena generada más reciente apenas llega la data.
   useEffect(() => {
@@ -501,11 +527,6 @@ export default function Conceptos() {
     queryKey: ['panel-precios', quincena],
     queryFn: () => obtenerPanelPrecios(quincena),
     enabled: !!quincena && tab === 3,
-  })
-
-  const { data: quincenasExistentes = [] } = useQuery({
-    queryKey: ['quincenas-conceptos'],
-    queryFn: listarQuincenasConConceptos,
   })
 
   const { data: tareas = [] } = useQuery({ queryKey: ['tareas'], queryFn: listarTareas, staleTime: Infinity })
@@ -661,11 +682,12 @@ export default function Conceptos() {
             ? <option value="">— Sin quincenas generadas —</option>
             : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        {(tab === 1 || tab === 2) && (
+        {!soloLectura && (tab === 1 || tab === 2) && (
           <button className="btn btn-sm" onClick={() => setMostrarCopiar(o => !o)}>
             ⧉ Copiar de quincena anterior
           </button>
         )}
+        {soloLectura && <span className="badge badge-muted">Solo lectura</span>}
       </div>
 
       {/* Panel copiar */}
@@ -723,6 +745,7 @@ export default function Conceptos() {
                       quincena={quincena}
                       todasFaltantes={faltantes}
                       mutCrear={mutCrear}
+                      soloLectura={soloLectura}
                     />
                   ))}
                 </tbody>
@@ -740,9 +763,11 @@ export default function Conceptos() {
             <input className="input" style={{ width: 320 }}
               placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-            <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
-              {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
-            </button>
+            {!soloLectura && (
+              <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
+                {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
+              </button>
+            )}
             <span className={styles.searchCount}>
               {cantGrupos} {tab === 1 ? 'comunes' : 'específicos'}
             </span>
@@ -838,6 +863,7 @@ export default function Conceptos() {
                 mutCrear={mutCrear}
                 mutActualizar={mutActualizar}
                 mutEliminar={mutEliminar}
+                soloLectura={soloLectura}
               />
             ))}
           </div>
@@ -861,6 +887,7 @@ export default function Conceptos() {
           />
 
           {/* Barra de acción: precio masivo sobre lo filtrado (no es un filtro). */}
+          {!soloLectura && (
           <div className={styles.searchBar}>
             <input className="input input-mono" type="number" style={{ width: 120 }}
               placeholder="$ precio"
@@ -874,6 +901,7 @@ export default function Conceptos() {
               {panelFiltrado.length} de {panelPrecios.length} conceptos
             </span>
           </div>
+          )}
 
           <div className={styles.list}>
             {cargandoPanel && <CargandoContenido texto="Cargando panel de precios…" />}
@@ -900,6 +928,7 @@ export default function Conceptos() {
                         fila={fila}
                         onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
                         guardando={guardandoPrecioPanel}
+                        soloLectura={soloLectura}
                       />
                     ))}
                   </tbody>

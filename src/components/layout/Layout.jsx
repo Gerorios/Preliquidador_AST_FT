@@ -6,11 +6,14 @@ import AsistenteChat from '../asistente/AsistenteChat'
 import logoIcono from '../../assets/logo-asturiana-icono.png'
 import styles from './Layout.module.css'
 
+// roles: quién ve cada entrada. El gerente solo llega a Gerencial y
+// Conceptos (lectura); el backend rechaza el resto con 403 igual.
 const NAV = [
-  { to: '/dashboard',     label: 'Inicio',        icon: '🏠' },
-  { to: '/conceptos',     label: 'Conceptos',     icon: '💲' },
-  { to: '/verificacion',  label: 'Verificación',  icon: '✅' },
-  { to: '/categorias-operarios', label: 'Mantenimiento', icon: '🔧' },
+  { to: '/dashboard',     label: 'Inicio',        icon: '🏠', roles: ['admin', 'jefe'] },
+  { to: '/conceptos',     label: 'Conceptos',     icon: '💲', roles: ['admin', 'jefe', 'gerente'] },
+  { to: '/verificacion',  label: 'Verificación',  icon: '✅', roles: ['admin', 'jefe'] },
+  { to: '/categorias-operarios', label: 'Mantenimiento', icon: '🔧', roles: ['admin', 'jefe'] },
+  { to: '/gerencial',     label: 'Gerencial',     icon: '📊', roles: ['admin', 'jefe', 'gerente'] },
 ]
 
 export default function Layout() {
@@ -38,7 +41,7 @@ export default function Layout() {
         </div>
 
         <nav className={styles.nav}>
-          {NAV.map(({ to, label, icon }) => (
+          {NAV.filter(({ roles }) => roles.includes(usuario?.rol)).map(({ to, label, icon }) => (
             <NavLink
               key={to}
               to={to}

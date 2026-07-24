@@ -1,0 +1,295 @@
+.page {
+  padding: 24px 28px 40px;
+  max-width: 1200px;
+}
+
+.header {
+  margin-bottom: 18px;
+}
+.header h1 {
+  font-size: 22px;
+  font-weight: 600;
+}
+.sub {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* ─── Filtros ─── */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.filtros select {
+  width: auto;
+  min-width: 200px;
+}
+.modoSwitch {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.modoBtn,
+.modoActivo {
+  border: none;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+.modoActivo {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ─── KPI row ─── */
+.kpiRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.kpiTile {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+}
+.kpiLabel {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.kpiHero {
+  font-size: 34px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.kpiValor {
+  font-size: 26px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+.kpiDelta {
+  margin-top: 6px;
+  font-size: 13px;
+}
+.deltaUp   { color: var(--danger); font-weight: 600; }   /* gastar más = alerta */
+.deltaDown { color: var(--accent); font-weight: 600; }
+.deltaRef  { color: var(--text-muted); }
+
+/* ─── Paneles ─── */
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+.panelTitulo {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.panelTituloRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.panelTituloRow .panelTitulo { margin-bottom: 2px; }
+.panelSub {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 560px;
+}
+.dosColumnas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 980px) {
+  .dosColumnas { grid-template-columns: 1fr; }
+  .kpiRow { grid-template-columns: 1fr; }
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 18px 4px;
+}
+
+.nota {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ─── Gráfico de evolución ─── */
+.graficoWrap { overflow-x: auto; }
+.grafico {
+  width: 100%;
+  min-width: 560px;
+  display: block;
+}
+.gridline {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.tickLabel {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.tickLabelActivo {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.barra      { fill: var(--accent); }
+.barraHover { fill: #3d5323; } /* paso más oscuro del mismo verde */
+.valorHover {
+  fill: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+/* ─── Barras horizontales ─── */
+.listaBarras {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.filaBarra {
+  display: grid;
+  grid-template-columns: 180px 1fr 130px;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 4px;
+  border-radius: var(--radius-sm);
+}
+.filaClickeable { cursor: pointer; }
+.filaClickeable:hover { background: var(--bg-hover); }
+.barraEtiqueta {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.barraExtra { color: var(--text-muted); font-size: 12px; }
+.barraTrack {
+  height: 14px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.barraFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  min-width: 2px;
+}
+.barraValor {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: right;
+  white-space: nowrap;
+}
+.barraPct { color: var(--text-muted); }
+
+/* ─── Tabla de desvíos ─── */
+.thNum, .tdNum { text-align: right; }
+.thBarra { width: 160px; }
+.tdBarra { padding-right: 8px; }
+.cuil {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.filaAlerta { background: var(--danger-dim); }
+.desvioAlerta { color: var(--danger); font-weight: 700; }
+.desvioNormal { color: var(--text-primary); }
+.badgeAlerta {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--danger);
+  background: var(--danger-dim);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.desvioTrack {
+  position: relative;
+  height: 12px;
+  width: 150px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+}
+.desvioEjeCentral {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--border-strong);
+}
+.desvioFill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  min-width: 2px;
+}
+.desvioFillAlerta { background: var(--danger); }
+.desvioFillPos    { background: #8a8271; } /* neutro cálido: por encima pero bajo el umbral */
+.desvioFillNeg    { background: #b5ad9c; } /* neutro más claro: por debajo de su media */
+
+/* ─── Sin historial ─── */
+.sinHistorial { margin-top: 12px; }
+.sinHistorialLista {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sinHistorialItem {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 14px;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+/* ─── Umbral ─── */
+.umbralCtl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.umbralCtl input { width: 80px; }
