@@ -167,10 +167,6 @@ export default function Gerencial() {
           <div className={styles.kpiLabel}>PERSONAS</div>
           <div className={styles.kpiValor}>{resumen?.personas ?? '—'}</div>
         </div>
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>LÍNEAS DE TRABAJO</div>
-          <div className={styles.kpiValor}>{resumen?.lineas ?? '—'}</div>
-        </div>
       </div>
 
       {/* Evolución */}
