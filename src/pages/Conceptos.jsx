@@ -7,8 +7,10 @@ import {
   listarTareas, listarClientes, listarFincas, listarPreliquidaciones,
   obtenerPanelPrecios, aplicarPrecioMasivo,
 } from '../services/preliquidacion'
+import { listarQuincenasGerencial } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
+import useAuthStore from '../store/authStore'
 import styles from './Conceptos.module.css'
 
 // Descriptores de filtro para el Panel de precios (FiltrosBar generalizado).
@@ -426,7 +428,10 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
             <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
           </div>
         ) : (
-          <span className={styles.panelPrecioValor} onClick={() => setEditando(true)}>
+          <span
+            className={styles.panelPrecioValor}
+            onClick={() => setEditando(true)}
+          >
             {fila.precio != null ? `$${Number(fila.precio).toLocaleString('es-AR')}` : <span className={styles.precioVacio}>sin precio</span>}
           </span>
         )}
@@ -439,6 +444,12 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
 
 export default function Conceptos() {
   const qc = useQueryClient()
+  // El gerente opera esta pantalla igual que admin/jefe (el backend ya le
+  // permite las mutaciones). Lo único vedado es /api/preliquidacion/... (403),
+  // así que su selector de quincenas no puede salir de listarPreliquidaciones:
+  // usamos /gerencial/quincenas en su lugar (ver más abajo).
+  const { usuario } = useAuthStore()
+  const esGerente = usuario?.rol === 'gerente'
   const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=específicos 3=panel de precios
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
@@ -462,10 +473,29 @@ export default function Conceptos() {
   const { data: preliquidaciones = [] } = useQuery({
     queryKey: ['preliquidaciones-generadas'],
     queryFn: listarPreliquidaciones,
+    // El endpoint de preliquidaciones le da 403 al gerente: para ese rol el
+    // selector sale de /gerencial/quincenas (ver query de abajo).
+    enabled: !esGerente,
+  })
+
+  const { data: quincenasGerencial = [] } = useQuery({
+    queryKey: ['gerencial-quincenas'],
+    queryFn: listarQuincenasGerencial,
+    enabled: esGerente,
+  })
+
+  const { data: quincenasExistentes = [] } = useQuery({
+    queryKey: ['quincenas-conceptos'],
+    queryFn: listarQuincenasConConceptos,
   })
 
   // Quincenas realmente generadas (deduplicadas, más reciente primero).
   const quincenasGeneradas = useMemo(() => {
+    if (esGerente) {
+      return [...quincenasGerencial]
+        .sort((a, b) => b.localeCompare(a))
+        .map(q => ({ value: q, label: formatQuincenaLabel(q) }))
+    }
     const vistas = new Set()
     const lista = []
     for (const p of preliquidaciones) {
@@ -476,7 +506,7 @@ export default function Conceptos() {
     }
     lista.sort((a, b) => b.value.localeCompare(a.value))
     return lista
-  }, [preliquidaciones])
+  }, [preliquidaciones, quincenasGerencial, esGerente])
 
   // Arranca en la quincena generada más reciente apenas llega la data.
   useEffect(() => {
@@ -501,11 +531,6 @@ export default function Conceptos() {
     queryKey: ['panel-precios', quincena],
     queryFn: () => obtenerPanelPrecios(quincena),
     enabled: !!quincena && tab === 3,
-  })
-
-  const { data: quincenasExistentes = [] } = useQuery({
-    queryKey: ['quincenas-conceptos'],
-    queryFn: listarQuincenasConConceptos,
   })
 
   const { data: tareas = [] } = useQuery({ queryKey: ['tareas'], queryFn: listarTareas, staleTime: Infinity })
