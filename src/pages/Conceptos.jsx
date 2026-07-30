@@ -13,7 +13,8 @@ import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import useAuthStore from '../store/authStore'
 import styles from './Conceptos.module.css'
 
-// Descriptores de filtro para el Panel de precios (FiltrosBar generalizado).
+// Descriptores de filtro para el Panel de precios y la tab Específicos
+// (FiltrosBar generalizado — ambos filtran por los mismos tres campos).
 const CAMPOS_PANEL = [
   { key: 'tarea',   label: 'Tarea',   field: 'tarea_nombre' },
   { key: 'cliente', label: 'Cliente', field: 'cliente_nombre' },
@@ -455,6 +456,7 @@ export default function Conceptos() {
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
   const [busqueda, setBusqueda] = useState('')
+  const [filtrosEspecificos, setFiltrosEspecificos] = useState({})
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
@@ -614,8 +616,18 @@ export default function Conceptos() {
       const q = busqueda.toLowerCase()
       entradas = entradas.filter(([key]) => key.toLowerCase().includes(q))
     }
+    // Filtros multi-select (solo tab Específicos). Todas las reglas de un
+    // grupo comparten tarea/cliente/finca, así que alcanza con mirar la primera.
+    if (tab === 2) {
+      for (const c of CAMPOS_PANEL) {
+        const valores = filtrosEspecificos[c.key]
+        if (valores?.length) {
+          entradas = entradas.filter(([, reglas]) => valores.includes(reglas[0]?.[c.field]))
+        }
+      }
+    }
     return Object.fromEntries(entradas)
-  }, [grupos, busqueda])
+  }, [grupos, busqueda, tab, filtrosEspecificos])
 
   // Panel de precios: filtro por código (texto, "tipeo y aplico") combinado
   // con los filtros de FiltrosBar (match exacto por tarea/cliente/finca).
@@ -679,7 +691,7 @@ export default function Conceptos() {
       <div className={styles.topbar}>
         <span className={styles.title}>Maestro de Conceptos y Precios</span>
         <select className="input" value={quincena}
-          onChange={e => { setQuincena(e.target.value); setMostrarCopiar(false) }}
+          onChange={e => { setQuincena(e.target.value); setMostrarCopiar(false); setFiltrosEspecificos({}) }}
           style={{ width: 200 }}
           disabled={quincenasGeneradas.length === 0}>
           {quincenasGeneradas.length === 0
@@ -718,7 +730,7 @@ export default function Conceptos() {
         {TABS.map((t, i) => (
           <button key={i}
             className={`chip ${tab === i ? (t.alert ? 'chip-alert' : 'chip-active') : ''}`}
-            onClick={() => { setTab(i); setBusqueda(''); setMostrarNuevo(false) }}>
+            onClick={() => { setTab(i); setBusqueda(''); setFiltrosEspecificos({}); setMostrarNuevo(false) }}>
             {t.label}
           </button>
         ))}
@@ -772,6 +784,20 @@ export default function Conceptos() {
               {cantGrupos} {tab === 1 ? 'comunes' : 'específicos'}
             </span>
           </div>
+
+          {/* Filtros multi-select por cliente/finca/tarea — solo Específicos
+              (los comunes solo tienen tarea y el buscador les alcanza). La
+              búsqueda de texto vive en la barra de arriba: mostrarBusqueda=false. */}
+          {tab === 2 && (
+            <FiltrosBar
+              datos={items}
+              campos={CAMPOS_PANEL}
+              filtros={filtrosEspecificos}
+              onChange={setFiltrosEspecificos}
+              mostrarAlertas={false}
+              mostrarBusqueda={false}
+            />
+          )}
 
           {/* Formulario nuevo grupo */}
           {mostrarNuevo && (
