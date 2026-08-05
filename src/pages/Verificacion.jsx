@@ -282,6 +282,7 @@ const UNIDAD_LABEL = {
   tancadas: 'tancadas',
   unidades: 'unidades',
   jornal_tope1: 'jornal',
+  jornal_tope1_mas_excedente: 'jornal',
 }
 
 // Texto del badge de un concepto adicional: "Cód. N — cantidad unidad — $precio"
