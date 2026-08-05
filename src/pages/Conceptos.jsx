@@ -37,6 +37,7 @@ const UNIDADES = [
   { value: 'tancadas',     label: 'Tancadas' },
   { value: 'unidades',     label: 'Unidades' },
   { value: 'jornal_tope1', label: '1 Jornal' },
+  { value: 'jornal_tope1_mas_excedente', label: '1 Jornal + Excedente (>10 hs paga hs/10)' },
   { value: 'fijo',         label: '1 Jornal Fijo' },
 ]
 
