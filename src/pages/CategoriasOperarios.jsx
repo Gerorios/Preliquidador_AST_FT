@@ -8,7 +8,7 @@ import {
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './CategoriasOperarios.module.css'
 
-const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7]
+const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 export default function CategoriasOperarios() {
   const qc = useQueryClient()
