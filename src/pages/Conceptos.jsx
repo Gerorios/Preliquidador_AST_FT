@@ -5,7 +5,7 @@ import {
   listarConceptos, crearConcepto, actualizarConcepto, eliminarConcepto2,
   copiarConceptos, listarQuincenasConConceptos, listarConceptosFaltantes,
   listarTareas, listarClientes, listarFincas, listarPreliquidaciones,
-  obtenerPanelPrecios, aplicarPrecioMasivo,
+  obtenerPanelPrecios, aplicarPrecioMasivo, listarSupervisores,
 } from '../services/preliquidacion'
 import { listarQuincenasGerencial } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
@@ -16,10 +16,37 @@ import styles from './Conceptos.module.css'
 // Descriptores de filtro para el Panel de precios y la tab Específicos
 // (FiltrosBar generalizado — ambos filtran por los mismos tres campos).
 const CAMPOS_PANEL = [
-  { key: 'tarea',   label: 'Tarea',   field: 'tarea_nombre' },
-  { key: 'cliente', label: 'Cliente', field: 'cliente_nombre' },
-  { key: 'finca',   label: 'Finca',   field: 'finca_nombre' },
+  { key: 'tarea',      label: 'Tarea',      field: 'tarea_nombre' },
+  { key: 'cliente',    label: 'Cliente',    field: 'cliente_nombre' },
+  { key: 'finca',      label: 'Finca',      field: 'finca_nombre' },
+  { key: 'supervisor', label: 'Supervisor', field: 'supervisor_nombre' },
 ]
+
+// Los 4 alcances de una regla: común (solo tarea), por cliente (todas las
+// fincas de ese cliente), por finca (cliente+finca puntual, el "específico"
+// histórico) y por supervisor. Cliente y supervisor son mutuamente
+// excluyentes en el backend.
+const ALCANCES = [
+  { value: 'comun',      label: 'Común' },
+  { value: 'cliente',    label: 'Por cliente' },
+  { value: 'finca',      label: 'Por finca' },
+  { value: 'supervisor', label: 'Por supervisor' },
+]
+
+// Deriva el alcance de un item ya guardado a partir de sus campos.
+const alcanceDeItem = (item) => {
+  if (item.supervisor_nombre) return 'supervisor'
+  if (item.cliente_nombre && item.finca_nombre) return 'finca'
+  if (item.cliente_nombre) return 'cliente'
+  return 'comun'
+}
+
+// Tabs 1-4 son las 4 solapas de reglas (una por alcance); cada una pide su
+// propio scope al backend (GET /precios/conceptos?scope=comun|cliente|finca|
+// supervisor — el viejo 'especifico' quedó legado y ya no se usa). El
+// queryKey incluye el scope, así que cada solapa cachea por separado.
+const SCOPE_POR_TAB = { 1: 'comun', 2: 'cliente', 3: 'finca', 4: 'supervisor' }
+const NOMBRE_SCOPE = { 1: 'comunes', 2: 'por cliente', 3: 'por finca', 4: 'por supervisor' }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -161,17 +188,22 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
   const [nuevaRegla, setNuevaRegla] = useState({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
 
   const primera = reglas[0]
-  const titulo = esComun
-    ? `${primera.tarea_nombre}`
-    : `${primera.tarea_nombre} — ${primera.cliente_nombre}${primera.finca_nombre ? ` / ${primera.finca_nombre}` : ''}`
+  const alcance = esComun ? 'comun' : alcanceDeItem(primera)
+  const titulo = (() => {
+    if (esComun) return primera.tarea_nombre
+    if (alcance === 'supervisor') return `${primera.tarea_nombre} — Supervisor: ${primera.supervisor_nombre}`
+    if (alcance === 'cliente') return `${primera.tarea_nombre} — ${primera.cliente_nombre} (todas las fincas)`
+    return `${primera.tarea_nombre} — ${primera.cliente_nombre}${primera.finca_nombre ? ` / ${primera.finca_nombre}` : ''}`
+  })()
 
   const handleAgregar = () => {
     if (!nuevaRegla.codigo) { toast.error('Ingresá un código'); return }
     mutCrear({
       quincena,
       tarea_nombre:   primera.tarea_nombre,
-      cliente_nombre: esComun ? null : primera.cliente_nombre,
-      finca_nombre:   esComun ? null : primera.finca_nombre,
+      cliente_nombre: esComun ? null : (primera.cliente_nombre ?? null),
+      finca_nombre:   esComun ? null : (primera.finca_nombre ?? null),
+      supervisor_nombre: esComun ? null : (primera.supervisor_nombre ?? null),
       codigo:      parseInt(nuevaRegla.codigo),
       unidad_base: nuevaRegla.unidad_base,
       precio:      nuevaRegla.precio !== '' ? parseFloat(nuevaRegla.precio) : null,
@@ -187,6 +219,12 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       <div className={styles.cardHead} onClick={() => setAbierto(o => !o)}>
         <span className={styles.cardTitle}>{titulo}</span>
         <div className={styles.cardBadges}>
+          {alcance === 'cliente' && (
+            <span className="badge badge-info">Cliente: {primera.cliente_nombre} — todas las fincas</span>
+          )}
+          {alcance === 'supervisor' && (
+            <span className="badge badge-info">Supervisor: {primera.supervisor_nombre}</span>
+          )}
           {reglas.filter(r => r.codigo != null).map(r => (
             <span key={r.id} className="badge badge-muted mono">{r.codigo}</span>
           ))}
@@ -260,13 +298,14 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores }) {
   const [abierta, setAbierta] = useState(false)
-  const [scope, setScope] = useState('especifico') // 'especifico' | 'comun'
-  // Arranca en 'especifico', así que "Reemplaza al común" nace tildado.
+  const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
+  const [supervisorSel, setSupervisorSel] = useState('')
+  // Arranca en 'finca', así que "Reemplaza al común" nace tildado.
   const [form, setForm] = useState({ ...EMPTY_REGLA, reemplaza_comun: true })
   // Una vez que el usuario toca el checkbox a mano, dejamos de pisarlo al
-  // cambiar el radio específico/común.
+  // cambiar el alcance.
   const [reemplazaTocado, setReemplazaTocado] = useState(false)
 
   const cantidadConMismaTarea = useMemo(
@@ -274,21 +313,30 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
     [todasFaltantes, f.tarea_nombre]
   )
 
+  const cambiarAlcance = (nuevo) => {
+    setAlcance(nuevo)
+    if (!reemplazaTocado) setForm(fo => ({ ...fo, reemplaza_comun: nuevo !== 'comun' }))
+  }
+
   const handleGuardar = () => {
     if (!form.codigo) { toast.error('Ingresá un código'); return }
+    if (alcance === 'supervisor' && !supervisorSel) { toast.error('Seleccioná un supervisor'); return }
     mutCrear({
       quincena,
       tarea_nombre:   f.tarea_nombre,
-      cliente_nombre: scope === 'comun' ? null : f.cliente_nombre,
-      finca_nombre:   scope === 'comun' ? null : f.finca_nombre,
+      cliente_nombre: (alcance === 'cliente' || alcance === 'finca') ? f.cliente_nombre : null,
+      finca_nombre:   alcance === 'finca' ? f.finca_nombre : null,
+      supervisor_nombre: alcance === 'supervisor' ? supervisorSel : null,
       codigo:      parseInt(form.codigo),
       unidad_base: form.unidad_base,
       precio:      form.precio !== '' ? parseFloat(form.precio) : null,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
-      reemplaza_comun: scope === 'comun' ? false : form.reemplaza_comun,
+      reemplaza_comun: alcance === 'comun' ? false : form.reemplaza_comun,
     })
     setForm({ ...EMPTY_REGLA, reemplaza_comun: true })
+    setAlcance('finca')
+    setSupervisorSel('')
     setReemplazaTocado(false)
     setAbierta(false)
   }
@@ -311,25 +359,40 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
 
               <div className={styles.scopeChoice}>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={scope === 'especifico'}
-                    onChange={() => {
-                      setScope('especifico')
-                      if (!reemplazaTocado) setForm(fo => ({ ...fo, reemplaza_comun: true }))
-                    }} />
-                  Específico — {f.cliente_nombre}{f.finca_nombre ? ` / ${f.finca_nombre}` : ''}
+                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'finca'}
+                    onChange={() => cambiarAlcance('finca')} />
+                  Por finca — {f.cliente_nombre}{f.finca_nombre ? ` / ${f.finca_nombre}` : ''}
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={scope === 'comun'}
-                    onChange={() => {
-                      setScope('comun')
-                      if (!reemplazaTocado) setForm(fo => ({ ...fo, reemplaza_comun: false }))
-                    }} />
+                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'cliente'}
+                    onChange={() => cambiarAlcance('cliente')} />
+                  Por cliente — {f.cliente_nombre} (todas las fincas)
+                </label>
+                <label className={styles.radioLabel}>
+                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'supervisor'}
+                    onChange={() => cambiarAlcance('supervisor')} />
+                  Por supervisor
+                </label>
+                <label className={styles.radioLabel}>
+                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'comun'}
+                    onChange={() => cambiarAlcance('comun')} />
                   Común
                   {cantidadConMismaTarea > 1 && (
                     <span className={styles.textoMuted}> — Afecta a {cantidadConMismaTarea} casos con esta tarea</span>
                   )}
                 </label>
               </div>
+
+              {alcance === 'supervisor' && (
+                <div>
+                  <div className="field-label">Supervisor</div>
+                  <select className="input" style={{ width: 220 }} value={supervisorSel}
+                    onChange={e => setSupervisorSel(e.target.value)}>
+                    <option value="">— Seleccionar —</option>
+                    {supervisores.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
 
               <div className={styles.reglaRow}>
                 <div><div className="field-label">Código</div>
@@ -361,7 +424,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear }) {
                     {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
                   </select>
                 </div>
-                {scope === 'especifico' && (
+                {alcance !== 'comun' && (
                   <label className={styles.checkboxLabel} title="La línea de esta finca paga solo lo específico, sin sumar los comunes de la tarea">
                     <input type="checkbox" checked={form.reemplaza_comun}
                       onChange={e => {
@@ -405,7 +468,11 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
     <tr>
       <td>{fila.tarea_nombre}</td>
       <td className="mono">{fila.codigo ?? '—'}</td>
-      <td>{fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
+      <td>
+        {fila.supervisor_nombre
+          ? <span className="badge badge-info">Supervisor: {fila.supervisor_nombre}</span>
+          : (fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>)}
+      </td>
       <td>{fila.finca_nombre || '—'}</td>
       <td>{fila.categoria != null ? `Cat. ${fila.categoria}` : '—'}</td>
       <td>{UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base}</td>
@@ -453,7 +520,7 @@ export default function Conceptos() {
   // usamos /gerencial/quincenas en su lugar (ver más abajo).
   const { usuario } = useAuthStore()
   const esGerente = usuario?.rol === 'gerente'
-  const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=específicos 3=panel de precios
+  const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
@@ -463,16 +530,25 @@ export default function Conceptos() {
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
   const [precioMasivo, setPrecioMasivo] = useState('')
-  // reemplaza_comun nace en true: solo se usa/muestra en tab 2 (Específicos),
-  // donde handleCrearNuevo lo manda tal cual; en tab 1 (Comunes) se fuerza a
-  // false y el checkbox ni se renderiza, así que este default no lo afecta.
+  // Alcance del formulario "+ Nuevo": arranca acorde a la tab activa (comunes
+  // → común, específicos → finca) pero el usuario puede cambiarlo a
+  // cualquiera de los 4; reemplaza_comun nace en true y handleCrearNuevo lo
+  // fuerza a false cuando el alcance es 'comun'.
+  const [alcanceNuevo, setAlcanceNuevo] = useState('comun')
   const [formNuevo, setFormNuevo] = useState({
-    tarea_nombre: '', cliente_nombre: '', finca_nombre: '',
+    tarea_nombre: '', cliente_nombre: '', finca_nombre: '', supervisor_nombre: '',
     codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '',
     reemplaza_comun: true,
   })
 
-  const scope = tab === 1 ? 'comun' : 'especifico'
+  const scope = SCOPE_POR_TAB[tab] // undefined en tab 0 (faltantes) y 5 (panel)
+
+  // Sincroniza el alcance por defecto del form "+ Nuevo" con la solapa activa
+  // cada vez que se cambia de tab (el form se resetea/oculta al cambiar tab,
+  // así que no hay riesgo de pisar una elección en curso del usuario).
+  useEffect(() => {
+    setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
+  }, [tab])
 
   const { data: preliquidaciones = [] } = useQuery({
     queryKey: ['preliquidaciones-generadas'],
@@ -525,24 +601,34 @@ export default function Conceptos() {
     enabled: !!quincena,
   })
 
+  // Cada solapa de reglas (1-4) pide únicamente su scope; el queryKey lleva
+  // el scope, así que moverse entre solapas no pisa la caché de las otras.
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['conceptos', quincena, scope],
     queryFn: () => listarConceptos(quincena, scope),
-    enabled: !!quincena && (tab === 1 || tab === 2),
+    enabled: !!quincena && scope != null,
   })
 
   const { data: panelPrecios = [], isLoading: cargandoPanel } = useQuery({
     queryKey: ['panel-precios', quincena],
     queryFn: () => obtenerPanelPrecios(quincena),
-    enabled: !!quincena && tab === 3,
+    enabled: !!quincena && tab === 5,
   })
 
   const { data: tareas = [] } = useQuery({ queryKey: ['tareas'], queryFn: listarTareas, staleTime: Infinity })
-  const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: listarClientes, staleTime: Infinity, enabled: tab === 2 })
+  const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: listarClientes, staleTime: Infinity, enabled: tab >= 1 && tab <= 4 })
+  // Supervisores de la quincena, para el alcance "Por supervisor" (dropdown
+  // de matching exacto). Se usa tanto en Sin concepto (tab 0) como en el
+  // form "+ Nuevo" de las 4 solapas de reglas (tab 1-4).
+  const { data: supervisores = [] } = useQuery({
+    queryKey: ['supervisores-conceptos', quincena],
+    queryFn: () => listarSupervisores(quincena),
+    enabled: !!quincena && tab <= 4,
+  })
   const { data: fincas = [] } = useQuery({
     queryKey: ['fincas', formNuevo.cliente_nombre],
     queryFn: () => listarFincas(formNuevo.cliente_nombre),
-    enabled: tab === 2 && !!formNuevo.cliente_nombre,
+    enabled: (tab >= 1 && tab <= 4) && !!formNuevo.cliente_nombre,
   })
 
   const invalidar = () => {
@@ -605,7 +691,7 @@ export default function Conceptos() {
     for (const item of items) {
       const key = tab === 1
         ? item.tarea_nombre
-        : `${item.tarea_nombre}||${item.cliente_nombre || ''}||${item.finca_nombre || ''}`
+        : `${item.tarea_nombre}||${item.cliente_nombre || ''}||${item.finca_nombre || ''}||${item.supervisor_nombre || ''}`
       if (!map[key]) map[key] = []
       map[key].push(item)
     }
@@ -618,9 +704,10 @@ export default function Conceptos() {
       const q = busqueda.toLowerCase()
       entradas = entradas.filter(([key]) => key.toLowerCase().includes(q))
     }
-    // Filtros multi-select (solo tab Específicos). Todas las reglas de un
-    // grupo comparten tarea/cliente/finca, así que alcanza con mirar la primera.
-    if (tab === 2) {
+    // Filtros multi-select (solo solapas no-comunes). Todas las reglas de un
+    // grupo comparten tarea/cliente/finca/supervisor, así que alcanza con
+    // mirar la primera.
+    if (tab >= 2 && tab <= 4) {
       for (const c of CAMPOS_PANEL) {
         const valores = filtrosEspecificos[c.key]
         if (valores?.length) {
@@ -660,28 +747,33 @@ export default function Conceptos() {
 
   const handleCrearNuevo = () => {
     if (!formNuevo.tarea_nombre) { toast.error('Completá la tarea'); return }
-    if (tab === 2 && !formNuevo.cliente_nombre) { toast.error('Completá el cliente'); return }
+    if ((alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') && !formNuevo.cliente_nombre) { toast.error('Completá el cliente'); return }
+    if (alcanceNuevo === 'supervisor' && !formNuevo.supervisor_nombre) { toast.error('Seleccioná un supervisor'); return }
     if (!formNuevo.codigo) { toast.error('Ingresá un código'); return }
     mutCrear({
       quincena,
       tarea_nombre:   formNuevo.tarea_nombre,
-      cliente_nombre: tab === 2 ? formNuevo.cliente_nombre : null,
-      finca_nombre:   tab === 2 ? (formNuevo.finca_nombre || null) : null,
+      cliente_nombre: (alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') ? formNuevo.cliente_nombre : null,
+      finca_nombre:   alcanceNuevo === 'finca' ? (formNuevo.finca_nombre || null) : null,
+      supervisor_nombre: alcanceNuevo === 'supervisor' ? formNuevo.supervisor_nombre : null,
       codigo:      parseInt(formNuevo.codigo),
       unidad_base: formNuevo.unidad_base,
       precio:      formNuevo.precio !== '' ? parseFloat(formNuevo.precio) : null,
       tipo:        formNuevo.tipo,
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
-      reemplaza_comun: tab === 2 ? formNuevo.reemplaza_comun : false,
+      reemplaza_comun: alcanceNuevo === 'comun' ? false : formNuevo.reemplaza_comun,
     })
-    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
+    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', supervisor_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
+    setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
     setMostrarNuevo(false)
   }
 
   const TABS = [
     { label: `Sin concepto${faltantes.length > 0 ? ` (${faltantes.length})` : ''}`, alert: faltantes.length > 0 },
     { label: 'Comunes' },
-    { label: 'Específicos' },
+    { label: 'Por cliente' },
+    { label: 'Por finca' },
+    { label: 'Por supervisor' },
     { label: 'Panel de precios' },
   ]
 
@@ -700,7 +792,7 @@ export default function Conceptos() {
             ? <option value="">— Sin quincenas generadas —</option>
             : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        {(tab === 1 || tab === 2) && (
+        {tab >= 1 && tab <= 4 && (
           <button className="btn btn-sm" onClick={() => setMostrarCopiar(o => !o)}>
             ⧉ Copiar de quincena anterior
           </button>
@@ -762,6 +854,7 @@ export default function Conceptos() {
                       quincena={quincena}
                       todasFaltantes={faltantes}
                       mutCrear={mutCrear}
+                      supervisores={supervisores}
                     />
                   ))}
                 </tbody>
@@ -771,26 +864,27 @@ export default function Conceptos() {
         </div>
       )}
 
-      {/* Tabs 1 y 2: Comunes / Específicos */}
-      {(tab === 1 || tab === 2) && (
+      {/* Tabs 1-4: Comunes / Por cliente / Por finca / Por supervisor */}
+      {tab >= 1 && tab <= 4 && (
         <div className={styles.tabContent}>
           {/* Barra búsqueda + nuevo */}
           <div className={styles.searchBar}>
             <input className="input" style={{ width: 320 }}
-              placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca...'}
+              placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca, supervisor...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
             <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
               {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
             </button>
             <span className={styles.searchCount}>
-              {cantGrupos} {tab === 1 ? 'comunes' : 'específicos'}
+              {cantGrupos} {NOMBRE_SCOPE[tab]}
             </span>
           </div>
 
-          {/* Filtros multi-select por cliente/finca/tarea — solo Específicos
-              (los comunes solo tienen tarea y el buscador les alcanza). La
-              búsqueda de texto vive en la barra de arriba: mostrarBusqueda=false. */}
-          {tab === 2 && (
+          {/* Filtros multi-select por cliente/finca/supervisor/tarea — solo
+              solapas no-comunes (los comunes solo tienen tarea y el buscador
+              les alcanza). La búsqueda de texto vive en la barra de arriba:
+              mostrarBusqueda=false. */}
+          {tab >= 2 && tab <= 4 && (
             <FiltrosBar
               datos={items}
               campos={CAMPOS_PANEL}
@@ -811,7 +905,19 @@ export default function Conceptos() {
                   {tareas.map(t => <option key={t.nombre} value={t.nombre}>{t.nombre}</option>)}
                 </select>
               </div>
-              {tab === 2 && (
+              <div>
+                <div className="field-label">Alcance</div>
+                <div className={styles.scopeChoice} style={{ gap: 12 }}>
+                  {ALCANCES.map(a => (
+                    <label key={a.value} className={styles.radioLabel}>
+                      <input type="radio" name="alcance-nuevo" checked={alcanceNuevo === a.value}
+                        onChange={() => setAlcanceNuevo(a.value)} />
+                      {a.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {(alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') && (
                 <>
                   <div><div className="field-label">Cliente</div>
                     <select className="input" style={{ width: 180 }} value={formNuevo.cliente_nombre}
@@ -820,15 +926,26 @@ export default function Conceptos() {
                       {clientes.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div><div className="field-label">Finca</div>
-                    <select className="input" style={{ width: 160 }} value={formNuevo.finca_nombre}
-                      onChange={e => setFormNuevo(f => ({ ...f, finca_nombre: e.target.value }))}
-                      disabled={!formNuevo.cliente_nombre}>
-                      <option value="">— Seleccionar —</option>
-                      {fincas.map(fn => <option key={fn} value={fn}>{fn}</option>)}
-                    </select>
-                  </div>
+                  {alcanceNuevo === 'finca' && (
+                    <div><div className="field-label">Finca</div>
+                      <select className="input" style={{ width: 160 }} value={formNuevo.finca_nombre}
+                        onChange={e => setFormNuevo(f => ({ ...f, finca_nombre: e.target.value }))}
+                        disabled={!formNuevo.cliente_nombre}>
+                        <option value="">— Seleccionar —</option>
+                        {fincas.map(fn => <option key={fn} value={fn}>{fn}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </>
+              )}
+              {alcanceNuevo === 'supervisor' && (
+                <div><div className="field-label">Supervisor</div>
+                  <select className="input" style={{ width: 200 }} value={formNuevo.supervisor_nombre}
+                    onChange={e => setFormNuevo(f => ({ ...f, supervisor_nombre: e.target.value }))}>
+                    <option value="">— Seleccionar —</option>
+                    {supervisores.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
               )}
               <div><div className="field-label">Código</div>
                 <input className="input input-mono" type="number" style={{ width: 90 }} placeholder="—"
@@ -859,7 +976,7 @@ export default function Conceptos() {
                   {CATEGORIAS.map(c => <option key={c} value={c}>Categoría {c}</option>)}
                 </select>
               </div>
-              {tab === 2 && (
+              {alcanceNuevo !== 'comun' && (
                 <label className={styles.checkboxLabel} title="La línea de esta finca paga solo lo específico, sin sumar los comunes de la tarea">
                   <input type="checkbox" checked={formNuevo.reemplaza_comun}
                     onChange={e => setFormNuevo(f => ({ ...f, reemplaza_comun: e.target.checked }))} />
@@ -878,7 +995,7 @@ export default function Conceptos() {
             {isLoading && <CargandoContenido texto="Cargando conceptos…" />}
             {!isLoading && cantGrupos === 0 && (
               <div className={styles.empty}>
-                No hay conceptos {tab === 1 ? 'comunes' : 'específicos'} para esta quincena.
+                No hay conceptos {NOMBRE_SCOPE[tab]} para esta quincena.
                 Usá "+ Nuevo" para agregar.
               </div>
             )}
@@ -897,8 +1014,8 @@ export default function Conceptos() {
         </div>
       )}
 
-      {/* Tab 3: Panel de precios */}
-      {tab === 3 && (
+      {/* Tab 5: Panel de precios */}
+      {tab === 5 && (
         <div className={styles.tabContent}>
           {/* Una sola barra de filtros: código (texto) + cliente/finca/tarea
               (cascada), todo dentro de FiltrosBar. */}
