@@ -113,6 +113,11 @@ export const copiarConceptos = (origen, destino) =>
 export const listarConceptosFaltantes = (quincena) =>
   api.get('/precios/conceptos/faltantes', { params: { quincena } }).then(r => r.data)
 
+// Nombres de supervisor de la quincena, para el alcance "Por supervisor"
+// (dropdown de matching exacto — nunca texto libre).
+export const listarSupervisores = (quincena) =>
+  api.get('/precios/conceptos/supervisores', { params: { quincena } }).then(r => r.data)
+
 export const buscarConceptosParaCombo = (q, quincena) =>
   api.get('/precios/conceptos/buscar', { params: { q, quincena } }).then(r => r.data)
 
