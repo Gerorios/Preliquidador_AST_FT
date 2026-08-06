@@ -46,6 +46,7 @@ const TIPOS = [
   { value: 'NO_REMUNERATIVO', label: 'No remunerativo' },
   { value: 'JORNAL',          label: 'Jornal' },
   { value: 'BONO_BOLSON',     label: 'Bono bolsón' },
+  { value: 'EXCENTO',         label: 'Excento' },
   { value: 'OTRO',            label: 'Otro' },
 ]
 

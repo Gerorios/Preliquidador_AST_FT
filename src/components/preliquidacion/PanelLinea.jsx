@@ -4,7 +4,7 @@ import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obt
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados
-const TIPOS_CONCEPTO = ['REMUNERATIVO', 'NO_REMUNERATIVO', 'JORNAL', 'OTRO']
+const TIPOS_CONCEPTO = ['REMUNERATIVO', 'NO_REMUNERATIVO', 'JORNAL', 'EXCENTO', 'OTRO']
 
 export default function PanelLinea({
   linea, onGuardar, onEliminarConcepto, onCerrar, onConceptoAgregado, guardando
