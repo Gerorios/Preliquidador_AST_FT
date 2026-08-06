@@ -88,7 +88,8 @@ export const listarGruposPago = () =>
 
 // ─── Maestro unificado de Conceptos ──────────────────────────────────────────
 // Reemplaza precio_maestro + precio_comun + concepto_liquidacion anterior.
-// scope: 'comun' (cliente IS NULL) | 'especifico' (cliente NOT NULL)
+// scope: 'comun' | 'cliente' | 'finca' | 'supervisor' (el viejo 'especifico'
+// sigue vivo en el backend como legado, pero el front ya no lo usa).
 
 export const listarQuincenasConConceptos = () =>
   api.get('/precios/conceptos/quincenas').then(r => r.data)

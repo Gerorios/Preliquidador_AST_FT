@@ -41,6 +41,13 @@ const alcanceDeItem = (item) => {
   return 'comun'
 }
 
+// Tabs 1-4 son las 4 solapas de reglas (una por alcance); cada una pide su
+// propio scope al backend (GET /precios/conceptos?scope=comun|cliente|finca|
+// supervisor — el viejo 'especifico' quedó legado y ya no se usa). El
+// queryKey incluye el scope, así que cada solapa cachea por separado.
+const SCOPE_POR_TAB = { 1: 'comun', 2: 'cliente', 3: 'finca', 4: 'supervisor' }
+const NOMBRE_SCOPE = { 1: 'comunes', 2: 'por cliente', 3: 'por finca', 4: 'por supervisor' }
+
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 // Convierte una fecha ISO (YYYY-MM-DD) de quincena en el label amigable
@@ -513,7 +520,7 @@ export default function Conceptos() {
   // usamos /gerencial/quincenas en su lugar (ver más abajo).
   const { usuario } = useAuthStore()
   const esGerente = usuario?.rol === 'gerente'
-  const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=específicos 3=panel de precios
+  const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
@@ -534,13 +541,13 @@ export default function Conceptos() {
     reemplaza_comun: true,
   })
 
-  const scope = tab === 1 ? 'comun' : 'especifico'
+  const scope = SCOPE_POR_TAB[tab] // undefined en tab 0 (faltantes) y 5 (panel)
 
-  // Sincroniza el alcance por defecto del form "+ Nuevo" con la tab activa
-  // cada vez que se cambia de tab (no reescribe si el usuario ya lo tocó
-  // dentro de la misma tab, porque el form se resetea/oculta al cambiar tab).
+  // Sincroniza el alcance por defecto del form "+ Nuevo" con la solapa activa
+  // cada vez que se cambia de tab (el form se resetea/oculta al cambiar tab,
+  // así que no hay riesgo de pisar una elección en curso del usuario).
   useEffect(() => {
-    setAlcanceNuevo(tab === 1 ? 'comun' : 'finca')
+    setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
   }, [tab])
 
   const { data: preliquidaciones = [] } = useQuery({
@@ -594,32 +601,34 @@ export default function Conceptos() {
     enabled: !!quincena,
   })
 
+  // Cada solapa de reglas (1-4) pide únicamente su scope; el queryKey lleva
+  // el scope, así que moverse entre solapas no pisa la caché de las otras.
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['conceptos', quincena, scope],
     queryFn: () => listarConceptos(quincena, scope),
-    enabled: !!quincena && (tab === 1 || tab === 2),
+    enabled: !!quincena && scope != null,
   })
 
   const { data: panelPrecios = [], isLoading: cargandoPanel } = useQuery({
     queryKey: ['panel-precios', quincena],
     queryFn: () => obtenerPanelPrecios(quincena),
-    enabled: !!quincena && tab === 3,
+    enabled: !!quincena && tab === 5,
   })
 
   const { data: tareas = [] } = useQuery({ queryKey: ['tareas'], queryFn: listarTareas, staleTime: Infinity })
-  const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: listarClientes, staleTime: Infinity, enabled: tab === 1 || tab === 2 })
+  const { data: clientes = [] } = useQuery({ queryKey: ['clientes'], queryFn: listarClientes, staleTime: Infinity, enabled: tab >= 1 && tab <= 4 })
   // Supervisores de la quincena, para el alcance "Por supervisor" (dropdown
   // de matching exacto). Se usa tanto en Sin concepto (tab 0) como en el
-  // form "+ Nuevo" de Comunes/Específicos (tab 1/2).
+  // form "+ Nuevo" de las 4 solapas de reglas (tab 1-4).
   const { data: supervisores = [] } = useQuery({
     queryKey: ['supervisores-conceptos', quincena],
     queryFn: () => listarSupervisores(quincena),
-    enabled: !!quincena && (tab === 0 || tab === 1 || tab === 2),
+    enabled: !!quincena && tab <= 4,
   })
   const { data: fincas = [] } = useQuery({
     queryKey: ['fincas', formNuevo.cliente_nombre],
     queryFn: () => listarFincas(formNuevo.cliente_nombre),
-    enabled: (tab === 1 || tab === 2) && !!formNuevo.cliente_nombre,
+    enabled: (tab >= 1 && tab <= 4) && !!formNuevo.cliente_nombre,
   })
 
   const invalidar = () => {
@@ -695,9 +704,10 @@ export default function Conceptos() {
       const q = busqueda.toLowerCase()
       entradas = entradas.filter(([key]) => key.toLowerCase().includes(q))
     }
-    // Filtros multi-select (solo tab Específicos). Todas las reglas de un
-    // grupo comparten tarea/cliente/finca, así que alcanza con mirar la primera.
-    if (tab === 2) {
+    // Filtros multi-select (solo solapas no-comunes). Todas las reglas de un
+    // grupo comparten tarea/cliente/finca/supervisor, así que alcanza con
+    // mirar la primera.
+    if (tab >= 2 && tab <= 4) {
       for (const c of CAMPOS_PANEL) {
         const valores = filtrosEspecificos[c.key]
         if (valores?.length) {
@@ -754,14 +764,16 @@ export default function Conceptos() {
       reemplaza_comun: alcanceNuevo === 'comun' ? false : formNuevo.reemplaza_comun,
     })
     setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', supervisor_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
-    setAlcanceNuevo(tab === 1 ? 'comun' : 'finca')
+    setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
     setMostrarNuevo(false)
   }
 
   const TABS = [
     { label: `Sin concepto${faltantes.length > 0 ? ` (${faltantes.length})` : ''}`, alert: faltantes.length > 0 },
     { label: 'Comunes' },
-    { label: 'Específicos' },
+    { label: 'Por cliente' },
+    { label: 'Por finca' },
+    { label: 'Por supervisor' },
     { label: 'Panel de precios' },
   ]
 
@@ -780,7 +792,7 @@ export default function Conceptos() {
             ? <option value="">— Sin quincenas generadas —</option>
             : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        {(tab === 1 || tab === 2) && (
+        {tab >= 1 && tab <= 4 && (
           <button className="btn btn-sm" onClick={() => setMostrarCopiar(o => !o)}>
             ⧉ Copiar de quincena anterior
           </button>
@@ -852,26 +864,27 @@ export default function Conceptos() {
         </div>
       )}
 
-      {/* Tabs 1 y 2: Comunes / Específicos */}
-      {(tab === 1 || tab === 2) && (
+      {/* Tabs 1-4: Comunes / Por cliente / Por finca / Por supervisor */}
+      {tab >= 1 && tab <= 4 && (
         <div className={styles.tabContent}>
           {/* Barra búsqueda + nuevo */}
           <div className={styles.searchBar}>
             <input className="input" style={{ width: 320 }}
-              placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca...'}
+              placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca, supervisor...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
             <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
               {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
             </button>
             <span className={styles.searchCount}>
-              {cantGrupos} {tab === 1 ? 'comunes' : 'específicos'}
+              {cantGrupos} {NOMBRE_SCOPE[tab]}
             </span>
           </div>
 
-          {/* Filtros multi-select por cliente/finca/tarea — solo Específicos
-              (los comunes solo tienen tarea y el buscador les alcanza). La
-              búsqueda de texto vive en la barra de arriba: mostrarBusqueda=false. */}
-          {tab === 2 && (
+          {/* Filtros multi-select por cliente/finca/supervisor/tarea — solo
+              solapas no-comunes (los comunes solo tienen tarea y el buscador
+              les alcanza). La búsqueda de texto vive en la barra de arriba:
+              mostrarBusqueda=false. */}
+          {tab >= 2 && tab <= 4 && (
             <FiltrosBar
               datos={items}
               campos={CAMPOS_PANEL}
@@ -982,7 +995,7 @@ export default function Conceptos() {
             {isLoading && <CargandoContenido texto="Cargando conceptos…" />}
             {!isLoading && cantGrupos === 0 && (
               <div className={styles.empty}>
-                No hay conceptos {tab === 1 ? 'comunes' : 'específicos'} para esta quincena.
+                No hay conceptos {NOMBRE_SCOPE[tab]} para esta quincena.
                 Usá "+ Nuevo" para agregar.
               </div>
             )}
@@ -1001,8 +1014,8 @@ export default function Conceptos() {
         </div>
       )}
 
-      {/* Tab 3: Panel de precios */}
-      {tab === 3 && (
+      {/* Tab 5: Panel de precios */}
+      {tab === 5 && (
         <div className={styles.tabContent}>
           {/* Una sola barra de filtros: código (texto) + cliente/finca/tarea
               (cascada), todo dentro de FiltrosBar. */}
