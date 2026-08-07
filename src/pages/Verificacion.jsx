@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, Fragment } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
-  obtenerControlTancadasJornal, setValorHoraPulv, setValorJornalPlanta,
+  obtenerControlTancadasJornal, setValorHoraPulv, setValorHoraTractorista,
 } from '../services/preliquidacion'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import InputBusqueda from '../components/preliquidacion/InputBusqueda'
@@ -116,15 +116,15 @@ export default function Verificacion() {
 
   // El precio por planta sale del pago real congelado (backend): lo que
   // efectivamente se pagó en las líneas, venga del camino que venga.
-  const { data: plantasJornal = { filas: [], totales: {}, valor_jornal_planta: null } } = useQuery({
+  const { data: plantasJornal = { filas: [], totales: {}, valor_hora_tractorista: null } } = useQuery({
     queryKey: ['control-plantas-jornal', preliqId],
     queryFn: () => obtenerControlPlantasJornal(preliqId),
     enabled: !!preliqId && seccion === 'plantas-jornal',
   })
 
   const queryClient = useQueryClient()
-  const guardarValorJornal = useMutation({
-    mutationFn: (valor) => setValorJornalPlanta(preliqId, valor),
+  const guardarValorHoraTractorista = useMutation({
+    mutationFn: (valor) => setValorHoraTractorista(preliqId, valor),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['control-plantas-jornal', preliqId] }),
   })
   const { data: tancadasJornal = { filas: [], totales: {}, valor_hora_pulv: null } } = useQuery({
@@ -224,7 +224,7 @@ export default function Verificacion() {
               {seccion === 'tancadas'      && <ListaExceso titulo="Empleados con más de 35 tancadas en un mismo día" items={excesoTancadasF} unidad="tancadas" expandido={expandido} setExpandido={setExpandido} />}
               {seccion === 'plantas'       && <ListaExceso titulo="Empleados con más de 6.000 plantas en un mismo día" items={excesoPlantasF} unidad="plantas" expandido={expandido} setExpandido={setExpandido} />}
               {seccion === 'empleados'     && <ResumenEmpleados items={resumenEmpleados} expandido={expandido} setExpandido={setExpandido} />}
-              {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorJornal.mutate(v)} guardando={guardarValorJornal.isPending} />}
+              {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorHoraTractorista.mutate(v)} guardando={guardarValorHoraTractorista.isPending} />}
               {seccion === 'tancadas-jornal'&& <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} />}
             </div>
           )}
@@ -374,12 +374,12 @@ const fmtPctN  = (d) => d == null ? '—' : `${d > 0 ? '+' : ''}${(d * 100).toLo
 function PlantasJornal({ data, onGuardar, guardando }) {
   const filas = data?.filas || []
   const totales = data?.totales
-  const valorJornal = data?.valor_jornal_planta ?? null
+  const valorHora = data?.valor_hora_tractorista ?? null
 
-  const [input, setInput] = useState(valorJornal == null ? '' : String(valorJornal))
+  const [input, setInput] = useState(valorHora == null ? '' : String(valorHora))
   // Re-sincroniza el input cuando llega/cambia el valor del backend (ej. al
   // cambiar de quincena o tras guardar).
-  useEffect(() => { setInput(valorJornal == null ? '' : String(valorJornal)) }, [valorJornal])
+  useEffect(() => { setInput(valorHora == null ? '' : String(valorHora)) }, [valorHora])
 
   const guardar = () => {
     const t = input.trim()
@@ -391,7 +391,7 @@ function PlantasJornal({ data, onGuardar, guardando }) {
       <div className={styles.seccionTitulo}>Control pago — Plantas vs Jornal · {filas.length} combinaciones cliente/finca/tarea</div>
 
       <div className={styles.vhpBar}>
-        <label className={styles.vhpLabel}>Valor jornal (8 hs)</label>
+        <label className={styles.vhpLabel}>Valor hora tractorista</label>
         <input
           className="input"
           type="number"
@@ -405,8 +405,8 @@ function PlantasJornal({ data, onGuardar, guardando }) {
         <button className="btn btn-primary btn-sm" onClick={guardar} disabled={guardando}>
           {guardando ? 'Guardando…' : 'Guardar'}
         </button>
-        {valorJornal == null && (
-          <span className={styles.vhpAviso}>Cargá el valor del jornal para ver la comparación a jornal.</span>
+        {valorHora == null && (
+          <span className={styles.vhpAviso}>Cargá el valor hora del tractorista para ver la comparación a jornal.</span>
         )}
       </div>
 
@@ -420,7 +420,7 @@ function PlantasJornal({ data, onGuardar, guardando }) {
               <th>Cliente</th><th>Finca</th><th>Tarea</th>
               <th className="mono">Precio pagado</th><th className="mono">Un</th><th className="mono">Hs</th>
               <th className="mono">Plantas/Hsm</th><th className="mono">Plantas/Hsm×8</th><th className="mono">Prom Jornal</th>
-              <th className="mono">Jornadas</th><th className="mono">Total jornal</th>
+              <th className="mono">Jornadas</th><th className="mono">Jornal tractorista</th>
               <th className="mono">%Dif</th>
             </tr>
           </thead>
