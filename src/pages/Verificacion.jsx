@@ -420,9 +420,8 @@ function PlantasJornal({ data, onGuardar, guardando }) {
               <th>Cliente</th><th>Finca</th><th>Tarea</th>
               <th className="mono">Precio pagado</th><th className="mono">Un</th><th className="mono">Hs</th>
               <th className="mono">Plantas/Hsm</th><th className="mono">Plantas/Hsm×8</th><th className="mono">Prom Jornal</th>
-              <th className="mono">%Dif jornada</th>
-              <th className="mono">Total planta</th><th className="mono">Jornadas</th>
-              <th className="mono">Total jornal</th><th className="mono">Dif $</th><th className="mono">%Dif</th>
+              <th className="mono">Jornadas</th><th className="mono">Total jornal</th>
+              <th className="mono">%Dif</th>
             </tr>
           </thead>
           <tbody>
@@ -435,12 +434,9 @@ function PlantasJornal({ data, onGuardar, guardando }) {
                 <td className="mono">{f.plantas_por_hsm.toLocaleString('es-AR')}</td>
                 <td className="mono">{f.plantas_por_hsm_x8.toLocaleString('es-AR')}</td>
                 <td className={`mono ${f.prom_jornal >= UMBRAL_PROM_JORNAL_ALTO ? styles.pjAlto : ''}`}>${f.prom_jornal.toLocaleString('es-AR')}</td>
-                <td className={`mono ${f.diff_jornada_pct != null && f.diff_jornada_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.diff_jornada_pct)}</td>
-                <td className="mono">${f.total_planta.toLocaleString('es-AR')}</td>
                 <td className="mono">{f.jornadas.toLocaleString('es-AR')}</td>
                 <td className="mono">{fmtMoneyN(f.total_jornal)}</td>
-                <td className={`mono ${f.diff_total != null && f.diff_total > 0 ? styles.pjAlto : ''}`}>{fmtMoneyN(f.diff_total)}</td>
-                <td className={`mono ${f.diff_total_pct != null && f.diff_total_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.diff_total_pct)}</td>
+                <td className={`mono ${f.diff_jornada_pct != null && f.diff_jornada_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.diff_jornada_pct)}</td>
               </tr>
             ))}
           </tbody>
@@ -454,12 +450,9 @@ function PlantasJornal({ data, onGuardar, guardando }) {
                 <td className="mono">{totales.plantas_por_hsm.toLocaleString('es-AR')}</td>
                 <td className="mono">{totales.plantas_por_hsm_x8.toLocaleString('es-AR')}</td>
                 <td className="mono">${totales.prom_jornal.toLocaleString('es-AR')}</td>
-                <td className="mono">—</td>
-                <td className="mono">${totales.total_planta.toLocaleString('es-AR')}</td>
                 <td className="mono">{totales.jornadas.toLocaleString('es-AR')}</td>
                 <td className="mono">{fmtMoneyN(totales.total_jornal)}</td>
-                <td className={`mono ${totales.diff_total != null && totales.diff_total > 0 ? styles.pjAlto : ''}`}>{fmtMoneyN(totales.diff_total)}</td>
-                <td className={`mono ${totales.diff_total_pct != null && totales.diff_total_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(totales.diff_total_pct)}</td>
+                <td className={`mono ${totales.diff_jornada_pct != null && totales.diff_jornada_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(totales.diff_jornada_pct)}</td>
               </tr>
             </tfoot>
           )}
