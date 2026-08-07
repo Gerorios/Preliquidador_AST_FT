@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, Fragment } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
-  obtenerControlTancadasJornal, setValorHoraPulv,
+  obtenerControlTancadasJornal, setValorHoraPulv, setValorJornalPlanta,
 } from '../services/preliquidacion'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import InputBusqueda from '../components/preliquidacion/InputBusqueda'
@@ -114,16 +114,19 @@ export default function Verificacion() {
   const { excesoHoras, excesoTancadas, excesoPlantas } = useMemo(() => calcularExcesos(lineasFiltradas), [lineasFiltradas])
   const resumenEmpleadosCompleto = useMemo(() => calcularResumenEmpleados(lineasFiltradas), [lineasFiltradas])
 
-  // El precio por planta sale del maestro de conceptos (backend), no de un
-  // campo local — precio_a quedó vacío desde WS1 (modelo viejo, sin reemplazo
-  // en el frontend). El backend ya tenía el cálculo correcto expuesto.
-  const { data: plantasJornal = { filas: [], totales: {} } } = useQuery({
+  // El precio por planta sale del pago real congelado (backend): lo que
+  // efectivamente se pagó en las líneas, venga del camino que venga.
+  const { data: plantasJornal = { filas: [], totales: {}, valor_jornal_planta: null } } = useQuery({
     queryKey: ['control-plantas-jornal', preliqId],
     queryFn: () => obtenerControlPlantasJornal(preliqId),
     enabled: !!preliqId && seccion === 'plantas-jornal',
   })
 
   const queryClient = useQueryClient()
+  const guardarValorJornal = useMutation({
+    mutationFn: (valor) => setValorJornalPlanta(preliqId, valor),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['control-plantas-jornal', preliqId] }),
+  })
   const { data: tancadasJornal = { filas: [], totales: {}, valor_hora_pulv: null } } = useQuery({
     queryKey: ['control-tancadas-jornal', preliqId],
     queryFn: () => obtenerControlTancadasJornal(preliqId),
@@ -221,7 +224,7 @@ export default function Verificacion() {
               {seccion === 'tancadas'      && <ListaExceso titulo="Empleados con más de 35 tancadas en un mismo día" items={excesoTancadasF} unidad="tancadas" expandido={expandido} setExpandido={setExpandido} />}
               {seccion === 'plantas'       && <ListaExceso titulo="Empleados con más de 6.000 plantas en un mismo día" items={excesoPlantasF} unidad="plantas" expandido={expandido} setExpandido={setExpandido} />}
               {seccion === 'empleados'     && <ResumenEmpleados items={resumenEmpleados} expandido={expandido} setExpandido={setExpandido} />}
-              {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} />}
+              {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorJornal.mutate(v)} guardando={guardarValorJornal.isPending} />}
               {seccion === 'tancadas-jornal'&& <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} />}
             </div>
           )}
@@ -368,22 +371,58 @@ const fmtMoneyN = (n) => n == null ? '—' : `$${n.toLocaleString('es-AR')}`
 // var_pct viene como ratio crudo; se muestra en %. Positivo = especial más caro/alto que común.
 const fmtPctN  = (d) => d == null ? '—' : `${d > 0 ? '+' : ''}${(d * 100).toLocaleString('es-AR', { maximumFractionDigits: 1 })}%`
 
-function PlantasJornal({ data }) {
+function PlantasJornal({ data, onGuardar, guardando }) {
   const filas = data?.filas || []
   const totales = data?.totales
-  if (filas.length === 0) return <div className={styles.empty}>No hay líneas con grupo de pago "PLANTA" para los filtros aplicados.</div>
+  const valorJornal = data?.valor_jornal_planta ?? null
+
+  const [input, setInput] = useState(valorJornal == null ? '' : String(valorJornal))
+  // Re-sincroniza el input cuando llega/cambia el valor del backend (ej. al
+  // cambiar de quincena o tras guardar).
+  useEffect(() => { setInput(valorJornal == null ? '' : String(valorJornal)) }, [valorJornal])
+
+  const guardar = () => {
+    const t = input.trim()
+    onGuardar(t === '' ? null : Number(t))
+  }
+
   return (
     <div>
       <div className={styles.seccionTitulo}>Control pago — Plantas vs Jornal · {filas.length} combinaciones cliente/finca/tarea</div>
+
+      <div className={styles.vhpBar}>
+        <label className={styles.vhpLabel}>Valor jornal (8 hs)</label>
+        <input
+          className="input"
+          type="number"
+          step="0.01"
+          style={{ width: 160 }}
+          placeholder="sin cargar"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') guardar() }}
+        />
+        <button className="btn btn-primary btn-sm" onClick={guardar} disabled={guardando}>
+          {guardando ? 'Guardando…' : 'Guardar'}
+        </button>
+        {valorJornal == null && (
+          <span className={styles.vhpAviso}>Cargá el valor del jornal para ver la comparación a jornal.</span>
+        )}
+      </div>
+
+      {filas.length === 0 ? (
+        <div className={styles.empty}>No hay líneas con grupo de pago "PLANTA" para los filtros aplicados.</div>
+      ) : (
       <div className={styles.pjTableWrap}>
         <table className={styles.pjTable}>
           <thead>
             <tr>
               <th>Cliente</th><th>Finca</th><th>Tarea</th>
-              <th className="mono">Precio</th><th className="mono">Un</th><th className="mono">Hs</th>
+              <th className="mono">Precio pagado</th><th className="mono">Un</th><th className="mono">Hs</th>
               <th className="mono">Plantas/Hsm</th><th className="mono">Plantas/Hsm×8</th><th className="mono">Prom Jornal</th>
-              <th className="mono">P. Común</th><th className="mono">P. Especial</th>
-              <th className="mono">PJ Común</th><th className="mono">PJ Especial</th><th className="mono">%Var</th>
+              <th className="mono">%Dif jornada</th>
+              <th className="mono">Total planta</th><th className="mono">Jornadas</th>
+              <th className="mono">Total jornal</th><th className="mono">Dif $</th><th className="mono">%Dif</th>
             </tr>
           </thead>
           <tbody>
@@ -396,11 +435,12 @@ function PlantasJornal({ data }) {
                 <td className="mono">{f.plantas_por_hsm.toLocaleString('es-AR')}</td>
                 <td className="mono">{f.plantas_por_hsm_x8.toLocaleString('es-AR')}</td>
                 <td className={`mono ${f.prom_jornal >= UMBRAL_PROM_JORNAL_ALTO ? styles.pjAlto : ''}`}>${f.prom_jornal.toLocaleString('es-AR')}</td>
-                <td className="mono">{fmtMoneyN(f.precio_comun)}</td>
-                <td className="mono">{fmtMoneyN(f.precio_especial)}</td>
-                <td className="mono">{fmtMoneyN(f.prom_jornal_comun)}</td>
-                <td className="mono">{fmtMoneyN(f.prom_jornal_especial)}</td>
-                <td className={`mono ${f.var_pct != null && f.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.var_pct)}</td>
+                <td className={`mono ${f.diff_jornada_pct != null && f.diff_jornada_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.diff_jornada_pct)}</td>
+                <td className="mono">${f.total_planta.toLocaleString('es-AR')}</td>
+                <td className="mono">{f.jornadas.toLocaleString('es-AR')}</td>
+                <td className="mono">{fmtMoneyN(f.total_jornal)}</td>
+                <td className={`mono ${f.diff_total != null && f.diff_total > 0 ? styles.pjAlto : ''}`}>{fmtMoneyN(f.diff_total)}</td>
+                <td className={`mono ${f.diff_total_pct != null && f.diff_total_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.diff_total_pct)}</td>
               </tr>
             ))}
           </tbody>
@@ -414,16 +454,18 @@ function PlantasJornal({ data }) {
                 <td className="mono">{totales.plantas_por_hsm.toLocaleString('es-AR')}</td>
                 <td className="mono">{totales.plantas_por_hsm_x8.toLocaleString('es-AR')}</td>
                 <td className="mono">${totales.prom_jornal.toLocaleString('es-AR')}</td>
-                <td className="mono">{fmtMoneyN(totales.precio_comun)}</td>
-                <td className="mono">{fmtMoneyN(totales.precio_especial)}</td>
-                <td className="mono">{fmtMoneyN(totales.prom_jornal_comun)}</td>
-                <td className="mono">{fmtMoneyN(totales.prom_jornal_especial)}</td>
-                <td className={`mono ${totales.var_pct != null && totales.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(totales.var_pct)}</td>
+                <td className="mono">—</td>
+                <td className="mono">${totales.total_planta.toLocaleString('es-AR')}</td>
+                <td className="mono">{totales.jornadas.toLocaleString('es-AR')}</td>
+                <td className="mono">{fmtMoneyN(totales.total_jornal)}</td>
+                <td className={`mono ${totales.diff_total != null && totales.diff_total > 0 ? styles.pjAlto : ''}`}>{fmtMoneyN(totales.diff_total)}</td>
+                <td className={`mono ${totales.diff_total_pct != null && totales.diff_total_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(totales.diff_total_pct)}</td>
               </tr>
             </tfoot>
           )}
         </table>
       </div>
+      )}
     </div>
   )
 }

@@ -33,6 +33,10 @@ export const obtenerControlTancadasJornal = (id) =>
 export const setValorHoraPulv = (id, valor) =>
   api.patch(`/preliquidacion/${id}/valor-hora-pulv`, { valor_hora_pulv: valor }).then(r => r.data)
 
+// valor: número (valor de la jornada de 8 hs del control Plantas vs Jornal) o null para limpiar
+export const setValorJornalPlanta = (id, valor) =>
+  api.patch(`/preliquidacion/${id}/valor-jornal-planta`, { valor_jornal_planta: valor }).then(r => r.data)
+
 export const listarLineas = (id, filtros = {}) => {
   const params = new URLSearchParams()
   if (filtros.empresa)         params.append('empresa', filtros.empresa)
