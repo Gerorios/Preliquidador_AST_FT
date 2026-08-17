@@ -191,20 +191,6 @@ export default function Gerencial() {
             </div>
           )}
         </div>
-        <div className={styles.kpiTile}>
-          <div className={styles.kpiLabel}>CONCEPTOS MANUALES SOBRE EL TOTAL</div>
-          <div className={styles.kpiValor}>
-            {indicadores?.actual?.manuales_pct != null ? `${indicadores.actual.manuales_pct.toLocaleString('es-AR')} %` : '—'}
-          </div>
-          {indicadores?.variaciones?.manuales_pct_puntos != null && (
-            <div className={styles.kpiDelta}>
-              <span className={indicadores.variaciones.manuales_pct_puntos >= 0 ? styles.deltaUp : styles.deltaDown}>
-                {indicadores.variaciones.manuales_pct_puntos >= 0 ? '▲' : '▼'} {Math.abs(indicadores.variaciones.manuales_pct_puntos).toLocaleString('es-AR')} pts
-              </span>
-              <span className={styles.deltaRef}> vs período anterior</span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ¿Por qué varió? */}
