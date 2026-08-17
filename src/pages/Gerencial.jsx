@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale'
 import {
   listarQuincenasGerencial, listarEmpresasGerencial,
   obtenerResumen, obtenerEvolucion, obtenerPorCliente,
-  obtenerPorGrupoTarea, obtenerDesvios,
+  obtenerPorGrupoTarea, obtenerDesvios, obtenerIndicadores,
 } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Gerencial.module.css'
@@ -93,6 +93,11 @@ export default function Gerencial() {
     queryFn: () => obtenerDesvios(periodo, umbral),
     enabled: habilitado,
   })
+  const { data: indicadores } = useQuery({
+    queryKey: ['gerencial-indicadores', keyPeriodo],
+    queryFn: () => obtenerIndicadores(periodo),
+    enabled: habilitado,
+  })
 
   if (cargandoQuincenas) return <CargandoContenido texto="Cargando indicadores…" />
 
@@ -166,6 +171,34 @@ export default function Gerencial() {
         <div className={styles.kpiTile}>
           <div className={styles.kpiLabel}>PERSONAS</div>
           <div className={styles.kpiValor}>{resumen?.personas ?? '—'}</div>
+        </div>
+        <div className={styles.kpiTile}>
+          <div className={styles.kpiLabel}>$ / HORA JORNAL</div>
+          <div className={styles.kpiValor}>
+            {indicadores?.actual?.costo_hora != null ? moneda.format(indicadores.actual.costo_hora) : '—'}
+          </div>
+          {indicadores?.variaciones?.costo_hora_pct != null && (
+            <div className={styles.kpiDelta}>
+              <span className={indicadores.variaciones.costo_hora_pct >= 0 ? styles.deltaUp : styles.deltaDown}>
+                {indicadores.variaciones.costo_hora_pct >= 0 ? '▲' : '▼'} {Math.abs(indicadores.variaciones.costo_hora_pct).toLocaleString('es-AR')} %
+              </span>
+              <span className={styles.deltaRef}> vs período anterior</span>
+            </div>
+          )}
+        </div>
+        <div className={styles.kpiTile}>
+          <div className={styles.kpiLabel}>ADICIONALES SOBRE EL TOTAL</div>
+          <div className={styles.kpiValor}>
+            {indicadores?.actual?.adicionales_pct != null ? `${indicadores.actual.adicionales_pct.toLocaleString('es-AR')} %` : '—'}
+          </div>
+          {indicadores?.variaciones?.adicionales_pct_puntos != null && (
+            <div className={styles.kpiDelta}>
+              <span className={indicadores.variaciones.adicionales_pct_puntos >= 0 ? styles.deltaUp : styles.deltaDown}>
+                {indicadores.variaciones.adicionales_pct_puntos >= 0 ? '▲' : '▼'} {Math.abs(indicadores.variaciones.adicionales_pct_puntos).toLocaleString('es-AR')} pts
+              </span>
+              <span className={styles.deltaRef}> vs período anterior</span>
+            </div>
+          )}
         </div>
       </div>
 

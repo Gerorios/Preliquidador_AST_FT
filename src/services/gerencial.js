@@ -27,3 +27,9 @@ export const obtenerPorGrupoTarea = (periodo, grupo) =>
 
 export const obtenerDesvios = (periodo, umbral) =>
   api.get('/gerencial/desvios-persona', { params: params({ ...periodo, umbral }) }).then(r => r.data)
+
+export const obtenerIndicadores = (periodo) =>
+  api.get('/gerencial/indicadores', { params: params(periodo) }).then(r => r.data)
+
+export const obtenerDesviosClientes = (periodo, umbral) =>
+  api.get('/gerencial/desvios-cliente', { params: params({ ...periodo, umbral }) }).then(r => r.data)
