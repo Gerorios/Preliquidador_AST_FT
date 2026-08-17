@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale'
 import {
   listarQuincenasGerencial, listarEmpresasGerencial,
   obtenerResumen, obtenerEvolucion, obtenerPorCliente,
-  obtenerPorGrupoTarea, obtenerDesvios, obtenerIndicadores,
+  obtenerPorGrupoTarea, obtenerDesvios, obtenerIndicadores, obtenerDesviosClientes,
 } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Gerencial.module.css'
@@ -96,6 +96,11 @@ export default function Gerencial() {
   const { data: indicadores } = useQuery({
     queryKey: ['gerencial-indicadores', keyPeriodo],
     queryFn: () => obtenerIndicadores(periodo),
+    enabled: habilitado,
+  })
+  const { data: desviosClientes } = useQuery({
+    queryKey: ['gerencial-desvios-clientes', keyPeriodo, umbral],
+    queryFn: () => obtenerDesviosClientes(periodo, umbral),
     enabled: habilitado,
   })
 
@@ -269,6 +274,16 @@ export default function Gerencial() {
         <TablaDesvios datos={desvios} />
       </section>
 
+      {/* Desvíos por cliente */}
+      <section className={styles.panel}>
+        <div className={styles.panelTitulo}>DESVÍOS POR CLIENTE</div>
+        <div className={styles.panelSub}>
+          Cada cliente contra su propia media de las últimas {desviosClientes?.ventana_quincenas ?? 6} quincenas
+          (mínimo {desviosClientes?.minimo_quincenas ?? 3} con actividad). Usa el mismo umbral de alerta.
+        </div>
+        <TablaDesviosClientes datos={desviosClientes} />
+      </section>
+
       <p className={styles.nota}>
         La quincena en curso sigue en revisión: sus importes pueden cambiar hasta que el liquidador la cierre.
       </p>
@@ -438,6 +453,77 @@ function TablaDesvios({ datos }) {
                   <span>{p.nombre}</span>
                   <span className={styles.cuil}>{p.quincenas_historia} quinc. de historia</span>
                   <span className="mono">{moneda.format(p.promedio_quincenal)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Tabla de desvíos por cliente ────────────────────────────────────────────
+
+function TablaDesviosClientes({ datos }) {
+  const [verSinHistorial, setVerSinHistorial] = useState(false)
+  if (!datos) return <div className={styles.empty}>Sin datos.</div>
+  const { clientes, sin_historial: sinHistorial } = datos
+  const maxAbs = Math.max(...clientes.map(c => Math.abs(c.desvio_pct ?? 0)), 1)
+
+  return (
+    <>
+      {!clientes.length ? (
+        <div className={styles.empty}>Ningún cliente con historial comparable en este período.</div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>CLIENTE</th>
+                <th className={styles.thNum}>PROMEDIO QUINCENAL</th>
+                <th className={styles.thNum}>SU MEDIA HISTÓRICA</th>
+                <th className={styles.thNum}>DESVÍO</th>
+                <th className={styles.thBarra}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientes.map(c => (
+                <tr key={c.cliente} className={c.supera_umbral ? styles.filaAlerta : undefined}>
+                  <td>
+                    <div>{c.cliente}</div>
+                    <div className={styles.cuil}>{c.quincenas_historia} quinc. de historia</div>
+                  </td>
+                  <td className={`mono ${styles.tdNum}`}>{moneda.format(c.promedio_quincenal)}</td>
+                  <td className={`mono ${styles.tdNum}`}>{moneda.format(c.media_historica)}</td>
+                  <td className={`mono ${styles.tdNum}`}>
+                    <span className={c.supera_umbral ? styles.desvioAlerta : styles.desvioNormal}>
+                      {c.desvio_pct > 0 ? '+' : ''}{c.desvio_pct?.toLocaleString('es-AR')} %
+                    </span>
+                    {c.supera_umbral && <span className={styles.badgeAlerta}>⚠ sobre umbral</span>}
+                  </td>
+                  <td className={styles.tdBarra}>
+                    <BarraDesvio pct={c.desvio_pct} maxAbs={maxAbs} alerta={c.supera_umbral} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {sinHistorial.length > 0 && (
+        <div className={styles.sinHistorial}>
+          <button className="btn btn-sm" onClick={() => setVerSinHistorial(v => !v)}>
+            {verSinHistorial ? '▾' : '▸'} {sinHistorial.length} clientes sin historial comparable
+          </button>
+          {verSinHistorial && (
+            <div className={styles.sinHistorialLista}>
+              {sinHistorial.map(c => (
+                <div key={c.cliente} className={styles.sinHistorialItem}>
+                  <span>{c.cliente}</span>
+                  <span className={styles.cuil}>{c.quincenas_historia} quinc. de historia</span>
+                  <span className="mono">{moneda.format(c.promedio_quincenal)}</span>
                 </div>
               ))}
             </div>
