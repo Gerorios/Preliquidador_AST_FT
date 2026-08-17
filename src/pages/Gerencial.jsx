@@ -202,6 +202,15 @@ export default function Gerencial() {
         </div>
       </div>
 
+      {/* ¿Por qué varió? */}
+      <section className={styles.panel}>
+        <div className={styles.panelTitulo}>¿POR QUÉ VARIÓ?</div>
+        <div className={styles.panelSub}>
+          Descomposición de la variación contra el período anterior. Los tres efectos suman la variación total.
+        </div>
+        <PanelVariacion indicadores={indicadores} />
+      </section>
+
       {/* Evolución */}
       <section className={styles.panel}>
         <div className={styles.panelTitulo}>EVOLUCIÓN POR QUINCENA</div>
@@ -455,6 +464,54 @@ function BarraDesvio({ pct, maxAbs, alerta }) {
           ? { left: `${mitad}%`, width: `${ancho}%` }
           : { left: `${mitad - ancho}%`, width: `${ancho}%` }}
       />
+    </div>
+  )
+}
+
+// ─── ¿Por qué varió?: descomposición dotación / actividad / precio ──────────
+// Barras divergentes centradas en 0 (mismo lenguaje visual que BarraDesvio).
+
+function PanelVariacion({ indicadores }) {
+  const d = indicadores?.descomposicion
+  if (!indicadores?.anterior) {
+    return <div className={styles.empty}>Sin período anterior para comparar.</div>
+  }
+  if (!d) {
+    return (
+      <div className={styles.empty}>
+        No se puede descomponer: falta información de horas o personas en alguno de los dos períodos.
+      </div>
+    )
+  }
+  const filas = [
+    { id: 'dotacion', etiqueta: 'Dotación', detalle: `${indicadores.anterior.personas} → ${indicadores.actual.personas} personas`, ...d.dotacion },
+    { id: 'actividad', etiqueta: 'Actividad', detalle: 'horas de jornal por persona', ...d.actividad },
+    { id: 'precio', etiqueta: 'Precio', detalle: '$ pagado por hora de jornal', ...d.precio },
+  ]
+  const maxAbs = Math.max(...filas.map(f => Math.abs(f.monto)), 1)
+  return (
+    <div className={styles.variacionLista}>
+      {filas.map(f => (
+        <div key={f.id} className={styles.variacionFila}>
+          <div className={styles.variacionEtiqueta}>
+            {f.etiqueta}
+            <span className={styles.barraExtra}> · {f.detalle}</span>
+          </div>
+          <div className={styles.desvioTrack}>
+            <div className={styles.desvioEjeCentral} />
+            <div
+              className={`${styles.desvioFill} ${f.monto >= 0 ? styles.desvioFillPos : styles.desvioFillNeg}`}
+              style={f.monto >= 0
+                ? { left: '50%', width: `${(Math.abs(f.monto) / maxAbs) * 50}%` }
+                : { left: `${50 - (Math.abs(f.monto) / maxAbs) * 50}%`, width: `${(Math.abs(f.monto) / maxAbs) * 50}%` }}
+            />
+          </div>
+          <div className={styles.variacionValor}>
+            <span className="mono">{f.monto >= 0 ? '+' : '−'}{compacto(Math.abs(f.monto))}</span>
+            <span className={styles.barraPct}> {f.pct >= 0 ? '+' : ''}{f.pct.toLocaleString('es-AR')} %</span>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
