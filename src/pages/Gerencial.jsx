@@ -5,9 +5,11 @@ import { es } from 'date-fns/locale'
 import {
   listarQuincenasGerencial, listarEmpresasGerencial,
   obtenerResumen, obtenerEvolucion, obtenerPorCliente,
-  obtenerPorGrupoTarea, obtenerDesvios,
+  obtenerPorGrupoTarea, obtenerDesvios, obtenerIndicadores, obtenerDesviosClientes,
+  obtenerControlPlantasGerencial, obtenerControlTancadasGerencial,
 } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
+import { PlantasJornal, TancadasJornal } from '../components/preliquidacion/ControlesJornal'
 import styles from './Gerencial.module.css'
 
 const moneda = new Intl.NumberFormat('es-AR', {
@@ -93,6 +95,31 @@ export default function Gerencial() {
     queryFn: () => obtenerDesvios(periodo, umbral),
     enabled: habilitado,
   })
+  const { data: indicadores } = useQuery({
+    queryKey: ['gerencial-indicadores', keyPeriodo],
+    queryFn: () => obtenerIndicadores(periodo),
+    enabled: habilitado,
+  })
+  const { data: desviosClientes } = useQuery({
+    queryKey: ['gerencial-desvios-clientes', keyPeriodo, umbral],
+    queryFn: () => obtenerDesviosClientes(periodo, umbral),
+    enabled: habilitado,
+  })
+
+  // Controles de pago: son por preliquidación, así que solo aplican en modo
+  // quincena. Colapsados por defecto; la query recién dispara al abrirlos.
+  const [controlAbierto, setControlAbierto] = useState({ plantas: false, tancadas: false })
+  const enQuincena = modo === 'quincena' && Boolean(quincenaSel)
+  const { data: controlPlantas } = useQuery({
+    queryKey: ['gerencial-control-plantas', quincenaSel],
+    queryFn: () => obtenerControlPlantasGerencial(quincenaSel),
+    enabled: enQuincena && controlAbierto.plantas,
+  })
+  const { data: controlTancadas } = useQuery({
+    queryKey: ['gerencial-control-tancadas', quincenaSel],
+    queryFn: () => obtenerControlTancadasGerencial(quincenaSel),
+    enabled: enQuincena && controlAbierto.tancadas,
+  })
 
   if (cargandoQuincenas) return <CargandoContenido texto="Cargando indicadores…" />
 
@@ -167,7 +194,30 @@ export default function Gerencial() {
           <div className={styles.kpiLabel}>PERSONAS</div>
           <div className={styles.kpiValor}>{resumen?.personas ?? '—'}</div>
         </div>
+        <div className={styles.kpiTile}>
+          <div className={styles.kpiLabel}>$ / HORA JORNAL</div>
+          <div className={styles.kpiValor}>
+            {indicadores?.actual?.costo_hora != null ? moneda.format(indicadores.actual.costo_hora) : '—'}
+          </div>
+          {indicadores?.variaciones?.costo_hora_pct != null && (
+            <div className={styles.kpiDelta}>
+              <span className={indicadores.variaciones.costo_hora_pct >= 0 ? styles.deltaUp : styles.deltaDown}>
+                {indicadores.variaciones.costo_hora_pct >= 0 ? '▲' : '▼'} {Math.abs(indicadores.variaciones.costo_hora_pct).toLocaleString('es-AR')} %
+              </span>
+              <span className={styles.deltaRef}> vs período anterior</span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ¿Por qué varió? */}
+      <section className={styles.panel}>
+        <div className={styles.panelTitulo}>¿POR QUÉ VARIÓ?</div>
+        <div className={styles.panelSub}>
+          Descomposición de la variación contra el período anterior. Los tres efectos suman la variación total.
+        </div>
+        <PanelVariacion indicadores={indicadores} />
+      </section>
 
       {/* Evolución */}
       <section className={styles.panel}>
@@ -225,6 +275,39 @@ export default function Gerencial() {
           </label>
         </div>
         <TablaDesvios datos={desvios} />
+      </section>
+
+      {/* Desvíos por cliente */}
+      <section className={styles.panel}>
+        <div className={styles.panelTitulo}>DESVÍOS POR CLIENTE</div>
+        <div className={styles.panelSub}>
+          Cada cliente contra su propia media de las últimas {desviosClientes?.ventana_quincenas ?? 6} quincenas
+          (mínimo {desviosClientes?.minimo_quincenas ?? 3} con actividad). Usa el mismo umbral de alerta.
+        </div>
+        <TablaDesviosClientes datos={desviosClientes} />
+      </section>
+
+      {/* Controles de pago (por quincena, solo lectura) */}
+      <section className={styles.panel}>
+        <button className="btn btn-sm" onClick={() => setControlAbierto(a => ({ ...a, plantas: !a.plantas }))}>
+          {controlAbierto.plantas ? '▾' : '▸'} Control Plantas vs Jornal
+        </button>
+        {controlAbierto.plantas && (
+          enQuincena
+            ? <div style={{ marginTop: 12 }}><PlantasJornal data={controlPlantas} /></div>
+            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+        )}
+      </section>
+
+      <section className={styles.panel}>
+        <button className="btn btn-sm" onClick={() => setControlAbierto(a => ({ ...a, tancadas: !a.tancadas }))}>
+          {controlAbierto.tancadas ? '▾' : '▸'} Control Tancadas vs Jornal
+        </button>
+        {controlAbierto.tancadas && (
+          enQuincena
+            ? <div style={{ marginTop: 12 }}><TancadasJornal data={controlTancadas} /></div>
+            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+        )}
       </section>
 
       <p className={styles.nota}>
@@ -406,6 +489,77 @@ function TablaDesvios({ datos }) {
   )
 }
 
+// ─── Tabla de desvíos por cliente ────────────────────────────────────────────
+
+function TablaDesviosClientes({ datos }) {
+  const [verSinHistorial, setVerSinHistorial] = useState(false)
+  if (!datos) return <div className={styles.empty}>Sin datos.</div>
+  const { clientes, sin_historial: sinHistorial } = datos
+  const maxAbs = Math.max(...clientes.map(c => Math.abs(c.desvio_pct ?? 0)), 1)
+
+  return (
+    <>
+      {!clientes.length ? (
+        <div className={styles.empty}>Ningún cliente con historial comparable en este período.</div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>CLIENTE</th>
+                <th className={styles.thNum}>PROMEDIO QUINCENAL</th>
+                <th className={styles.thNum}>SU MEDIA HISTÓRICA</th>
+                <th className={styles.thNum}>DESVÍO</th>
+                <th className={styles.thBarra}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientes.map(c => (
+                <tr key={c.cliente} className={c.supera_umbral ? styles.filaAlerta : undefined}>
+                  <td>
+                    <div>{c.cliente}</div>
+                    <div className={styles.cuil}>{c.quincenas_historia} quinc. de historia</div>
+                  </td>
+                  <td className={`mono ${styles.tdNum}`}>{moneda.format(c.promedio_quincenal)}</td>
+                  <td className={`mono ${styles.tdNum}`}>{moneda.format(c.media_historica)}</td>
+                  <td className={`mono ${styles.tdNum}`}>
+                    <span className={c.supera_umbral ? styles.desvioAlerta : styles.desvioNormal}>
+                      {c.desvio_pct > 0 ? '+' : ''}{c.desvio_pct?.toLocaleString('es-AR')} %
+                    </span>
+                    {c.supera_umbral && <span className={styles.badgeAlerta}>⚠ sobre umbral</span>}
+                  </td>
+                  <td className={styles.tdBarra}>
+                    <BarraDesvio pct={c.desvio_pct} maxAbs={maxAbs} alerta={c.supera_umbral} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {sinHistorial.length > 0 && (
+        <div className={styles.sinHistorial}>
+          <button className="btn btn-sm" onClick={() => setVerSinHistorial(v => !v)}>
+            {verSinHistorial ? '▾' : '▸'} {sinHistorial.length} clientes sin historial comparable
+          </button>
+          {verSinHistorial && (
+            <div className={styles.sinHistorialLista}>
+              {sinHistorial.map(c => (
+                <div key={c.cliente} className={styles.sinHistorialItem}>
+                  <span>{c.cliente}</span>
+                  <span className={styles.cuil}>{c.quincenas_historia} quinc. de historia</span>
+                  <span className="mono">{moneda.format(c.promedio_quincenal)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
 // Barra divergente centrada en 0: derecha = por encima de su media.
 // El color solo refuerza (rojo únicamente sobre umbral); el signo y el texto
 // llevan la información — nunca color solo.
@@ -422,6 +576,54 @@ function BarraDesvio({ pct, maxAbs, alerta }) {
           ? { left: `${mitad}%`, width: `${ancho}%` }
           : { left: `${mitad - ancho}%`, width: `${ancho}%` }}
       />
+    </div>
+  )
+}
+
+// ─── ¿Por qué varió?: descomposición dotación / actividad / precio ──────────
+// Barras divergentes centradas en 0 (mismo lenguaje visual que BarraDesvio).
+
+function PanelVariacion({ indicadores }) {
+  const d = indicadores?.descomposicion
+  if (!indicadores?.anterior) {
+    return <div className={styles.empty}>Sin período anterior para comparar.</div>
+  }
+  if (!d) {
+    return (
+      <div className={styles.empty}>
+        No se puede descomponer: falta información de horas o personas en alguno de los dos períodos.
+      </div>
+    )
+  }
+  const filas = [
+    { id: 'dotacion', etiqueta: 'Dotación', detalle: `${indicadores.anterior.personas} → ${indicadores.actual.personas} personas`, ...d.dotacion },
+    { id: 'actividad', etiqueta: 'Actividad', detalle: 'horas de jornal por persona', ...d.actividad },
+    { id: 'precio', etiqueta: 'Precio', detalle: '$ pagado por hora de jornal', ...d.precio },
+  ]
+  const maxAbs = Math.max(...filas.map(f => Math.abs(f.monto)), 1)
+  return (
+    <div className={styles.variacionLista}>
+      {filas.map(f => (
+        <div key={f.id} className={styles.variacionFila}>
+          <div className={styles.variacionEtiqueta}>
+            {f.etiqueta}
+            <span className={styles.barraExtra}> · {f.detalle}</span>
+          </div>
+          <div className={styles.desvioTrack}>
+            <div className={styles.desvioEjeCentral} />
+            <div
+              className={`${styles.desvioFill} ${f.monto >= 0 ? styles.desvioFillPos : styles.desvioFillNeg}`}
+              style={f.monto >= 0
+                ? { left: '50%', width: `${(Math.abs(f.monto) / maxAbs) * 50}%` }
+                : { left: `${50 - (Math.abs(f.monto) / maxAbs) * 50}%`, width: `${(Math.abs(f.monto) / maxAbs) * 50}%` }}
+            />
+          </div>
+          <div className={styles.variacionValor}>
+            <span className="mono">{f.monto >= 0 ? '+' : '−'}{compacto(Math.abs(f.monto))}</span>
+            <span className={styles.barraPct}> {f.pct >= 0 ? '+' : ''}{f.pct.toLocaleString('es-AR')} %</span>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
