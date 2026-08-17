@@ -6,8 +6,10 @@ import {
   listarQuincenasGerencial, listarEmpresasGerencial,
   obtenerResumen, obtenerEvolucion, obtenerPorCliente,
   obtenerPorGrupoTarea, obtenerDesvios, obtenerIndicadores, obtenerDesviosClientes,
+  obtenerControlPlantasGerencial, obtenerControlTancadasGerencial,
 } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
+import { PlantasJornal, TancadasJornal } from '../components/preliquidacion/ControlesJornal'
 import styles from './Gerencial.module.css'
 
 const moneda = new Intl.NumberFormat('es-AR', {
@@ -102,6 +104,21 @@ export default function Gerencial() {
     queryKey: ['gerencial-desvios-clientes', keyPeriodo, umbral],
     queryFn: () => obtenerDesviosClientes(periodo, umbral),
     enabled: habilitado,
+  })
+
+  // Controles de pago: son por preliquidación, así que solo aplican en modo
+  // quincena. Colapsados por defecto; la query recién dispara al abrirlos.
+  const [controlAbierto, setControlAbierto] = useState({ plantas: false, tancadas: false })
+  const enQuincena = modo === 'quincena' && Boolean(quincenaSel)
+  const { data: controlPlantas } = useQuery({
+    queryKey: ['gerencial-control-plantas', quincenaSel],
+    queryFn: () => obtenerControlPlantasGerencial(quincenaSel),
+    enabled: enQuincena && controlAbierto.plantas,
+  })
+  const { data: controlTancadas } = useQuery({
+    queryKey: ['gerencial-control-tancadas', quincenaSel],
+    queryFn: () => obtenerControlTancadasGerencial(quincenaSel),
+    enabled: enQuincena && controlAbierto.tancadas,
   })
 
   if (cargandoQuincenas) return <CargandoContenido texto="Cargando indicadores…" />
@@ -268,6 +285,29 @@ export default function Gerencial() {
           (mínimo {desviosClientes?.minimo_quincenas ?? 3} con actividad). Usa el mismo umbral de alerta.
         </div>
         <TablaDesviosClientes datos={desviosClientes} />
+      </section>
+
+      {/* Controles de pago (por quincena, solo lectura) */}
+      <section className={styles.panel}>
+        <button className="btn btn-sm" onClick={() => setControlAbierto(a => ({ ...a, plantas: !a.plantas }))}>
+          {controlAbierto.plantas ? '▾' : '▸'} Control Plantas vs Jornal
+        </button>
+        {controlAbierto.plantas && (
+          enQuincena
+            ? <div style={{ marginTop: 12 }}><PlantasJornal data={controlPlantas} /></div>
+            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+        )}
+      </section>
+
+      <section className={styles.panel}>
+        <button className="btn btn-sm" onClick={() => setControlAbierto(a => ({ ...a, tancadas: !a.tancadas }))}>
+          {controlAbierto.tancadas ? '▾' : '▸'} Control Tancadas vs Jornal
+        </button>
+        {controlAbierto.tancadas && (
+          enQuincena
+            ? <div style={{ marginTop: 12 }}><TancadasJornal data={controlTancadas} /></div>
+            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+        )}
       </section>
 
       <p className={styles.nota}>

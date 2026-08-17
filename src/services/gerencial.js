@@ -33,3 +33,10 @@ export const obtenerIndicadores = (periodo) =>
 
 export const obtenerDesviosClientes = (periodo, umbral) =>
   api.get('/gerencial/desvios-cliente', { params: params({ ...periodo, umbral }) }).then(r => r.data)
+
+// Controles de pago (solo por quincena, no aceptan mes)
+export const obtenerControlPlantasGerencial = (quincena) =>
+  api.get('/gerencial/control-plantas', { params: { quincena } }).then(r => r.data)
+
+export const obtenerControlTancadasGerencial = (quincena) =>
+  api.get('/gerencial/control-tancadas', { params: { quincena } }).then(r => r.data)
