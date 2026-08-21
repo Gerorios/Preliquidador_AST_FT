@@ -158,9 +158,7 @@ export function TancadasJornal({ data, onGuardar, guardando }) {
               <tr>
                 <th>Cliente</th><th>Finca</th><th>Tarea</th>
                 <th className="mono">Tancadas</th><th className="mono">Hs jornal</th><th className="mono">Hs máquina</th>
-                <th className="mono">Valor s/jornal</th><th className="mono">Precio</th><th className="mono">Valor s/tancada</th><th className="mono">Diff</th>
-                <th className="mono">P. Común</th><th className="mono">P. Especial</th>
-                <th className="mono">V.Tanc Común</th><th className="mono">V.Tanc Especial</th><th className="mono">%Var</th>
+                <th className="mono">Valor s/jornal</th><th className="mono">Precio pagado</th><th className="mono">Valor s/tancada</th><th className="mono">Diff</th>
               </tr>
             </thead>
             <tbody>
@@ -174,11 +172,6 @@ export function TancadasJornal({ data, onGuardar, guardando }) {
                   <td className="mono">{fmt(f.precio)}</td>
                   <td className="mono">{fmtMoney(f.valor_tancada)}</td>
                   <td className={`mono ${f.diff != null && f.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(f.diff)}</td>
-                  <td className="mono">{fmtMoneyN(f.precio_comun)}</td>
-                  <td className="mono">{fmtMoneyN(f.precio_especial)}</td>
-                  <td className="mono">{fmtMoneyN(f.valor_tancada_comun)}</td>
-                  <td className="mono">{fmtMoneyN(f.valor_tancada_especial)}</td>
-                  <td className={`mono ${f.var_pct != null && f.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(f.var_pct)}</td>
                 </tr>
               ))}
             </tbody>
@@ -193,11 +186,6 @@ export function TancadasJornal({ data, onGuardar, guardando }) {
                   <td className="mono">{fmt(totales.precio)}</td>
                   <td className="mono">{fmtMoney(totales.valor_tancada)}</td>
                   <td className={`mono ${totales.diff != null && totales.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(totales.diff)}</td>
-                  <td className="mono">{fmtMoneyN(totales.precio_comun)}</td>
-                  <td className="mono">{fmtMoneyN(totales.precio_especial)}</td>
-                  <td className="mono">{fmtMoneyN(totales.valor_tancada_comun)}</td>
-                  <td className="mono">{fmtMoneyN(totales.valor_tancada_especial)}</td>
-                  <td className={`mono ${totales.var_pct != null && totales.var_pct > 0 ? styles.pjAlto : ''}`}>{fmtPctN(totales.var_pct)}</td>
                 </tr>
               </tfoot>
             )}
