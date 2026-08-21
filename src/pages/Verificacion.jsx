@@ -10,6 +10,14 @@ import InputBusqueda from '../components/preliquidacion/InputBusqueda'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import styles from './Verificacion.module.css'
 
+// Personas mensualizadas (no jornalizadas): se excluyen de todas las
+// secciones de Verificación porque estos controles miden razonabilidad del
+// pago jornalizado y no aplican a un sueldo mensual fijo. Revisión (misma
+// fuente de líneas, otra página) no filtra por esto — ahí sí hay que
+// verlas/editarlas para liquidar su sueldo. Hardcodeado a pedido del
+// usuario (2026-08-21).
+const EMPLEADOS_MENSUALIZADOS = ['ARAOZ, GUILLERMO HORACIO', 'TORANZO, JOSE PIO']
+
 const SECCIONES = [
   { key: 'horas',          label: '⏱ Horas excedidas',      umbral: '> 13 hs/día' },
   { key: 'tancadas',       label: '📦 Tancadas excedidas',   umbral: '> 35/día' },
@@ -93,11 +101,15 @@ export default function Verificacion() {
     queryFn: listarPreliquidaciones,
   })
 
-  const { data: lineas = [], isLoading } = useQuery({
+  const { data: lineasCrudas = [], isLoading } = useQuery({
     queryKey: ['lineas-verif', preliqId],
     queryFn: () => listarLineas(preliqId, {}),
     enabled: !!preliqId,
   })
+  const lineas = useMemo(
+    () => lineasCrudas.filter(l => !EMPLEADOS_MENSUALIZADOS.includes(l.nombre_empleado)),
+    [lineasCrudas]
+  )
 
   const lineasFiltradas = useMemo(() => {
     let r = lineas
