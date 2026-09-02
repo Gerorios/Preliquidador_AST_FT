@@ -296,3 +296,9 @@
   color: var(--accent);
   font-size: 13px;
 }
+
+/* ─── Selección del panel de precios ─── */
+.filaExcluida td {
+  color: var(--text-muted);
+  background: repeating-linear-gradient(-45deg, transparent 0 8px, var(--warn-dim) 8px 16px);
+}

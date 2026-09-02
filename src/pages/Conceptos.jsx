@@ -449,7 +449,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
 
 // ─── PanelPrecioRow: fila plana editable del Panel de precios ───────────────
 
-function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
+function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio, guardando }) {
   const [editando, setEditando] = useState(false)
   const [precio, setPrecio] = useState(fila.precio ?? '')
 
@@ -465,7 +465,13 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
   }
 
   return (
-    <tr>
+    <tr className={seleccionada ? undefined : styles.filaExcluida}>
+      <td>
+        <input type="checkbox" checked={seleccionada}
+          style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
+          aria-label={`Incluir ${fila.tarea_nombre} en el precio masivo`}
+          onChange={onToggleSeleccion} />
+      </td>
       <td>{fila.tarea_nombre}</td>
       <td className="mono">{fila.codigo ?? '—'}</td>
       <td>
@@ -530,6 +536,10 @@ export default function Conceptos() {
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
   const [precioMasivo, setPrecioMasivo] = useState('')
+  // Selección del panel: guardamos las EXCLUSIONES (filas destildadas), no
+  // las inclusiones — así el default es "todas tildadas" y cambiar el filtro
+  // resetea la selección sin sincronizar nada.
+  const [exclusionesPanel, setExclusionesPanel] = useState(() => new Set())
   // Alcance del formulario "+ Nuevo": arranca acorde a la tab activa (comunes
   // → común, específicos → finca) pero el usuario puede cambiarlo a
   // cualquiera de los 4; reemplaza_comun nace en true y handleCrearNuevo lo
@@ -737,12 +747,33 @@ export default function Conceptos() {
     return filas
   }, [panelPrecios, filtroCodigoPanel, filtrosPanel])
 
+  useEffect(() => { setExclusionesPanel(new Set()) }, [filtroCodigoPanel, filtrosPanel, quincena])
+
+  const panelSeleccionado = useMemo(
+    () => panelFiltrado.filter(f => !exclusionesPanel.has(f.id)),
+    [panelFiltrado, exclusionesPanel]
+  )
+
+  const toggleSeleccionPanel = (id) => setExclusionesPanel(prev => {
+    const s = new Set(prev)
+    s.has(id) ? s.delete(id) : s.add(id)
+    return s
+  })
+
+  const toggleTodasPanel = () => setExclusionesPanel(
+    panelSeleccionado.length === panelFiltrado.length
+      ? new Set(panelFiltrado.map(f => f.id))   // estaban todas: destildar todas
+      : new Set()                                // había excluidas: tildar todas
+  )
+
   const handleAplicarPrecioMasivo = () => {
     const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
     if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
-    if (panelFiltrado.length === 0) { toast.error('No hay filas para aplicar'); return }
-    if (!window.confirm(`¿Aplicar $${valor.toLocaleString('es-AR')} a ${panelFiltrado.length} fila(s)?`)) return
-    mutPrecioMasivo({ ids: panelFiltrado.map(f => f.id), precio: valor })
+    if (panelSeleccionado.length === 0) { toast.error('No hay filas seleccionadas'); return }
+    const excluidas = panelFiltrado.length - panelSeleccionado.length
+    const detalle = excluidas > 0 ? ` (${excluidas} destildada${excluidas > 1 ? 's' : ''} conserva${excluidas > 1 ? 'n' : ''} su precio)` : ''
+    if (!window.confirm(`¿Aplicar $${valor.toLocaleString('es-AR')} a ${panelSeleccionado.length} fila(s)?${detalle}`)) return
+    mutPrecioMasivo({ ids: panelSeleccionado.map(f => f.id), precio: valor })
   }
 
   const handleCrearNuevo = () => {
@@ -1037,11 +1068,15 @@ export default function Conceptos() {
               value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
             <button className="btn btn-sm btn-primary"
               onClick={handleAplicarPrecioMasivo}
-              disabled={aplicandoMasivo || panelFiltrado.length === 0}>
-              {aplicandoMasivo ? <><span className="spinner" /> Aplicando...</> : `Aplicar a los filtrados (${panelFiltrado.length})`}
+              disabled={aplicandoMasivo || panelSeleccionado.length === 0}>
+              {aplicandoMasivo
+                ? <><span className="spinner" /> Aplicando...</>
+                : `Aplicar a la selección (${panelSeleccionado.length} de ${panelFiltrado.length})`}
             </button>
             <span className={styles.searchCount}>
-              {panelFiltrado.length} de {panelPrecios.length} conceptos
+              {panelFiltrado.length - panelSeleccionado.length > 0
+                ? `${panelFiltrado.length - panelSeleccionado.length} destildada(s) conservan su precio`
+                : `${panelFiltrado.length} de ${panelPrecios.length} conceptos`}
             </span>
           </div>
 
@@ -1059,6 +1094,13 @@ export default function Conceptos() {
                 <table>
                   <thead>
                     <tr>
+                      <th style={{ width: 34 }}>
+                        <input type="checkbox"
+                          style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
+                          aria-label="Seleccionar todas las filas filtradas"
+                          checked={panelFiltrado.length > 0 && panelSeleccionado.length === panelFiltrado.length}
+                          onChange={toggleTodasPanel} />
+                      </th>
                       <th>TAREA</th><th>CÓDIGO</th><th>CLIENTE</th><th>FINCA</th>
                       <th>CAT</th><th>UNIDAD</th><th>REEMPLAZA</th><th>PRECIO ANTERIOR</th><th>PRECIO</th>
                     </tr>
@@ -1068,6 +1110,8 @@ export default function Conceptos() {
                       <PanelPrecioRow
                         key={fila.id}
                         fila={fila}
+                        seleccionada={!exclusionesPanel.has(fila.id)}
+                        onToggleSeleccion={() => toggleSeleccionPanel(fila.id)}
                         onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
                         guardando={guardandoPrecioPanel}
                       />
