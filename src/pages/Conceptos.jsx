@@ -186,6 +186,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
   // Un concepto específico nuevo nace con "Reemplaza al común" tildado; los
   // comunes no muestran el checkbox y viajan siempre en false.
   const [nuevaRegla, setNuevaRegla] = useState({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
+  const [reglaCreada, setReglaCreada] = useState(null)
 
   const primera = reglas[0]
   const alcance = esComun ? 'comun' : alcanceDeItem(primera)
@@ -198,20 +199,23 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 
   const handleAgregar = () => {
     if (!nuevaRegla.codigo) { toast.error('Ingresá un código'); return }
+    const codigo = parseInt(nuevaRegla.codigo)
     mutCrear({
       quincena,
       tarea_nombre:   primera.tarea_nombre,
       cliente_nombre: esComun ? null : (primera.cliente_nombre ?? null),
       finca_nombre:   esComun ? null : (primera.finca_nombre ?? null),
       supervisor_nombre: esComun ? null : (primera.supervisor_nombre ?? null),
-      codigo:      parseInt(nuevaRegla.codigo),
+      codigo,
       unidad_base: nuevaRegla.unidad_base,
       precio:      nuevaRegla.precio !== '' ? parseFloat(nuevaRegla.precio) : null,
       tipo:        nuevaRegla.tipo,
       categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
       reemplaza_comun: esComun ? false : nuevaRegla.reemplaza_comun,
-    })
-    setNuevaRegla({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
+    }, { onSuccess: () => {
+      setNuevaRegla({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
+      setReglaCreada(codigo)
+    } })
   }
 
   return (
@@ -248,6 +252,14 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
           ))}
 
           {/* Agregar nueva regla */}
+          {reglaCreada != null ? (
+            <PromptOtraRegla
+              codigo={reglaCreada}
+              combo={titulo}
+              onOtra={() => setReglaCreada(null)}
+              onListo={() => { setReglaCreada(null); setAbierto(false) }}
+            />
+          ) : (
           <div className={`${styles.reglaRow} ${styles.reglaRowNew}`}>
             <div><div className="field-label">Código</div>
               <input className="input input-mono" type="number" style={{ width: 90 }} placeholder="—"
@@ -290,6 +302,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
               + Agregar regla
             </button>
           </div>
+          )}
         </div>
       )}
     </div>
@@ -575,6 +588,7 @@ export default function Conceptos() {
   const [busqueda, setBusqueda] = useState('')
   const [filtrosEspecificos, setFiltrosEspecificos] = useState({})
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
+  const [reglaCreadaNuevo, setReglaCreadaNuevo] = useState(null)
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
   const [precioMasivo, setPrecioMasivo] = useState('')
@@ -840,22 +854,24 @@ export default function Conceptos() {
     if ((alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') && !formNuevo.cliente_nombre) { toast.error('Completá el cliente'); return }
     if (alcanceNuevo === 'supervisor' && !formNuevo.supervisor_nombre) { toast.error('Seleccioná un supervisor'); return }
     if (!formNuevo.codigo) { toast.error('Ingresá un código'); return }
+    const codigo = parseInt(formNuevo.codigo)
     mutCrear({
       quincena,
       tarea_nombre:   formNuevo.tarea_nombre,
       cliente_nombre: (alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') ? formNuevo.cliente_nombre : null,
       finca_nombre:   alcanceNuevo === 'finca' ? (formNuevo.finca_nombre || null) : null,
       supervisor_nombre: alcanceNuevo === 'supervisor' ? formNuevo.supervisor_nombre : null,
-      codigo:      parseInt(formNuevo.codigo),
+      codigo,
       unidad_base: formNuevo.unidad_base,
       precio:      formNuevo.precio !== '' ? parseFloat(formNuevo.precio) : null,
       tipo:        formNuevo.tipo,
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
       reemplaza_comun: alcanceNuevo === 'comun' ? false : formNuevo.reemplaza_comun,
-    })
-    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', supervisor_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
-    setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
-    setMostrarNuevo(false)
+    }, { onSuccess: () => {
+      // Conserva tarea/cliente/finca/supervisor y el alcance; limpia lo demás.
+      setFormNuevo(f => ({ ...f, codigo: '', precio: '', categoria: '' }))
+      setReglaCreadaNuevo(codigo)
+    } })
   }
 
   const TABS = [
@@ -914,7 +930,7 @@ export default function Conceptos() {
         {TABS.map((t, i) => (
           <button key={i}
             className={`chip ${tab === i ? (t.alert ? 'chip-alert' : 'chip-active') : ''}`}
-            onClick={() => { setTab(i); setBusqueda(''); setFiltrosEspecificos({}); setMostrarNuevo(false) }}>
+            onClick={() => { setTab(i); setBusqueda(''); setFiltrosEspecificos({}); setMostrarNuevo(false); setReglaCreadaNuevo(null) }}>
             {t.label}
           </button>
         ))}
@@ -964,7 +980,7 @@ export default function Conceptos() {
             <input className="input" style={{ width: 320 }}
               placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca, supervisor...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-            <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
+            <button className="btn btn-sm btn-primary" onClick={() => { setMostrarNuevo(o => !o); setReglaCreadaNuevo(null) }}>
               {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
             </button>
             <span className={styles.searchCount}>
@@ -988,7 +1004,20 @@ export default function Conceptos() {
           )}
 
           {/* Formulario nuevo grupo */}
-          {mostrarNuevo && (
+          {mostrarNuevo && reglaCreadaNuevo != null && (
+            <PromptOtraRegla
+              codigo={reglaCreadaNuevo}
+              combo={`${formNuevo.tarea_nombre}${formNuevo.cliente_nombre ? ` · ${formNuevo.cliente_nombre}` : ''}${formNuevo.finca_nombre ? ` · ${formNuevo.finca_nombre}` : ''}${formNuevo.supervisor_nombre ? ` · Sup. ${formNuevo.supervisor_nombre}` : ''}`}
+              onOtra={() => setReglaCreadaNuevo(null)}
+              onListo={() => {
+                setReglaCreadaNuevo(null)
+                setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', supervisor_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
+                setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
+                setMostrarNuevo(false)
+              }}
+            />
+          )}
+          {mostrarNuevo && reglaCreadaNuevo == null && (
             <div className={styles.newGroupForm}>
               <div><div className="field-label">Tarea</div>
                 <select className="input" style={{ width: 220 }} value={formNuevo.tarea_nombre}
