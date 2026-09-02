@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
@@ -21,6 +21,28 @@ const CAMPOS_PANEL = [
   { key: 'finca',      label: 'Finca',      field: 'finca_nombre' },
   { key: 'supervisor', label: 'Supervisor', field: 'supervisor_nombre' },
 ]
+
+// Columnas de la tabla del Panel de precios (tab 5) — resizeables estilo
+// Excel. 'chk' es la columna del checkbox de selección: no lleva label ni
+// resizer (su ancho no se toca). El resto define su ancho default acá y lo
+// persiste en localStorage bajo LS_KEY_ANCHOS_PANEL cuando el usuario arrastra.
+const COLUMNAS_PANEL = [
+  { key: 'chk',       label: null },
+  { key: 'tarea',     label: 'TAREA' },
+  { key: 'codigo',    label: 'CÓDIGO' },
+  { key: 'cliente',   label: 'CLIENTE' },
+  { key: 'finca',     label: 'FINCA' },
+  { key: 'cat',       label: 'CAT' },
+  { key: 'unidad',    label: 'UNIDAD' },
+  { key: 'reemplaza', label: 'REEMPLAZA' },
+  { key: 'anterior',  label: 'P. ANTERIOR' },
+  { key: 'precio',    label: 'PRECIO' },
+]
+const ANCHOS_PANEL_DEFAULT = {
+  chk: 34, tarea: 220, codigo: 50, cliente: 150, finca: 130,
+  cat: 40, unidad: 100, reemplaza: 60, anterior: 85, precio: 130,
+}
+const LS_KEY_ANCHOS_PANEL = 'panel-precios-anchos'
 
 // Los 4 alcances de una regla: común (solo tarea), por cliente (todas las
 // fincas de ese cliente), por finca (cliente+finca puntual, el "específico"
@@ -186,6 +208,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
   // Un concepto específico nuevo nace con "Reemplaza al común" tildado; los
   // comunes no muestran el checkbox y viajan siempre en false.
   const [nuevaRegla, setNuevaRegla] = useState({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
+  const [reglaCreada, setReglaCreada] = useState(null)
 
   const primera = reglas[0]
   const alcance = esComun ? 'comun' : alcanceDeItem(primera)
@@ -198,20 +221,23 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 
   const handleAgregar = () => {
     if (!nuevaRegla.codigo) { toast.error('Ingresá un código'); return }
+    const codigo = parseInt(nuevaRegla.codigo)
     mutCrear({
       quincena,
       tarea_nombre:   primera.tarea_nombre,
       cliente_nombre: esComun ? null : (primera.cliente_nombre ?? null),
       finca_nombre:   esComun ? null : (primera.finca_nombre ?? null),
       supervisor_nombre: esComun ? null : (primera.supervisor_nombre ?? null),
-      codigo:      parseInt(nuevaRegla.codigo),
+      codigo,
       unidad_base: nuevaRegla.unidad_base,
       precio:      nuevaRegla.precio !== '' ? parseFloat(nuevaRegla.precio) : null,
       tipo:        nuevaRegla.tipo,
       categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
       reemplaza_comun: esComun ? false : nuevaRegla.reemplaza_comun,
-    })
-    setNuevaRegla({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
+    }, { onSuccess: () => {
+      setNuevaRegla({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
+      setReglaCreada(codigo)
+    } })
   }
 
   return (
@@ -248,6 +274,14 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
           ))}
 
           {/* Agregar nueva regla */}
+          {reglaCreada != null ? (
+            <PromptOtraRegla
+              codigo={reglaCreada}
+              combo={titulo}
+              onOtra={() => setReglaCreada(null)}
+              onListo={() => { setReglaCreada(null); setAbierto(false) }}
+            />
+          ) : (
           <div className={`${styles.reglaRow} ${styles.reglaRowNew}`}>
             <div><div className="field-label">Código</div>
               <input className="input input-mono" type="number" style={{ width: 90 }} placeholder="—"
@@ -290,15 +324,35 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
               + Agregar regla
             </button>
           </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
+// ─── PromptOtraRegla: pregunta inline tras crear una regla ──────────────────
+// Reemplaza al formulario recién confirmado; "Sí, otra" lo re-abre con el
+// combo conservado, "No, listo" cierra como siempre.
+
+function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
+  return (
+    <div className={styles.promptOtra}>
+      <span>
+        ✓ Regla <b className="mono">{codigo}</b> creada —{' '}
+        <b>¿Crear otra regla para {combo}?</b>
+      </span>
+      <span className={styles.promptOtraBotones}>
+        <button className="btn btn-sm" onClick={onOtra}>Sí, otra</button>
+        <button className="btn btn-sm btn-primary" onClick={onListo}>No, listo</button>
+      </span>
+    </div>
+  )
+}
+
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores }) {
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -307,6 +361,9 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
   // Una vez que el usuario toca el checkbox a mano, dejamos de pisarlo al
   // cambiar el alcance.
   const [reemplazaTocado, setReemplazaTocado] = useState(false)
+  // Código de la última regla creada en esta ronda; non-null = mostrar el
+  // prompt "¿Crear otra?" en lugar del formulario.
+  const [reglaCreada, setReglaCreada] = useState(null)
 
   const cantidadConMismaTarea = useMemo(
     () => todasFaltantes.filter(x => x.tarea_nombre === f.tarea_nombre).length,
@@ -321,29 +378,43 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
   const handleGuardar = () => {
     if (!form.codigo) { toast.error('Ingresá un código'); return }
     if (alcance === 'supervisor' && !supervisorSel) { toast.error('Seleccioná un supervisor'); return }
-    mutCrear({
+    const codigo = parseInt(form.codigo)
+    mutCrearSinFaltantes({
       quincena,
       tarea_nombre:   f.tarea_nombre,
       cliente_nombre: (alcance === 'cliente' || alcance === 'finca') ? f.cliente_nombre : null,
       finca_nombre:   alcance === 'finca' ? f.finca_nombre : null,
       supervisor_nombre: alcance === 'supervisor' ? supervisorSel : null,
-      codigo:      parseInt(form.codigo),
+      codigo,
       unidad_base: form.unidad_base,
       precio:      form.precio !== '' ? parseFloat(form.precio) : null,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       reemplaza_comun: alcance === 'comun' ? false : form.reemplaza_comun,
-    })
+    }, { onSuccess: () => setReglaCreada(codigo) })
+  }
+
+  const combo = `${f.tarea_nombre}${f.cliente_nombre ? ` · ${f.cliente_nombre}` : ''}${f.finca_nombre ? ` · ${f.finca_nombre}` : ''}`
+
+  const otraRegla = () => {
+    // Conserva alcance y supervisor; limpia código/unidad/precio/categoría.
+    setForm(fo => ({ ...EMPTY_REGLA, reemplaza_comun: fo.reemplaza_comun }))
+    setReglaCreada(null)
+  }
+
+  const terminarEncadenado = () => {
+    setReglaCreada(null)
     setForm({ ...EMPTY_REGLA, reemplaza_comun: true })
     setAlcance('finca')
     setSupervisorSel('')
     setReemplazaTocado(false)
     setAbierta(false)
+    onFinEncadenado()
   }
 
   return (
     <>
-      <tr className={styles.faltanteRow} onClick={() => setAbierta(o => !o)}>
+      <tr className={styles.faltanteRow} onClick={() => { if (reglaCreada != null) { terminarEncadenado(); return } setAbierta(o => !o) }}>
         <td>
           <span className={styles.faltanteChevron}>{abierta ? '▲' : '▼'}</span>
           {f.tarea_nombre}
@@ -357,6 +428,10 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
             <div className={styles.faltanteExpand}>
               <div className={styles.faltanteTareaFija}>{f.tarea_nombre}</div>
 
+              {reglaCreada != null ? (
+                <PromptOtraRegla codigo={reglaCreada} combo={combo} onOtra={otraRegla} onListo={terminarEncadenado} />
+              ) : (
+              <>
               <div className={styles.scopeChoice}>
                 <label className={styles.radioLabel}>
                   <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'finca'}
@@ -439,6 +514,8 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
                   Guardar
                 </button>
               </div>
+              </>
+              )}
             </div>
           </td>
         </tr>
@@ -449,7 +526,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
 
 // ─── PanelPrecioRow: fila plana editable del Panel de precios ───────────────
 
-function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
+function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio, guardando }) {
   const [editando, setEditando] = useState(false)
   const [precio, setPrecio] = useState(fila.precio ?? '')
 
@@ -464,22 +541,38 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
     setEditando(false)
   }
 
+  const unidadLabel = UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base
+
   return (
-    <tr>
-      <td>{fila.tarea_nombre}</td>
-      <td className="mono">{fila.codigo ?? '—'}</td>
+    <tr className={seleccionada ? undefined : styles.filaExcluida}>
       <td>
-        {fila.supervisor_nombre
-          ? <span className="badge badge-info">Supervisor: {fila.supervisor_nombre}</span>
-          : (fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>)}
+        <input type="checkbox" checked={seleccionada}
+          style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
+          aria-label={`Incluir ${fila.tarea_nombre} en el precio masivo`}
+          onChange={onToggleSeleccion} />
       </td>
-      <td>{fila.finca_nombre || '—'}</td>
+      <td title={fila.tarea_nombre}>
+        <div className={styles.celdaTruncada}>{fila.tarea_nombre}</div>
+      </td>
+      <td className="mono">{fila.codigo ?? '—'}</td>
+      <td title={fila.supervisor_nombre ? `Supervisor: ${fila.supervisor_nombre}` : (fila.cliente_nombre || '— (común)')}>
+        <div className={styles.celdaTruncada}>
+          {fila.supervisor_nombre
+            ? <span className="badge badge-info">Sup: {fila.supervisor_nombre}</span>
+            : (fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>)}
+        </div>
+      </td>
+      <td title={fila.finca_nombre || ''}>
+        <div className={styles.celdaTruncada}>{fila.finca_nombre || '—'}</div>
+      </td>
       <td>{fila.categoria != null ? `Cat. ${fila.categoria}` : '—'}</td>
-      <td>{UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base}</td>
+      <td title={unidadLabel}>
+        <div className={styles.celdaTruncada}>{unidadLabel}</div>
+      </td>
       <td>
         {fila.reemplaza_comun && (
           <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
-            Reemplaza
+            ✓
           </span>
         )}
       </td>
@@ -489,7 +582,7 @@ function PanelPrecioRow({ fila, onGuardarPrecio, guardando }) {
       <td>
         {editando ? (
           <div className={styles.panelPrecioEdit}>
-            <input className="input input-mono" type="number" style={{ width: 100 }}
+            <input className="input input-mono" type="number" style={{ width: 80 }}
               autoFocus
               value={precio}
               onChange={e => setPrecio(e.target.value)}
@@ -527,9 +620,29 @@ export default function Conceptos() {
   const [busqueda, setBusqueda] = useState('')
   const [filtrosEspecificos, setFiltrosEspecificos] = useState({})
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
+  const [reglaCreadaNuevo, setReglaCreadaNuevo] = useState(null)
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
   const [precioMasivo, setPrecioMasivo] = useState('')
+  // Selección del panel: guardamos las EXCLUSIONES (filas destildadas), no
+  // las inclusiones — así el default es "todas tildadas" y cambiar el filtro
+  // resetea la selección sin sincronizar nada.
+  const [exclusionesPanel, setExclusionesPanel] = useState(() => new Set())
+  // Anchos de columna del Panel de precios, redimensionables a mano (estilo
+  // Excel). Se leen de localStorage con merge sobre los defaults, así que
+  // agregar/quitar columnas más adelante no rompe una preferencia vieja.
+  const [anchosPanel, setAnchosPanel] = useState(() => {
+    try {
+      const guardado = JSON.parse(localStorage.getItem(LS_KEY_ANCHOS_PANEL) || '{}')
+      return { ...ANCHOS_PANEL_DEFAULT, ...guardado }
+    } catch {
+      return { ...ANCHOS_PANEL_DEFAULT }
+    }
+  })
+  // Ref con el cleanup del resize en curso (listeners de document), para
+  // poder desengancharlos si el componente se desmonta a mitad de un drag.
+  const resizeCleanupPanelRef = useRef(null)
+  useEffect(() => () => resizeCleanupPanelRef.current?.(), [])
   // Alcance del formulario "+ Nuevo": arranca acorde a la tab activa (comunes
   // → común, específicos → finca) pero el usuario puede cambiarlo a
   // cualquiera de los 4; reemplaza_comun nace en true y handleCrearNuevo lo
@@ -648,6 +761,23 @@ export default function Conceptos() {
     onError: err => toast.error(err.message),
   })
 
+  // Variante para el encadenado desde "Sin concepto": NO invalida la lista
+  // de faltantes — el combo recién completado debe seguir visible mientras
+  // el liquidador decide si le crea otra regla. Faltantes se invalida al
+  // cerrar el prompt (onFinEncadenado).
+  const { mutate: mutCrearSinFaltantes } = useMutation({
+    mutationFn: crearConcepto,
+    onSuccess: () => {
+      toast.success('Regla guardada')
+      qc.invalidateQueries({ queryKey: ['conceptos'] })
+      qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
+      qc.invalidateQueries({ queryKey: ['panel-precios'] })
+      qc.invalidateQueries({ queryKey: ['lineas'] })
+      qc.invalidateQueries({ queryKey: ['stats'] })
+    },
+    onError: err => toast.error(err.message),
+  })
+
   const { mutate: mutActualizar } = useMutation({
     mutationFn: ({ id, datos }) => actualizarConcepto(id, datos),
     onSuccess: () => { toast.success('Regla actualizada'); invalidar() },
@@ -737,12 +867,64 @@ export default function Conceptos() {
     return filas
   }, [panelPrecios, filtroCodigoPanel, filtrosPanel])
 
+  useEffect(() => { setExclusionesPanel(new Set()) }, [filtroCodigoPanel, filtrosPanel, quincena])
+
+  const panelSeleccionado = useMemo(
+    () => panelFiltrado.filter(f => !exclusionesPanel.has(f.id)),
+    [panelFiltrado, exclusionesPanel]
+  )
+
+  const toggleSeleccionPanel = (id) => setExclusionesPanel(prev => {
+    const s = new Set(prev)
+    s.has(id) ? s.delete(id) : s.add(id)
+    return s
+  })
+
+  const toggleTodasPanel = () => setExclusionesPanel(
+    panelSeleccionado.length === panelFiltrado.length
+      ? new Set(panelFiltrado.map(f => f.id))   // estaban todas: destildar todas
+      : new Set()                                // había excluidas: tildar todas
+  )
+
+  // Persistencia del ancho de columnas del panel — se guarda en cada cambio,
+  // así la preferencia sobrevive a un F5 o a cerrar la pestaña.
+  useEffect(() => {
+    try { localStorage.setItem(LS_KEY_ANCHOS_PANEL, JSON.stringify(anchosPanel)) } catch { /* localStorage no disponible: seguimos sin persistir */ }
+  }, [anchosPanel])
+
+  // Arranca el resize de una columna: guarda el ancho y la posición X de
+  // inicio, y escucha mousemove/mouseup en document (el mouse puede salirse
+  // del th mientras se arrastra). Ambos listeners se remueven a sí mismos en
+  // mouseup; resizeCleanupPanelRef guarda esa misma función por si el
+  // componente se desmonta a mitad del drag (ver el useEffect de arriba).
+  const iniciarResizePanel = (clave) => (e) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const anchoInicial = anchosPanel[clave]
+    const onMove = (ev) => {
+      const nuevo = Math.max(50, anchoInicial + (ev.clientX - startX))
+      setAnchosPanel(prev => ({ ...prev, [clave]: nuevo }))
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      resizeCleanupPanelRef.current = null
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    resizeCleanupPanelRef.current = onUp
+  }
+
+  const restaurarAnchoPanel = (clave) => setAnchosPanel(prev => ({ ...prev, [clave]: ANCHOS_PANEL_DEFAULT[clave] }))
+
   const handleAplicarPrecioMasivo = () => {
     const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
     if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
-    if (panelFiltrado.length === 0) { toast.error('No hay filas para aplicar'); return }
-    if (!window.confirm(`¿Aplicar $${valor.toLocaleString('es-AR')} a ${panelFiltrado.length} fila(s)?`)) return
-    mutPrecioMasivo({ ids: panelFiltrado.map(f => f.id), precio: valor })
+    if (panelSeleccionado.length === 0) { toast.error('No hay filas seleccionadas'); return }
+    const excluidas = panelFiltrado.length - panelSeleccionado.length
+    const detalle = excluidas > 0 ? ` (${excluidas} destildada${excluidas > 1 ? 's' : ''} conserva${excluidas > 1 ? 'n' : ''} su precio)` : ''
+    if (!window.confirm(`¿Aplicar $${valor.toLocaleString('es-AR')} a ${panelSeleccionado.length} fila(s)?${detalle}`)) return
+    mutPrecioMasivo({ ids: panelSeleccionado.map(f => f.id), precio: valor })
   }
 
   const handleCrearNuevo = () => {
@@ -750,22 +932,24 @@ export default function Conceptos() {
     if ((alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') && !formNuevo.cliente_nombre) { toast.error('Completá el cliente'); return }
     if (alcanceNuevo === 'supervisor' && !formNuevo.supervisor_nombre) { toast.error('Seleccioná un supervisor'); return }
     if (!formNuevo.codigo) { toast.error('Ingresá un código'); return }
+    const codigo = parseInt(formNuevo.codigo)
     mutCrear({
       quincena,
       tarea_nombre:   formNuevo.tarea_nombre,
       cliente_nombre: (alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') ? formNuevo.cliente_nombre : null,
       finca_nombre:   alcanceNuevo === 'finca' ? (formNuevo.finca_nombre || null) : null,
       supervisor_nombre: alcanceNuevo === 'supervisor' ? formNuevo.supervisor_nombre : null,
-      codigo:      parseInt(formNuevo.codigo),
+      codigo,
       unidad_base: formNuevo.unidad_base,
       precio:      formNuevo.precio !== '' ? parseFloat(formNuevo.precio) : null,
       tipo:        formNuevo.tipo,
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
       reemplaza_comun: alcanceNuevo === 'comun' ? false : formNuevo.reemplaza_comun,
-    })
-    setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', supervisor_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
-    setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
-    setMostrarNuevo(false)
+    }, { onSuccess: () => {
+      // Conserva tarea/cliente/finca/supervisor y el alcance; limpia lo demás.
+      setFormNuevo(f => ({ ...f, codigo: '', precio: '', categoria: '' }))
+      setReglaCreadaNuevo(codigo)
+    } })
   }
 
   const TABS = [
@@ -824,7 +1008,7 @@ export default function Conceptos() {
         {TABS.map((t, i) => (
           <button key={i}
             className={`chip ${tab === i ? (t.alert ? 'chip-alert' : 'chip-active') : ''}`}
-            onClick={() => { setTab(i); setBusqueda(''); setFiltrosEspecificos({}); setMostrarNuevo(false) }}>
+            onClick={() => { setTab(i); setBusqueda(''); setFiltrosEspecificos({}); setMostrarNuevo(false); setReglaCreadaNuevo(null) }}>
             {t.label}
           </button>
         ))}
@@ -854,6 +1038,8 @@ export default function Conceptos() {
                       quincena={quincena}
                       todasFaltantes={faltantes}
                       mutCrear={mutCrear}
+                      mutCrearSinFaltantes={mutCrearSinFaltantes}
+                      onFinEncadenado={() => qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })}
                       supervisores={supervisores}
                     />
                   ))}
@@ -872,7 +1058,7 @@ export default function Conceptos() {
             <input className="input" style={{ width: 320 }}
               placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca, supervisor...'}
               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
-            <button className="btn btn-sm btn-primary" onClick={() => setMostrarNuevo(o => !o)}>
+            <button className="btn btn-sm btn-primary" onClick={() => { setMostrarNuevo(o => !o); setReglaCreadaNuevo(null) }}>
               {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
             </button>
             <span className={styles.searchCount}>
@@ -896,7 +1082,20 @@ export default function Conceptos() {
           )}
 
           {/* Formulario nuevo grupo */}
-          {mostrarNuevo && (
+          {mostrarNuevo && reglaCreadaNuevo != null && (
+            <PromptOtraRegla
+              codigo={reglaCreadaNuevo}
+              combo={`${formNuevo.tarea_nombre}${formNuevo.cliente_nombre ? ` · ${formNuevo.cliente_nombre}` : ''}${formNuevo.finca_nombre ? ` · ${formNuevo.finca_nombre}` : ''}${formNuevo.supervisor_nombre ? ` · Sup. ${formNuevo.supervisor_nombre}` : ''}`}
+              onOtra={() => setReglaCreadaNuevo(null)}
+              onListo={() => {
+                setReglaCreadaNuevo(null)
+                setFormNuevo({ tarea_nombre: '', cliente_nombre: '', finca_nombre: '', supervisor_nombre: '', codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: true })
+                setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
+                setMostrarNuevo(false)
+              }}
+            />
+          )}
+          {mostrarNuevo && reglaCreadaNuevo == null && (
             <div className={styles.newGroupForm}>
               <div><div className="field-label">Tarea</div>
                 <select className="input" style={{ width: 220 }} value={formNuevo.tarea_nombre}
@@ -1037,11 +1236,15 @@ export default function Conceptos() {
               value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
             <button className="btn btn-sm btn-primary"
               onClick={handleAplicarPrecioMasivo}
-              disabled={aplicandoMasivo || panelFiltrado.length === 0}>
-              {aplicandoMasivo ? <><span className="spinner" /> Aplicando...</> : `Aplicar a los filtrados (${panelFiltrado.length})`}
+              disabled={aplicandoMasivo || panelSeleccionado.length === 0}>
+              {aplicandoMasivo
+                ? <><span className="spinner" /> Aplicando...</>
+                : `Aplicar a la selección (${panelSeleccionado.length} de ${panelFiltrado.length})`}
             </button>
             <span className={styles.searchCount}>
-              {panelFiltrado.length} de {panelPrecios.length} conceptos
+              {panelFiltrado.length - panelSeleccionado.length > 0
+                ? `${panelFiltrado.length - panelSeleccionado.length} destildada(s) conservan su precio`
+                : `${panelFiltrado.length} de ${panelPrecios.length} conceptos`}
             </span>
           </div>
 
@@ -1056,11 +1259,29 @@ export default function Conceptos() {
             )}
             {!cargandoPanel && panelFiltrado.length > 0 && (
               <div className="table-wrap">
-                <table>
+                <table className={styles.panelTable}>
+                  <colgroup>
+                    {COLUMNAS_PANEL.map(c => <col key={c.key} style={{ width: anchosPanel[c.key] }} />)}
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th>TAREA</th><th>CÓDIGO</th><th>CLIENTE</th><th>FINCA</th>
-                      <th>CAT</th><th>UNIDAD</th><th>REEMPLAZA</th><th>PRECIO ANTERIOR</th><th>PRECIO</th>
+                      {COLUMNAS_PANEL.map(c => (
+                        <th key={c.key} className={styles.thPanel}>
+                          {c.key === 'chk' ? (
+                            <input type="checkbox"
+                              style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
+                              aria-label="Seleccionar todas las filas filtradas"
+                              checked={panelFiltrado.length > 0 && panelSeleccionado.length === panelFiltrado.length}
+                              onChange={toggleTodasPanel} />
+                          ) : c.label}
+                          {c.key !== 'chk' && (
+                            <div className={styles.thResizer}
+                              onMouseDown={iniciarResizePanel(c.key)}
+                              onDoubleClick={() => restaurarAnchoPanel(c.key)}
+                              title="Arrastrar para redimensionar — doble click para restaurar" />
+                          )}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -1068,6 +1289,8 @@ export default function Conceptos() {
                       <PanelPrecioRow
                         key={fila.id}
                         fila={fila}
+                        seleccionada={!exclusionesPanel.has(fila.id)}
+                        onToggleSeleccion={() => toggleSeleccionPanel(fila.id)}
                         onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
                         guardando={guardandoPrecioPanel}
                       />
