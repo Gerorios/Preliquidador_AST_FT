@@ -422,14 +422,25 @@ function ListaBarras({ items, onClickItem }) {
 
 function TablaDesvios({ datos }) {
   const [verSinHistorial, setVerSinHistorial] = useState(false)
+  // La tabla muestra solo las ALERTAS (superan el umbral); el resto queda
+  // detrás de un colapsable, igual que "sin historial" (pedido del usuario:
+  // el gerente mira desvíos, no el padrón completo).
+  const [verSinDesvio, setVerSinDesvio] = useState(false)
   if (!datos) return <div className={styles.empty}>Sin datos.</div>
   const { personas, sin_historial: sinHistorial } = datos
-  const maxAbs = Math.max(...personas.map(p => Math.abs(p.desvio_pct ?? 0)), 1)
+  const alertas = personas.filter(p => p.supera_umbral)
+  const sinDesvio = personas.filter(p => !p.supera_umbral)
+  const visibles = verSinDesvio ? personas : alertas
+  const maxAbs = Math.max(...visibles.map(p => Math.abs(p.desvio_pct ?? 0)), 1)
 
   return (
     <>
       {!personas.length ? (
         <div className={styles.empty}>Ninguna persona con historial comparable en este período.</div>
+      ) : !visibles.length ? (
+        <div className={styles.empty}>
+          Ninguna persona supera el umbral de alerta en este período ✓
+        </div>
       ) : (
         <div className="table-wrap">
           <table>
@@ -443,7 +454,7 @@ function TablaDesvios({ datos }) {
               </tr>
             </thead>
             <tbody>
-              {personas.map(p => (
+              {visibles.map(p => (
                 <tr key={p.cuil} className={p.supera_umbral ? styles.filaAlerta : undefined}>
                   <td>
                     <div>{p.nombre}</div>
@@ -464,6 +475,18 @@ function TablaDesvios({ datos }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {sinDesvio.length > 0 && (
+        <div className={styles.sinHistorial}>
+          <button className="btn btn-sm" onClick={() => setVerSinDesvio(v => !v)}>
+            {verSinDesvio ? '▾' : '▸'} {verSinDesvio
+              ? 'Ver solo los que superan el umbral'
+              : sinDesvio.length === 1
+                ? 'Ver la persona sin desvío sobre el umbral'
+                : `Ver las ${sinDesvio.length} personas sin desvío sobre el umbral`}
+          </button>
         </div>
       )}
 
