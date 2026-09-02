@@ -317,3 +317,23 @@
   font-size: 0.86rem;
 }
 .promptOtraBotones { display: flex; gap: 8px; }
+
+/* ─── Panel de precios: que entre sin scroll horizontal ─── */
+/* table-layout: fixed hace que cada columna respete el width fijado en su
+   <th> (checkboxes/código/cat/unidad/reemplaza/precios) y le da a las
+   celdas de texto largo (tarea/cliente/finca) un ancho real contra el que
+   truncar con ellipsis — sin esto, .celdaTruncada no tiene límite y el
+   navegador igual ensancha la tabla al contenido. */
+.panelTable {
+  table-layout: fixed;
+  width: 100%;
+}
+.panelTable th,
+.panelTable td {
+  padding: 7px 6px;
+}
+.celdaTruncada {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -527,20 +527,21 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
           aria-label={`Incluir ${fila.tarea_nombre} en el precio masivo`}
           onChange={onToggleSeleccion} />
       </td>
-      <td>{fila.tarea_nombre}</td>
+      <td className={styles.celdaTruncada} title={fila.tarea_nombre}>{fila.tarea_nombre}</td>
       <td className="mono">{fila.codigo ?? '—'}</td>
-      <td>
+      <td className={styles.celdaTruncada}
+        title={fila.supervisor_nombre ? `Supervisor: ${fila.supervisor_nombre}` : (fila.cliente_nombre || '— (común)')}>
         {fila.supervisor_nombre
-          ? <span className="badge badge-info">Supervisor: {fila.supervisor_nombre}</span>
+          ? <span className="badge badge-info">Sup: {fila.supervisor_nombre}</span>
           : (fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>)}
       </td>
-      <td>{fila.finca_nombre || '—'}</td>
+      <td className={styles.celdaTruncada} title={fila.finca_nombre || ''}>{fila.finca_nombre || '—'}</td>
       <td>{fila.categoria != null ? `Cat. ${fila.categoria}` : '—'}</td>
       <td>{UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base}</td>
       <td>
         {fila.reemplaza_comun && (
           <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
-            Reemplaza
+            ✓
           </span>
         )}
       </td>
@@ -550,7 +551,7 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
       <td>
         {editando ? (
           <div className={styles.panelPrecioEdit}>
-            <input className="input input-mono" type="number" style={{ width: 100 }}
+            <input className="input input-mono" type="number" style={{ width: 80 }}
               autoFocus
               value={precio}
               onChange={e => setPrecio(e.target.value)}
@@ -1181,7 +1182,7 @@ export default function Conceptos() {
             )}
             {!cargandoPanel && panelFiltrado.length > 0 && (
               <div className="table-wrap">
-                <table>
+                <table className={styles.panelTable}>
                   <thead>
                     <tr>
                       <th style={{ width: 34 }}>
@@ -1191,8 +1192,15 @@ export default function Conceptos() {
                           checked={panelFiltrado.length > 0 && panelSeleccionado.length === panelFiltrado.length}
                           onChange={toggleTodasPanel} />
                       </th>
-                      <th>TAREA</th><th>CÓDIGO</th><th>CLIENTE</th><th>FINCA</th>
-                      <th>CAT</th><th>UNIDAD</th><th>REEMPLAZA</th><th>PRECIO ANTERIOR</th><th>PRECIO</th>
+                      <th style={{ width: 220 }}>TAREA</th>
+                      <th style={{ width: 50 }}>CÓDIGO</th>
+                      <th style={{ width: 150 }}>CLIENTE</th>
+                      <th style={{ width: 130 }}>FINCA</th>
+                      <th style={{ width: 40 }}>CAT</th>
+                      <th style={{ width: 100 }}>UNIDAD</th>
+                      <th style={{ width: 60 }}>REEMPLAZA</th>
+                      <th style={{ width: 85 }}>P. ANTERIOR</th>
+                      <th style={{ width: 130 }}>PRECIO</th>
                     </tr>
                   </thead>
                   <tbody>
