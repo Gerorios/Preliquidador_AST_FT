@@ -302,3 +302,18 @@
   color: var(--text-muted);
   background: repeating-linear-gradient(-45deg, transparent 0 8px, var(--warn-dim) 8px 16px);
 }
+
+/* ─── Prompt "¿Crear otra regla?" ─── */
+.promptOtra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-dim);
+  font-size: 0.86rem;
+}
+.promptOtraBotones { display: flex; gap: 8px; }

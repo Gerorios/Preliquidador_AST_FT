@@ -296,9 +296,28 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
   )
 }
 
+// ─── PromptOtraRegla: pregunta inline tras crear una regla ──────────────────
+// Reemplaza al formulario recién confirmado; "Sí, otra" lo re-abre con el
+// combo conservado, "No, listo" cierra como siempre.
+
+function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
+  return (
+    <div className={styles.promptOtra}>
+      <span>
+        ✓ Regla <b className="mono">{codigo}</b> creada —{' '}
+        <b>¿Crear otra regla para {combo}?</b>
+      </span>
+      <span className={styles.promptOtraBotones}>
+        <button className="btn btn-sm" onClick={onOtra}>Sí, otra</button>
+        <button className="btn btn-sm btn-primary" onClick={onListo}>No, listo</button>
+      </span>
+    </div>
+  )
+}
+
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores }) {
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -307,6 +326,9 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
   // Una vez que el usuario toca el checkbox a mano, dejamos de pisarlo al
   // cambiar el alcance.
   const [reemplazaTocado, setReemplazaTocado] = useState(false)
+  // Código de la última regla creada en esta ronda; non-null = mostrar el
+  // prompt "¿Crear otra?" en lugar del formulario.
+  const [reglaCreada, setReglaCreada] = useState(null)
 
   const cantidadConMismaTarea = useMemo(
     () => todasFaltantes.filter(x => x.tarea_nombre === f.tarea_nombre).length,
@@ -321,29 +343,43 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
   const handleGuardar = () => {
     if (!form.codigo) { toast.error('Ingresá un código'); return }
     if (alcance === 'supervisor' && !supervisorSel) { toast.error('Seleccioná un supervisor'); return }
-    mutCrear({
+    const codigo = parseInt(form.codigo)
+    mutCrearSinFaltantes({
       quincena,
       tarea_nombre:   f.tarea_nombre,
       cliente_nombre: (alcance === 'cliente' || alcance === 'finca') ? f.cliente_nombre : null,
       finca_nombre:   alcance === 'finca' ? f.finca_nombre : null,
       supervisor_nombre: alcance === 'supervisor' ? supervisorSel : null,
-      codigo:      parseInt(form.codigo),
+      codigo,
       unidad_base: form.unidad_base,
       precio:      form.precio !== '' ? parseFloat(form.precio) : null,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       reemplaza_comun: alcance === 'comun' ? false : form.reemplaza_comun,
-    })
+    }, { onSuccess: () => setReglaCreada(codigo) })
+  }
+
+  const combo = `${f.tarea_nombre}${f.cliente_nombre ? ` · ${f.cliente_nombre}` : ''}${f.finca_nombre ? ` · ${f.finca_nombre}` : ''}`
+
+  const otraRegla = () => {
+    // Conserva alcance y supervisor; limpia código/unidad/precio/categoría.
+    setForm(fo => ({ ...EMPTY_REGLA, reemplaza_comun: fo.reemplaza_comun }))
+    setReglaCreada(null)
+  }
+
+  const terminarEncadenado = () => {
+    setReglaCreada(null)
     setForm({ ...EMPTY_REGLA, reemplaza_comun: true })
     setAlcance('finca')
     setSupervisorSel('')
     setReemplazaTocado(false)
     setAbierta(false)
+    onFinEncadenado()
   }
 
   return (
     <>
-      <tr className={styles.faltanteRow} onClick={() => setAbierta(o => !o)}>
+      <tr className={styles.faltanteRow} onClick={() => { if (reglaCreada != null) { terminarEncadenado(); return } setAbierta(o => !o) }}>
         <td>
           <span className={styles.faltanteChevron}>{abierta ? '▲' : '▼'}</span>
           {f.tarea_nombre}
@@ -357,6 +393,10 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
             <div className={styles.faltanteExpand}>
               <div className={styles.faltanteTareaFija}>{f.tarea_nombre}</div>
 
+              {reglaCreada != null ? (
+                <PromptOtraRegla codigo={reglaCreada} combo={combo} onOtra={otraRegla} onListo={terminarEncadenado} />
+              ) : (
+              <>
               <div className={styles.scopeChoice}>
                 <label className={styles.radioLabel}>
                   <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'finca'}
@@ -439,6 +479,8 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, supervisores
                   Guardar
                 </button>
               </div>
+              </>
+              )}
             </div>
           </td>
         </tr>
@@ -655,6 +697,23 @@ export default function Conceptos() {
   const { mutate: mutCrear } = useMutation({
     mutationFn: crearConcepto,
     onSuccess: () => { toast.success('Regla guardada'); invalidar() },
+    onError: err => toast.error(err.message),
+  })
+
+  // Variante para el encadenado desde "Sin concepto": NO invalida la lista
+  // de faltantes — el combo recién completado debe seguir visible mientras
+  // el liquidador decide si le crea otra regla. Faltantes se invalida al
+  // cerrar el prompt (onFinEncadenado).
+  const { mutate: mutCrearSinFaltantes } = useMutation({
+    mutationFn: crearConcepto,
+    onSuccess: () => {
+      toast.success('Regla guardada')
+      qc.invalidateQueries({ queryKey: ['conceptos'] })
+      qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
+      qc.invalidateQueries({ queryKey: ['panel-precios'] })
+      qc.invalidateQueries({ queryKey: ['lineas'] })
+      qc.invalidateQueries({ queryKey: ['stats'] })
+    },
     onError: err => toast.error(err.message),
   })
 
@@ -885,6 +944,8 @@ export default function Conceptos() {
                       quincena={quincena}
                       todasFaltantes={faltantes}
                       mutCrear={mutCrear}
+                      mutCrearSinFaltantes={mutCrearSinFaltantes}
+                      onFinEncadenado={() => qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })}
                       supervisores={supervisores}
                     />
                   ))}
