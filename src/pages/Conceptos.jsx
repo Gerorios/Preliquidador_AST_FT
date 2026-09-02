@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
@@ -21,6 +21,28 @@ const CAMPOS_PANEL = [
   { key: 'finca',      label: 'Finca',      field: 'finca_nombre' },
   { key: 'supervisor', label: 'Supervisor', field: 'supervisor_nombre' },
 ]
+
+// Columnas de la tabla del Panel de precios (tab 5) — resizeables estilo
+// Excel. 'chk' es la columna del checkbox de selección: no lleva label ni
+// resizer (su ancho no se toca). El resto define su ancho default acá y lo
+// persiste en localStorage bajo LS_KEY_ANCHOS_PANEL cuando el usuario arrastra.
+const COLUMNAS_PANEL = [
+  { key: 'chk',       label: null },
+  { key: 'tarea',     label: 'TAREA' },
+  { key: 'codigo',    label: 'CÓDIGO' },
+  { key: 'cliente',   label: 'CLIENTE' },
+  { key: 'finca',     label: 'FINCA' },
+  { key: 'cat',       label: 'CAT' },
+  { key: 'unidad',    label: 'UNIDAD' },
+  { key: 'reemplaza', label: 'REEMPLAZA' },
+  { key: 'anterior',  label: 'P. ANTERIOR' },
+  { key: 'precio',    label: 'PRECIO' },
+]
+const ANCHOS_PANEL_DEFAULT = {
+  chk: 34, tarea: 220, codigo: 50, cliente: 150, finca: 130,
+  cat: 40, unidad: 100, reemplaza: 60, anterior: 85, precio: 130,
+}
+const LS_KEY_ANCHOS_PANEL = 'panel-precios-anchos'
 
 // Los 4 alcances de una regla: común (solo tarea), por cliente (todas las
 // fincas de ese cliente), por finca (cliente+finca puntual, el "específico"
@@ -519,6 +541,8 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
     setEditando(false)
   }
 
+  const unidadLabel = UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base
+
   return (
     <tr className={seleccionada ? undefined : styles.filaExcluida}>
       <td>
@@ -527,17 +551,24 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
           aria-label={`Incluir ${fila.tarea_nombre} en el precio masivo`}
           onChange={onToggleSeleccion} />
       </td>
-      <td className={styles.celdaTruncada} title={fila.tarea_nombre}>{fila.tarea_nombre}</td>
-      <td className="mono">{fila.codigo ?? '—'}</td>
-      <td className={styles.celdaTruncada}
-        title={fila.supervisor_nombre ? `Supervisor: ${fila.supervisor_nombre}` : (fila.cliente_nombre || '— (común)')}>
-        {fila.supervisor_nombre
-          ? <span className="badge badge-info">Sup: {fila.supervisor_nombre}</span>
-          : (fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>)}
+      <td title={fila.tarea_nombre}>
+        <div className={styles.celdaTruncada}>{fila.tarea_nombre}</div>
       </td>
-      <td className={styles.celdaTruncada} title={fila.finca_nombre || ''}>{fila.finca_nombre || '—'}</td>
+      <td className="mono">{fila.codigo ?? '—'}</td>
+      <td title={fila.supervisor_nombre ? `Supervisor: ${fila.supervisor_nombre}` : (fila.cliente_nombre || '— (común)')}>
+        <div className={styles.celdaTruncada}>
+          {fila.supervisor_nombre
+            ? <span className="badge badge-info">Sup: {fila.supervisor_nombre}</span>
+            : (fila.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>)}
+        </div>
+      </td>
+      <td title={fila.finca_nombre || ''}>
+        <div className={styles.celdaTruncada}>{fila.finca_nombre || '—'}</div>
+      </td>
       <td>{fila.categoria != null ? `Cat. ${fila.categoria}` : '—'}</td>
-      <td>{UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base}</td>
+      <td title={unidadLabel}>
+        <div className={styles.celdaTruncada}>{unidadLabel}</div>
+      </td>
       <td>
         {fila.reemplaza_comun && (
           <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
@@ -597,6 +628,21 @@ export default function Conceptos() {
   // las inclusiones — así el default es "todas tildadas" y cambiar el filtro
   // resetea la selección sin sincronizar nada.
   const [exclusionesPanel, setExclusionesPanel] = useState(() => new Set())
+  // Anchos de columna del Panel de precios, redimensionables a mano (estilo
+  // Excel). Se leen de localStorage con merge sobre los defaults, así que
+  // agregar/quitar columnas más adelante no rompe una preferencia vieja.
+  const [anchosPanel, setAnchosPanel] = useState(() => {
+    try {
+      const guardado = JSON.parse(localStorage.getItem(LS_KEY_ANCHOS_PANEL) || '{}')
+      return { ...ANCHOS_PANEL_DEFAULT, ...guardado }
+    } catch {
+      return { ...ANCHOS_PANEL_DEFAULT }
+    }
+  })
+  // Ref con el cleanup del resize en curso (listeners de document), para
+  // poder desengancharlos si el componente se desmonta a mitad de un drag.
+  const resizeCleanupPanelRef = useRef(null)
+  useEffect(() => () => resizeCleanupPanelRef.current?.(), [])
   // Alcance del formulario "+ Nuevo": arranca acorde a la tab activa (comunes
   // → común, específicos → finca) pero el usuario puede cambiarlo a
   // cualquiera de los 4; reemplaza_comun nace en true y handleCrearNuevo lo
@@ -839,6 +885,37 @@ export default function Conceptos() {
       ? new Set(panelFiltrado.map(f => f.id))   // estaban todas: destildar todas
       : new Set()                                // había excluidas: tildar todas
   )
+
+  // Persistencia del ancho de columnas del panel — se guarda en cada cambio,
+  // así la preferencia sobrevive a un F5 o a cerrar la pestaña.
+  useEffect(() => {
+    try { localStorage.setItem(LS_KEY_ANCHOS_PANEL, JSON.stringify(anchosPanel)) } catch { /* localStorage no disponible: seguimos sin persistir */ }
+  }, [anchosPanel])
+
+  // Arranca el resize de una columna: guarda el ancho y la posición X de
+  // inicio, y escucha mousemove/mouseup en document (el mouse puede salirse
+  // del th mientras se arrastra). Ambos listeners se remueven a sí mismos en
+  // mouseup; resizeCleanupPanelRef guarda esa misma función por si el
+  // componente se desmonta a mitad del drag (ver el useEffect de arriba).
+  const iniciarResizePanel = (clave) => (e) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const anchoInicial = anchosPanel[clave]
+    const onMove = (ev) => {
+      const nuevo = Math.max(50, anchoInicial + (ev.clientX - startX))
+      setAnchosPanel(prev => ({ ...prev, [clave]: nuevo }))
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      resizeCleanupPanelRef.current = null
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    resizeCleanupPanelRef.current = onUp
+  }
+
+  const restaurarAnchoPanel = (clave) => setAnchosPanel(prev => ({ ...prev, [clave]: ANCHOS_PANEL_DEFAULT[clave] }))
 
   const handleAplicarPrecioMasivo = () => {
     const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
@@ -1183,24 +1260,28 @@ export default function Conceptos() {
             {!cargandoPanel && panelFiltrado.length > 0 && (
               <div className="table-wrap">
                 <table className={styles.panelTable}>
+                  <colgroup>
+                    {COLUMNAS_PANEL.map(c => <col key={c.key} style={{ width: anchosPanel[c.key] }} />)}
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th style={{ width: 34 }}>
-                        <input type="checkbox"
-                          style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
-                          aria-label="Seleccionar todas las filas filtradas"
-                          checked={panelFiltrado.length > 0 && panelSeleccionado.length === panelFiltrado.length}
-                          onChange={toggleTodasPanel} />
-                      </th>
-                      <th style={{ width: 220 }}>TAREA</th>
-                      <th style={{ width: 50 }}>CÓDIGO</th>
-                      <th style={{ width: 150 }}>CLIENTE</th>
-                      <th style={{ width: 130 }}>FINCA</th>
-                      <th style={{ width: 40 }}>CAT</th>
-                      <th style={{ width: 100 }}>UNIDAD</th>
-                      <th style={{ width: 60 }}>REEMPLAZA</th>
-                      <th style={{ width: 85 }}>P. ANTERIOR</th>
-                      <th style={{ width: 130 }}>PRECIO</th>
+                      {COLUMNAS_PANEL.map(c => (
+                        <th key={c.key} className={styles.thPanel}>
+                          {c.key === 'chk' ? (
+                            <input type="checkbox"
+                              style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
+                              aria-label="Seleccionar todas las filas filtradas"
+                              checked={panelFiltrado.length > 0 && panelSeleccionado.length === panelFiltrado.length}
+                              onChange={toggleTodasPanel} />
+                          ) : c.label}
+                          {c.key !== 'chk' && (
+                            <div className={styles.thResizer}
+                              onMouseDown={iniciarResizePanel(c.key)}
+                              onDoubleClick={() => restaurarAnchoPanel(c.key)}
+                              title="Arrastrar para redimensionar — doble click para restaurar" />
+                          )}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>

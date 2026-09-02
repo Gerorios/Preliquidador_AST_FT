@@ -318,12 +318,12 @@
 }
 .promptOtraBotones { display: flex; gap: 8px; }
 
-/* ─── Panel de precios: que entre sin scroll horizontal ─── */
-/* table-layout: fixed hace que cada columna respete el width fijado en su
-   <th> (checkboxes/código/cat/unidad/reemplaza/precios) y le da a las
-   celdas de texto largo (tarea/cliente/finca) un ancho real contra el que
-   truncar con ellipsis — sin esto, .celdaTruncada no tiene límite y el
-   navegador igual ensancha la tabla al contenido. */
+/* ─── Panel de precios: columnas redimensionables + truncado limpio ─── */
+/* table-layout: fixed hace que cada columna respete el ancho puesto en su
+   <col> (vía anchosPanel/colgroup) — así el usuario puede angostar/ensanchar
+   arrastrando el header y la tabla nunca se ensancha sola al contenido
+   (eso es lo que garantiza que no aparezca scroll horizontal salvo que el
+   usuario mismo agrande columnas). */
 .panelTable {
   table-layout: fixed;
   width: 100%;
@@ -332,8 +332,38 @@
 .panelTable td {
   padding: 7px 6px;
 }
+/* El truncado real (texto + "…") vive en un <div> interno de la celda, NO
+   en un <span> inline ni directo en el <td>: un elemento table-cell no
+   garantiza un ancho de línea estable para el algoritmo de ellipsis cuando
+   adentro hay elementos inline-block (como los badges), así que el corte
+   quedaba "sucio" y se solapaba con la columna de al lado. Un <div
+   display:block> con su propio ancho fijo (heredado del <td>, ya angostado
+   por table-layout:fixed) sí corta limpio. */
 .celdaTruncada {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Handle de resize estilo Excel en el borde derecho de cada header
+   (salvo el del checkbox). El th necesita position:relative para anclarlo. */
+.thPanel {
+  position: relative;
+}
+.thResizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+.thResizer:hover,
+.thResizer:active {
+  background: var(--accent);
+  opacity: 0.5;
 }
