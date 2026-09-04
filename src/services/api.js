@@ -16,7 +16,10 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Si el servidor devuelve 401, cerrar sesión automáticamente
+// Si el servidor devuelve 401, cerrar sesión automáticamente.
+// El Error que se propaga conserva `status` y `detail` (crudo) para que la UI
+// pueda reaccionar a respuestas estructuradas — hoy el 409 de solapamiento
+// por cliente, cuyo detail es un objeto {tipo, mensaje, solapamiento}.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -24,8 +27,13 @@ api.interceptors.response.use(
       useAuthStore.getState().logout()
       window.location.href = '/login'
     }
-    const msg = err.response?.data?.detail || err.message || 'Error desconocido'
-    return Promise.reject(new Error(msg))
+    const detail = err.response?.data?.detail
+    const msg = (detail && typeof detail === 'object' ? detail.mensaje : detail)
+      || err.message || 'Error desconocido'
+    const error = new Error(msg)
+    error.status = err.response?.status
+    error.detail = detail
+    return Promise.reject(error)
   }
 )
 

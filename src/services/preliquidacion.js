@@ -118,6 +118,12 @@ export const copiarConceptos = (origen, destino) =>
 export const listarConceptosFaltantes = (quincena) =>
   api.get('/precios/conceptos/faltantes', { params: { quincena } }).then(r => r.data)
 
+// Solapamientos por cliente vigentes en la quincena (una regla por cliente
+// conviviendo con específicas del mismo cliente: suman, ADR-0011). Vacío =
+// todo en orden.
+export const listarSolapamientos = (quincena) =>
+  api.get('/precios/conceptos/solapamientos', { params: { quincena } }).then(r => r.data)
+
 // Nombres de supervisor de la quincena, para el alcance "Por supervisor"
 // (dropdown de matching exacto — nunca texto libre).
 export const listarSupervisores = (quincena) =>
