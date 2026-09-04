@@ -866,7 +866,10 @@ export default function Conceptos() {
   // ctx = { datos, fincaNueva, mutate, onSuccess }
   const manejarErrorCrear = (err, ctx) => {
     if (err.status === 409 && err.detail?.tipo === 'solapamiento_por_cliente') {
-      setPendienteSolap({ solapamiento: err.detail.solapamiento, ...ctx })
+      // ctx puede venir de un reintento (sumarIgual/crearSoloFinca) y arrastrar
+      // el `solapamiento` del 409 anterior: va primero para que el nuevo
+      // `err.detail.solapamiento` sea el que prevalece.
+      setPendienteSolap({ ...ctx, solapamiento: err.detail.solapamiento })
       return
     }
     toast.error(err.message)
@@ -877,17 +880,24 @@ export default function Conceptos() {
   const sumarIgual = () => {
     const p = pendienteSolap
     setPendienteSolap(null)
-    p.mutate({ ...p.datos, confirmar_solapamiento: true }, { onSuccess: p.onSuccess })
+    const datos = { ...p.datos, confirmar_solapamiento: true }
+    p.mutate(datos, {
+      onSuccess: p.onSuccess,
+      onError: err => manejarErrorCrear(err, { ...p, datos }),
+    })
   }
 
   const crearSoloFinca = () => {
     const p = pendienteSolap
     setPendienteSolap(null)
     // Convierte la regla por cliente en específica para la finca que faltaba.
-    // No puede volver a dar 409: una específica solo solapa con una por
-    // cliente ya existente, y si existiera el backend no habría devuelto
-    // "por_cliente_sobre_especificos".
-    p.mutate({ ...p.datos, finca_nombre: p.fincaNueva }, { onSuccess: p.onSuccess })
+    // Puede volver a dar 409 en la dirección inversa si ya existía otra regla
+    // por cliente compatible: en ese caso el diálogo se reabre con ese detalle.
+    const datos = { ...p.datos, finca_nombre: p.fincaNueva }
+    p.mutate(datos, {
+      onSuccess: p.onSuccess,
+      onError: err => manejarErrorCrear(err, { ...p, datos, fincaNueva: null }),
+    })
   }
 
   const { mutate: mutCrear } = useMutation({
