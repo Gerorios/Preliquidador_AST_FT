@@ -8,8 +8,8 @@ const fmt = (p) => `$${Number(p).toLocaleString('es-AR')}`
 
 // ─── CeldaPrecio: precio editable en el lugar (mismo comportamiento que la
 // tabla plana). Muestra "ant. $X" solo si difiere y el badge heredado.
-function CeldaPrecio({ regla, onGuardarPrecio, guardando, autoAbrir = false }) {
-  const [editando, setEditando] = useState(autoAbrir)
+function CeldaPrecio({ regla, onGuardarPrecio, guardando }) {
+  const [editando, setEditando] = useState(false)
   const [precio, setPrecio] = useState(regla.precio ?? '')
 
   useEffect(() => { if (!editando) setPrecio(regla.precio ?? '') }, [regla.precio, editando])
@@ -82,7 +82,7 @@ function FragmentoCategoria({ regla, onGuardarPrecio, guardando }) {
 // ─── FormAltaCodigo: alta precargada (tarea, alcance, código). Pide unidad,
 // precio, tipo y categoría opcional. Pasa por la compuerta de solapamiento
 // como cualquier alta porque usa la misma mutation.
-function FormAltaCodigo({ tarea, fila, codigo, quincena, onCrearRegla, onCerrar }) {
+function FormAltaCodigo({ tarea, fila, codigo, codigos, quincena, onCrearRegla, onCerrar }) {
   const [form, setForm] = useState({ unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '' })
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
   const { titulo } = etiquetaAlcance(fila)
@@ -109,7 +109,7 @@ function FormAltaCodigo({ tarea, fila, codigo, quincena, onCrearRegla, onCerrar 
 
   return (
     <tr className={styles.altaRow}>
-      <td colSpan={99}>
+      <td colSpan={codigos.length + 2}>
         <div className={styles.altaForm}>
           <span className={styles.altaTitulo}>Crear <b>{codigo}</b> para {titulo}:</span>
           <select className="input" value={form.unidad_base} onChange={set('unidad_base')} style={{ width: 200 }}>
@@ -134,9 +134,10 @@ function FormAltaCodigo({ tarea, fila, codigo, quincena, onCrearRegla, onCerrar 
 }
 
 const TEXTO_ESTADO = (fila) => {
-  if (fila.estado === 'informativo') return <span className={styles.info}>plus de cuadrilla, no se controla</span>
+  if (fila.estado === 'informativo') return <span className={styles.info}>solo informativo — no se controla</span>
   if (fila.estado === 'falta') return <span className={styles.bad}>✗ falta {fila.faltan.join(', ')}</span>
   if (fila.estado === 'sin_precio') return <span className={styles.wa}>⚠ {fila.sinPrecio.join(', ')} sin precio</span>
+  if (fila.estado === 'sin_codigo') return <span className={styles.wa}>⚠ {fila.sinCodigo} {fila.sinCodigo === 1 ? 'regla' : 'reglas'} sin código</span>
   return <span className={styles.ok}>✓ completo</span>
 }
 
@@ -151,7 +152,7 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
   )
 
   // Si cambian los datos/filtros y el alta abierta ya no corresponde, se cierra.
-  useEffect(() => { setAltaAbierta(null) }, [quincena, filtroCodigo, filtros])
+  useEffect(() => { setAltaAbierta(null) }, [quincena, filtroCodigo, filtros, soloIncompletos])
 
   const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`
 
@@ -189,7 +190,7 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
         return (
           <div key={b.tarea} className={styles.card}>
             <div className={styles.cardHead} onClick={() => toggleTarea(b.tarea)}>
-              <span className={styles.cardTitle}>{b.tarea}</span>
+              <span className={styles.cardTitle}>{b.tareaLabel}</span>
               <div className={styles.cardBadges}>
                 <span className="badge badge-muted mono">
                   {b.codigos.map((c, i) => <span key={c}>{i > 0 && ' · '}{c}</span>)}
@@ -199,7 +200,11 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
                   ? <span className="badge badge-danger">{plural(b.incompletos, 'incompleto', 'incompletos')}</span>
                   : b.sinPrecio > 0
                     ? <span className="badge badge-warn">{plural(b.sinPrecio, 'sin precio', 'sin precio')}</span>
-                    : <span className="badge badge-green">completo</span>}
+                    : b.sinCodigo > 0
+                      ? <span className="badge badge-warn">{plural(b.sinCodigo, 'sin código', 'sin código')}</span>
+                      : b.controladas === 0
+                        ? <span className="badge badge-muted" title="Solo alcances informativos: no hay nada que controlar">sin control</span>
+                        : <span className="badge badge-green">completo</span>}
               </div>
               <span className={styles.cardChevron}>{abierta ? '▲' : '▼'}</span>
             </div>
@@ -218,12 +223,12 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
                     <tbody>
                       {b.filas.map(fila => {
                         const { titulo, subtitulo } = etiquetaAlcance(fila)
-                        const claseFila = fila.estado === 'falta' ? styles.filaFalta : fila.estado === 'sin_precio' ? styles.filaSinPrecio : undefined
+                        const claseFila = fila.estado === 'falta' ? styles.filaFalta : (fila.estado === 'sin_precio' || fila.estado === 'sin_codigo') ? styles.filaSinPrecio : undefined
                         const altaAca = altaAbierta && altaAbierta.tarea === b.tarea && altaAbierta.clave === fila.clave
                         return (
                           <FilaConAlta key={fila.clave}
                             fila={fila} titulo={titulo} subtitulo={subtitulo} claseFila={claseFila}
-                            codigos={b.codigos} tarea={b.tarea} quincena={quincena}
+                            codigos={b.codigos} tarea={b.tareaLabel} quincena={quincena}
                             onGuardarPrecio={onGuardarPrecio} guardando={guardando}
                             altaCodigo={altaAca ? altaAbierta.codigo : null}
                             onAbrirAlta={(codigo) => setAltaAbierta({ tarea: b.tarea, clave: fila.clave, codigo })}
@@ -259,7 +264,7 @@ function FilaConAlta({ fila, titulo, subtitulo, claseFila, codigos, tarea, quinc
         <td className={styles.estado}>{TEXTO_ESTADO(fila)}</td>
       </tr>
       {altaCodigo != null && (
-        <FormAltaCodigo tarea={tarea} fila={fila} codigo={altaCodigo} quincena={quincena}
+        <FormAltaCodigo tarea={tarea} fila={fila} codigo={altaCodigo} codigos={codigos} quincena={quincena}
           onCrearRegla={onCrearRegla} onCerrar={onCerrarAlta} />
       )}
     </>

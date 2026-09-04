@@ -1424,11 +1424,11 @@ export default function Conceptos() {
 
           {/* Conmutador de vista + (solo en Por regla) barra de precio masivo. */}
           <div className={styles.searchBar}>
-            <div className={styles.segmented} role="tablist" aria-label="Vista del panel">
-              <button type="button" role="tab" aria-selected={vistaPanel === 'regla'}
+            <div className={styles.segmented} role="group" aria-label="Vista del panel">
+              <button type="button" aria-pressed={vistaPanel === 'regla'}
                 className={vistaPanel === 'regla' ? styles.segmentedOn : undefined}
                 onClick={() => setVistaPanel('regla')}>Por regla</button>
-              <button type="button" role="tab" aria-selected={vistaPanel === 'concepto'}
+              <button type="button" aria-pressed={vistaPanel === 'concepto'}
                 className={vistaPanel === 'concepto' ? styles.segmentedOn : undefined}
                 onClick={() => setVistaPanel('concepto')}>Por concepto</button>
             </div>

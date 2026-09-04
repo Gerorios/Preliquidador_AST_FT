@@ -60,11 +60,14 @@
 }
 
 .tabla { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.tabla th:first-child { position: sticky; left: 0; z-index: 2; }
 .tabla th { text-align: left; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; padding: 8px 12px; background: var(--bg-base); border-bottom: 1px solid var(--border); white-space: nowrap; }
 .tabla th.cod { font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--text-primary); text-align: right; }
 .tabla td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .tabla tr:last-child td { border-bottom: 0; }
-.alcance { white-space: nowrap; }
+/* Primera columna fija: con muchos códigos la tabla scrollea horizontal y el
+   alcance tiene que seguir visible. Fondo explícito para tapar lo que pasa debajo. */
+.alcance { white-space: nowrap; position: sticky; left: 0; z-index: 1; background: var(--bg-surface); }
 .alcanceSub { display: block; font-size: 11px; color: var(--text-muted); }
 .cel { text-align: right; font-family: var(--font-mono); font-size: 12.5px; min-width: 120px; }
 .filaFalta td:first-child { border-left: 2px solid var(--danger); }
@@ -81,7 +84,7 @@
 .falta { display: inline-block; color: var(--danger); background: var(--danger-dim); border-radius: var(--radius-sm); padding: 2px 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 0; }
 .falta:hover, .falta:focus-visible { outline: 2px solid var(--danger); outline-offset: 1px; }
 .sinPrecio { display: inline-block; color: var(--warn); background: var(--warn-dim); border-radius: var(--radius-sm); padding: 2px 8px; font-size: 12px; font-weight: 500; cursor: pointer; }
-.na { color: var(--border-strong); }
+.na { color: var(--text-muted); }
 .estado { white-space: nowrap; font-size: 12px; }
 .ok { color: var(--accent); }
 .bad { color: var(--danger); font-weight: 500; }
