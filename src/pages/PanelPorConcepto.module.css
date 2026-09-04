@@ -6,12 +6,58 @@
 .resumen b { color: var(--danger); font-weight: 600; }
 .resumenOk { margin-left: auto; font-size: 12px; color: var(--accent); }
 
-.bloque { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); overflow: hidden; margin-bottom: 12px; }
-.bloqueHead { display: flex; align-items: baseline; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-.bloqueHead h3 { font-size: 13.5px; font-weight: 600; margin: 0; }
-.codigos { font-size: 12px; color: var(--text-muted); }
-.codigos code { font-family: var(--font-mono); color: var(--text-primary); }
-.estadoBloque { margin-left: auto; font-size: 12px; }
+/* ── Card colapsable por tarea (mismo patrón que las cards de reglas) ─── */
+.card {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+
+.cardHead {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.08s;
+  border-radius: var(--radius);
+}
+
+.cardHead:hover {
+  background: var(--bg-hover);
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.cardBadges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cardChevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.cardBody {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
 
 .tabla { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 .tabla th { text-align: left; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; padding: 8px 12px; background: var(--bg-base); border-bottom: 1px solid var(--border); white-space: nowrap; }

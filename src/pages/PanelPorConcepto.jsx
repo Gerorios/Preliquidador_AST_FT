@@ -143,6 +143,7 @@ const TEXTO_ESTADO = (fila) => {
 export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtros, onGuardarPrecio, guardando, onCrearRegla }) {
   const [soloIncompletos, setSoloIncompletos] = useState(false)
   const [altaAbierta, setAltaAbierta] = useState(null) // { tarea, clave, codigo }
+  const [abiertas, setAbiertas] = useState(() => new Set()) // tareas expandidas por el usuario
 
   const { bloques, resumen } = useMemo(
     () => agruparPorConcepto(reglas, { filtroCodigo, filtros, soloIncompletos }),
@@ -154,6 +155,14 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
 
   const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`
 
+  const toggleTarea = (tarea) => setAbiertas(prev => {
+    const next = new Set(prev)
+    if (next.has(tarea)) next.delete(tarea); else next.add(tarea)
+    return next
+  })
+  const abrirTodas = () => setAbiertas(new Set(bloques.map(b => b.tarea)))
+  const cerrarTodas = () => setAbiertas(new Set())
+
   return (
     <div>
       <div className={styles.toolbar}>
@@ -162,6 +171,8 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
             style={{ accentColor: 'var(--accent)' }} />
           Solo incompletos
         </label>
+        <button type="button" className="btn btn-sm" onClick={abrirTodas}>Abrir todas</button>
+        <button type="button" className="btn btn-sm" onClick={cerrarTodas}>Cerrar todas</button>
         {resumen.incompletos + resumen.sinPrecio > 0
           ? <span className={styles.resumen}>{plural(resumen.tareas, 'tarea', 'tareas')} · <b>{plural(resumen.incompletos, 'alcance incompleto', 'alcances incompletos')}</b> · {plural(resumen.sinPrecio, 'sin precio', 'sin precio')}</span>
           : <span className={styles.resumenOk}>{plural(resumen.tareas, 'tarea', 'tareas')} · todo completo</span>}
@@ -173,50 +184,62 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
         </div>
       )}
 
-      {bloques.map(b => (
-        <section key={b.tarea} className={styles.bloque}>
-          <div className={styles.bloqueHead}>
-            <h3>{b.tarea}</h3>
-            <span className={styles.codigos}>
-              códigos de la tarea: {b.codigos.map((c, i) => <span key={c}>{i > 0 && ' · '}<code>{c}</code></span>)}
-            </span>
-            <span className={`${styles.estadoBloque} ${b.incompletos ? styles.bad : b.sinPrecio ? styles.wa : styles.ok}`}>
-              {b.incompletos === 0 && b.sinPrecio === 0
-                ? 'todo completo'
-                : [b.incompletos ? plural(b.incompletos, 'incompleto', 'incompletos') : null, b.sinPrecio ? plural(b.sinPrecio, 'sin precio', 'sin precio') : null].filter(Boolean).join(' · ')}
-            </span>
+      {bloques.map(b => {
+        const abierta = abiertas.has(b.tarea) || bloques.length === 1
+        return (
+          <div key={b.tarea} className={styles.card}>
+            <div className={styles.cardHead} onClick={() => toggleTarea(b.tarea)}>
+              <span className={styles.cardTitle}>{b.tarea}</span>
+              <div className={styles.cardBadges}>
+                <span className="badge badge-muted mono">
+                  {b.codigos.map((c, i) => <span key={c}>{i > 0 && ' · '}{c}</span>)}
+                </span>
+                <span className="badge badge-muted">{plural(b.filas.length, 'alcance', 'alcances')}</span>
+                {b.incompletos > 0
+                  ? <span className="badge badge-danger">{plural(b.incompletos, 'incompleto', 'incompletos')}</span>
+                  : b.sinPrecio > 0
+                    ? <span className="badge badge-warn">{plural(b.sinPrecio, 'sin precio', 'sin precio')}</span>
+                    : <span className="badge badge-green">completo</span>}
+              </div>
+              <span className={styles.cardChevron}>{abierta ? '▲' : '▼'}</span>
+            </div>
+
+            {abierta && (
+              <div className={styles.cardBody}>
+                <div className="table-wrap">
+                  <table className={styles.tabla}>
+                    <thead>
+                      <tr>
+                        <th>Alcance</th>
+                        {b.codigos.map(c => <th key={c} className={styles.cod}>{c}</th>)}
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {b.filas.map(fila => {
+                        const { titulo, subtitulo } = etiquetaAlcance(fila)
+                        const claseFila = fila.estado === 'falta' ? styles.filaFalta : fila.estado === 'sin_precio' ? styles.filaSinPrecio : undefined
+                        const altaAca = altaAbierta && altaAbierta.tarea === b.tarea && altaAbierta.clave === fila.clave
+                        return (
+                          <FilaConAlta key={fila.clave}
+                            fila={fila} titulo={titulo} subtitulo={subtitulo} claseFila={claseFila}
+                            codigos={b.codigos} tarea={b.tarea} quincena={quincena}
+                            onGuardarPrecio={onGuardarPrecio} guardando={guardando}
+                            altaCodigo={altaAca ? altaAbierta.codigo : null}
+                            onAbrirAlta={(codigo) => setAltaAbierta({ tarea: b.tarea, clave: fila.clave, codigo })}
+                            onCerrarAlta={() => setAltaAbierta(null)}
+                            onCrearRegla={onCrearRegla}
+                          />
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="table-wrap">
-            <table className={styles.tabla}>
-              <thead>
-                <tr>
-                  <th>Alcance</th>
-                  {b.codigos.map(c => <th key={c} className={styles.cod}>{c}</th>)}
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {b.filas.map(fila => {
-                  const { titulo, subtitulo } = etiquetaAlcance(fila)
-                  const claseFila = fila.estado === 'falta' ? styles.filaFalta : fila.estado === 'sin_precio' ? styles.filaSinPrecio : undefined
-                  const altaAca = altaAbierta && altaAbierta.tarea === b.tarea && altaAbierta.clave === fila.clave
-                  return (
-                    <FilaConAlta key={fila.clave}
-                      fila={fila} titulo={titulo} subtitulo={subtitulo} claseFila={claseFila}
-                      codigos={b.codigos} tarea={b.tarea} quincena={quincena}
-                      onGuardarPrecio={onGuardarPrecio} guardando={guardando}
-                      altaCodigo={altaAca ? altaAbierta.codigo : null}
-                      onAbrirAlta={(codigo) => setAltaAbierta({ tarea: b.tarea, clave: fila.clave, codigo })}
-                      onCerrarAlta={() => setAltaAbierta(null)}
-                      onCrearRegla={onCrearRegla}
-                    />
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ))}
+        )
+      })}
     </div>
   )
 }

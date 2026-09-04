@@ -1453,18 +1453,22 @@ export default function Conceptos() {
             )}
           </div>
 
-          {vistaPanel === 'concepto' && !cargandoPanel && (
-            <PanelPorConcepto
-              reglas={panelPrecios}
-              quincena={quincena}
-              filtroCodigo={filtroCodigoPanel}
-              filtros={filtrosPanel}
-              onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
-              guardando={guardandoPrecioPanel}
-              onCrearRegla={(datos, onSuccess) => mutCrear({ datos, onSuccess, fincaNueva: null })}
-            />
+          {vistaPanel === 'concepto' && (
+            <div className={styles.list}>
+              {cargandoPanel && <CargandoContenido texto="Cargando panel de precios…" />}
+              {!cargandoPanel && (
+                <PanelPorConcepto
+                  reglas={panelPrecios}
+                  quincena={quincena}
+                  filtroCodigo={filtroCodigoPanel}
+                  filtros={filtrosPanel}
+                  onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
+                  guardando={guardandoPrecioPanel}
+                  onCrearRegla={(datos, onSuccess) => mutCrear({ datos, onSuccess, fincaNueva: null })}
+                />
+              )}
+            </div>
           )}
-          {vistaPanel === 'concepto' && cargandoPanel && <CargandoContenido texto="Cargando panel de precios…" />}
 
           {vistaPanel === 'regla' && (
             <div className={styles.list}>
