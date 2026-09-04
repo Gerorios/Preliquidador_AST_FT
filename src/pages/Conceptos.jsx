@@ -203,7 +203,7 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
 
 // ─── GrupoCard: card colapsable para tarea+cliente+finca ─────────────────────
 
-function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar }) {
+function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar, onSolapamiento }) {
   const [abierto, setAbierto] = useState(false)
   // Un concepto específico nuevo nace con "Reemplaza al común" tildado; los
   // comunes no muestran el checkbox y viajan siempre en false.
@@ -222,7 +222,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
   const handleAgregar = () => {
     if (!nuevaRegla.codigo) { toast.error('Ingresá un código'); return }
     const codigo = parseInt(nuevaRegla.codigo)
-    mutCrear({
+    const datos = {
       quincena,
       tarea_nombre:   primera.tarea_nombre,
       cliente_nombre: esComun ? null : (primera.cliente_nombre ?? null),
@@ -234,10 +234,17 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       tipo:        nuevaRegla.tipo,
       categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
       reemplaza_comun: esComun ? false : nuevaRegla.reemplaza_comun,
-    }, { onSuccess: () => {
+    }
+    const onSuccess = () => {
       setNuevaRegla({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
       setReglaCreada(codigo)
-    } })
+    }
+    mutCrear(datos, {
+      onSuccess,
+      // Desde un grupo no sabemos qué finca falta: el diálogo solo ofrece
+      // "Sumar igual" o "Cancelar".
+      onError: err => onSolapamiento(err, { datos, onSuccess, mutate: mutCrear, fincaNueva: null }),
+    })
   }
 
   return (
@@ -438,7 +445,7 @@ function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
 
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores, onSolapamiento }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -465,7 +472,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinF
     if (!form.codigo) { toast.error('Ingresá un código'); return }
     if (alcance === 'supervisor' && !supervisorSel) { toast.error('Seleccioná un supervisor'); return }
     const codigo = parseInt(form.codigo)
-    mutCrearSinFaltantes({
+    const datos = {
       quincena,
       tarea_nombre:   f.tarea_nombre,
       cliente_nombre: (alcance === 'cliente' || alcance === 'finca') ? f.cliente_nombre : null,
@@ -477,7 +484,17 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinF
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       reemplaza_comun: alcance === 'comun' ? false : form.reemplaza_comun,
-    }, { onSuccess: () => setReglaCreada(codigo) })
+    }
+    const onSuccess = () => setReglaCreada(codigo)
+    mutCrearSinFaltantes(datos, {
+      onSuccess,
+      // Desde una faltante sabemos qué finca no tiene regla: si eligió "por
+      // cliente" y solapa, el diálogo ofrece crear la específica de esa finca.
+      onError: err => onSolapamiento(err, {
+        datos, onSuccess, mutate: mutCrearSinFaltantes,
+        fincaNueva: alcance === 'cliente' ? f.finca_nombre : null,
+      }),
+    })
   }
 
   const combo = `${f.tarea_nombre}${f.cliente_nombre ? ` · ${f.cliente_nombre}` : ''}${f.finca_nombre ? ` · ${f.finca_nombre}` : ''}`
@@ -700,6 +717,9 @@ export default function Conceptos() {
   const { usuario } = useAuthStore()
   const esGerente = usuario?.rol === 'gerente'
   const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
+  // Solapamiento por cliente pendiente de decisión: el POST respondió 409 y
+  // guardamos lo necesario para reintentar (confirmando o como específica).
+  const [pendienteSolap, setPendienteSolap] = useState(null)
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
@@ -841,10 +861,38 @@ export default function Conceptos() {
     qc.invalidateQueries({ queryKey: ['stats'] })
   }
 
+  // onError compartido por las 3 superficies de alta. Un 409 de solapamiento
+  // abre el diálogo; cualquier otro error va al toast como siempre.
+  // ctx = { datos, fincaNueva, mutate, onSuccess }
+  const manejarErrorCrear = (err, ctx) => {
+    if (err.status === 409 && err.detail?.tipo === 'solapamiento_por_cliente') {
+      setPendienteSolap({ solapamiento: err.detail.solapamiento, ...ctx })
+      return
+    }
+    toast.error(err.message)
+  }
+
+  const cerrarSolap = () => setPendienteSolap(null)
+
+  const sumarIgual = () => {
+    const p = pendienteSolap
+    setPendienteSolap(null)
+    p.mutate({ ...p.datos, confirmar_solapamiento: true }, { onSuccess: p.onSuccess })
+  }
+
+  const crearSoloFinca = () => {
+    const p = pendienteSolap
+    setPendienteSolap(null)
+    // Convierte la regla por cliente en específica para la finca que faltaba.
+    // No puede volver a dar 409: una específica solo solapa con una por
+    // cliente ya existente, y si existiera el backend no habría devuelto
+    // "por_cliente_sobre_especificos".
+    p.mutate({ ...p.datos, finca_nombre: p.fincaNueva }, { onSuccess: p.onSuccess })
+  }
+
   const { mutate: mutCrear } = useMutation({
     mutationFn: crearConcepto,
     onSuccess: () => { toast.success('Regla guardada'); invalidar() },
-    onError: err => toast.error(err.message),
   })
 
   // Variante para el encadenado desde "Sin concepto": NO invalida la lista
@@ -861,7 +909,6 @@ export default function Conceptos() {
       qc.invalidateQueries({ queryKey: ['lineas'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
     },
-    onError: err => toast.error(err.message),
   })
 
   const { mutate: mutActualizar } = useMutation({
@@ -1019,7 +1066,7 @@ export default function Conceptos() {
     if (alcanceNuevo === 'supervisor' && !formNuevo.supervisor_nombre) { toast.error('Seleccioná un supervisor'); return }
     if (!formNuevo.codigo) { toast.error('Ingresá un código'); return }
     const codigo = parseInt(formNuevo.codigo)
-    mutCrear({
+    const datos = {
       quincena,
       tarea_nombre:   formNuevo.tarea_nombre,
       cliente_nombre: (alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') ? formNuevo.cliente_nombre : null,
@@ -1031,11 +1078,16 @@ export default function Conceptos() {
       tipo:        formNuevo.tipo,
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
       reemplaza_comun: alcanceNuevo === 'comun' ? false : formNuevo.reemplaza_comun,
-    }, { onSuccess: () => {
+    }
+    const onSuccess = () => {
       // Conserva tarea/cliente/finca/supervisor y el alcance; limpia lo demás.
       setFormNuevo(f => ({ ...f, codigo: '', precio: '', categoria: '' }))
       setReglaCreadaNuevo(codigo)
-    } })
+    }
+    mutCrear(datos, {
+      onSuccess,
+      onError: err => manejarErrorCrear(err, { datos, onSuccess, mutate: mutCrear, fincaNueva: null }),
+    })
   }
 
   const TABS = [
@@ -1127,6 +1179,7 @@ export default function Conceptos() {
                       mutCrearSinFaltantes={mutCrearSinFaltantes}
                       onFinEncadenado={() => qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })}
                       supervisores={supervisores}
+                      onSolapamiento={manejarErrorCrear}
                     />
                   ))}
                 </tbody>
@@ -1293,6 +1346,7 @@ export default function Conceptos() {
                 mutCrear={mutCrear}
                 mutActualizar={mutActualizar}
                 mutEliminar={mutEliminar}
+                onSolapamiento={manejarErrorCrear}
               />
             ))}
           </div>
@@ -1387,6 +1441,22 @@ export default function Conceptos() {
             )}
           </div>
         </div>
+      )}
+
+      {pendienteSolap && (
+        <DialogoSolapamiento
+          solapamiento={pendienteSolap.solapamiento}
+          candidato={{
+            codigo: pendienteSolap.datos.codigo,
+            precio: pendienteSolap.datos.precio,
+            categoria: pendienteSolap.datos.categoria,
+            finca_nombre: pendienteSolap.datos.finca_nombre,
+          }}
+          fincaNueva={pendienteSolap.fincaNueva}
+          onCrearSoloFinca={pendienteSolap.fincaNueva ? crearSoloFinca : null}
+          onSumarIgual={sumarIgual}
+          onCancelar={cerrarSolap}
+        />
       )}
     </div>
   )
