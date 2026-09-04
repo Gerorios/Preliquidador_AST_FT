@@ -204,7 +204,7 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
 
 // ─── GrupoCard: card colapsable para tarea+cliente+finca ─────────────────────
 
-function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar, onSolapamiento }) {
+function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar }) {
   const [abierto, setAbierto] = useState(false)
   // Un concepto específico nuevo nace con "Reemplaza al común" tildado; los
   // comunes no muestran el checkbox y viajan siempre en false.
@@ -240,12 +240,10 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       setNuevaRegla({ ...EMPTY_REGLA, reemplaza_comun: !esComun })
       setReglaCreada(codigo)
     }
-    mutCrear(datos, {
-      onSuccess,
-      // Desde un grupo no sabemos qué finca falta: el diálogo solo ofrece
-      // "Sumar igual" o "Cancelar".
-      onError: err => onSolapamiento(err, { datos, onSuccess, mutate: mutCrear, fincaNueva: null }),
-    })
+    // Desde un grupo no sabemos qué finca falta: el diálogo solo ofrece
+    // "Sumar igual" o "Cancelar". El onError vive en la mutation (ver
+    // mutCrear más abajo en Conceptos()), así que acá solo pasamos variables.
+    mutCrear({ datos, onSuccess, fincaNueva: null })
   }
 
   return (
@@ -343,12 +341,12 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 //
 // Solo se renderiza cuando hay al menos uno. Un solapamiento es una
 // anomalía, no trabajo cotidiano: no merece solapa propia.
-function FranjaSolapamientos({ items, onVerReglas }) {
+function FranjaSolapamientos({ items, onVerReglas, onVerEspecificas }) {
   const [abierta, setAbierta] = useState(true)
   if (!items.length) return null
   const n = items.length
   return (
-    <div className={styles.franjaSolap} role="alert">
+    <div className={styles.franjaSolap} role="status">
       <div className={styles.franjaSolapHead} onClick={() => setAbierta(o => !o)}>
         <span>⚠ Esta quincena tiene {n} solapamiento{n === 1 ? '' : 's'} por cliente que suma{n === 1 ? '' : 'n'}</span>
         <span>{abierta ? '▲' : '▼'}</span>
@@ -362,7 +360,8 @@ function FranjaSolapamientos({ items, onVerReglas }) {
               <span className={styles.mismoCodigo}> · mismo código {s.codigos_coincidentes.join(', ')}: cobran DOS VECES</span>
             )}
           </span>
-          <button className="btn btn-sm" onClick={() => onVerReglas(s)}>Ver reglas</button>
+          <button className="btn btn-sm" onClick={() => onVerReglas(s)}>Ver por cliente</button>
+          <button className="btn btn-sm" onClick={() => onVerEspecificas(s)}>Ver específicas</button>
         </div>
       ))}
     </div>
@@ -476,7 +475,7 @@ function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
 
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores, onSolapamiento }) {
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -517,14 +516,12 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinF
       reemplaza_comun: alcance === 'comun' ? false : form.reemplaza_comun,
     }
     const onSuccess = () => setReglaCreada(codigo)
-    mutCrearSinFaltantes(datos, {
-      onSuccess,
-      // Desde una faltante sabemos qué finca no tiene regla: si eligió "por
-      // cliente" y solapa, el diálogo ofrece crear la específica de esa finca.
-      onError: err => onSolapamiento(err, {
-        datos, onSuccess, mutate: mutCrearSinFaltantes,
-        fincaNueva: alcance === 'cliente' ? f.finca_nombre : null,
-      }),
+    // Desde una faltante sabemos qué finca no tiene regla: si eligió "por
+    // cliente" y solapa, el diálogo ofrece crear la específica de esa finca.
+    // El onError vive en la mutation (ver mutCrearSinFaltantes en Conceptos()).
+    mutCrearSinFaltantes({
+      datos, onSuccess,
+      fincaNueva: alcance === 'cliente' ? f.finca_nombre : null,
     })
   }
 
@@ -915,10 +912,10 @@ export default function Conceptos() {
 
   const cerrarSolap = () => setPendienteSolap(null)
 
-  // "Ver reglas": va a la solapa Por cliente con la tarea en el buscador; las
-  // específicas se ven cambiando a Por finca con la misma búsqueda.
-  const verReglasSolap = (s) => {
-    setTab(2)
+  // "Ver por cliente" / "Ver específicas": van a la solapa correspondiente
+  // (2 = Por cliente, 3 = Por finca) con la tarea en el buscador.
+  const verReglasSolap = (s, tabDestino) => {
+    setTab(tabDestino)
     setBusqueda(s.tarea_nombre)
     setFiltrosEspecificos({})
     setMostrarNuevo(false)
@@ -929,10 +926,7 @@ export default function Conceptos() {
     const p = pendienteSolap
     setPendienteSolap(null)
     const datos = { ...p.datos, confirmar_solapamiento: true }
-    p.mutate(datos, {
-      onSuccess: p.onSuccess,
-      onError: err => manejarErrorCrear(err, { ...p, datos }),
-    })
+    p.mutate({ ...p, datos })
   }
 
   const crearSoloFinca = () => {
@@ -942,24 +936,27 @@ export default function Conceptos() {
     // Puede volver a dar 409 en la dirección inversa si ya existía otra regla
     // por cliente compatible: en ese caso el diálogo se reabre con ese detalle.
     const datos = { ...p.datos, finca_nombre: p.fincaNueva }
-    p.mutate(datos, {
-      onSuccess: p.onSuccess,
-      onError: err => manejarErrorCrear(err, { ...p, datos, fincaNueva: null }),
-    })
+    p.mutate({ ...p, datos, fincaNueva: null })
   }
 
+  // Las variables llevan el contexto completo: así el onError vive en la
+  // mutation (siempre corre, aunque la fila/tarjeta que disparó el alta se
+  // haya desmontado) y puede abrir el diálogo de solapamiento o el toast.
+  // ctx = { datos, onSuccess, fincaNueva }
   const { mutate: mutCrear } = useMutation({
-    mutationFn: crearConcepto,
-    onSuccess: () => { toast.success('Regla guardada'); invalidar() },
+    mutationFn: ({ datos }) => crearConcepto(datos),
+    onSuccess: (_data, ctx) => { toast.success('Regla guardada'); invalidar(); ctx.onSuccess?.() },
+    onError: (err, ctx) => manejarErrorCrear(err, { ...ctx, mutate: mutCrear }),
   })
 
   // Variante para el encadenado desde "Sin concepto": NO invalida la lista
   // de faltantes — el combo recién completado debe seguir visible mientras
   // el liquidador decide si le crea otra regla. Faltantes se invalida al
-  // cerrar el prompt (onFinEncadenado).
+  // cerrar el prompt (onFinEncadenado). Mismo patrón de onError a nivel
+  // mutation que mutCrear (ver comentario arriba).
   const { mutate: mutCrearSinFaltantes } = useMutation({
-    mutationFn: crearConcepto,
-    onSuccess: () => {
+    mutationFn: ({ datos }) => crearConcepto(datos),
+    onSuccess: (_data, ctx) => {
       toast.success('Regla guardada')
       qc.invalidateQueries({ queryKey: ['conceptos'] })
       qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
@@ -967,7 +964,9 @@ export default function Conceptos() {
       qc.invalidateQueries({ queryKey: ['solapamientos'] })
       qc.invalidateQueries({ queryKey: ['lineas'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
+      ctx.onSuccess?.()
     },
+    onError: (err, ctx) => manejarErrorCrear(err, { ...ctx, mutate: mutCrearSinFaltantes }),
   })
 
   const { mutate: mutActualizar } = useMutation({
@@ -1148,10 +1147,7 @@ export default function Conceptos() {
       setFormNuevo(f => ({ ...f, codigo: '', precio: '', categoria: '' }))
       setReglaCreadaNuevo(codigo)
     }
-    mutCrear(datos, {
-      onSuccess,
-      onError: err => manejarErrorCrear(err, { datos, onSuccess, mutate: mutCrear, fincaNueva: null }),
-    })
+    mutCrear({ datos, onSuccess, fincaNueva: null })
   }
 
   const TABS = [
@@ -1205,7 +1201,9 @@ export default function Conceptos() {
         </div>
       )}
 
-      <FranjaSolapamientos items={solapamientos} onVerReglas={verReglasSolap} />
+      <FranjaSolapamientos items={solapamientos}
+        onVerReglas={s => verReglasSolap(s, 2)}
+        onVerEspecificas={s => verReglasSolap(s, 3)} />
 
       {/* Tabs */}
       <div className={styles.tabs}>
@@ -1245,7 +1243,6 @@ export default function Conceptos() {
                       mutCrearSinFaltantes={mutCrearSinFaltantes}
                       onFinEncadenado={() => qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })}
                       supervisores={supervisores}
-                      onSolapamiento={manejarErrorCrear}
                     />
                   ))}
                 </tbody>
@@ -1412,7 +1409,6 @@ export default function Conceptos() {
                 mutCrear={mutCrear}
                 mutActualizar={mutActualizar}
                 mutEliminar={mutEliminar}
-                onSolapamiento={manejarErrorCrear}
               />
             ))}
           </div>
