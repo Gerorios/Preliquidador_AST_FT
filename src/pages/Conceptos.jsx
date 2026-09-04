@@ -13,6 +13,7 @@ import CargandoContenido from '../components/layout/CargandoContenido'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import useAuthStore from '../store/authStore'
 import styles from './Conceptos.module.css'
+import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
 
 // Descriptores de filtro para el Panel de precios y la tab Específicos
 // (FiltrosBar generalizado — ambos filtran por los mismos tres campos).
@@ -80,27 +81,6 @@ const formatQuincenaLabel = (fechaISO) => {
   const mes = new Date(y, m - 1, 1).toLocaleString('es-AR', { month: 'short' }).toUpperCase()
   return `${d <= 15 ? '1ra' : '2da'} ${mes} ${y}`
 }
-
-const UNIDADES = [
-  { value: 'hsjornal',     label: 'Hs. Jornal' },
-  { value: 'hsmaquina',    label: 'Hs. Máquina' },
-  { value: 'tancadas',     label: 'Tancadas' },
-  { value: 'unidades',     label: 'Unidades' },
-  { value: 'jornal_tope1', label: '1 Jornal' },
-  { value: 'jornal_tope1_mas_excedente', label: '1 Jornal + Excedente (>10 hs paga hs/10)' },
-  { value: 'fijo',         label: '1 Jornal Fijo' },
-]
-
-const TIPOS = [
-  { value: 'REMUNERATIVO',    label: 'Remunerativo' },
-  { value: 'NO_REMUNERATIVO', label: 'No remunerativo' },
-  { value: 'JORNAL',          label: 'Jornal' },
-  { value: 'BONO_BOLSON',     label: 'Bono bolsón' },
-  { value: 'EXCENTO',         label: 'Excento' },
-  { value: 'OTRO',            label: 'Otro' },
-]
-
-const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: false }
 

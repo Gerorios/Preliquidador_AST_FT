@@ -1,0 +1,51 @@
+/* Vista "Por concepto" del Panel de precios: un bloque por tarea, una fila
+   por alcance, una columna por código. */
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.checkboxLabel { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+.resumen { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+.resumen b { color: var(--danger); font-weight: 600; }
+.resumenOk { margin-left: auto; font-size: 12px; color: var(--accent); }
+
+.bloque { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); overflow: hidden; margin-bottom: 12px; }
+.bloqueHead { display: flex; align-items: baseline; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.bloqueHead h3 { font-size: 13.5px; font-weight: 600; margin: 0; }
+.codigos { font-size: 12px; color: var(--text-muted); }
+.codigos code { font-family: var(--font-mono); color: var(--text-primary); }
+.estadoBloque { margin-left: auto; font-size: 12px; }
+
+.tabla { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.tabla th { text-align: left; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; padding: 8px 12px; background: var(--bg-base); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabla th.cod { font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--text-primary); text-align: right; }
+.tabla td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tabla tr:last-child td { border-bottom: 0; }
+.alcance { white-space: nowrap; }
+.alcanceSub { display: block; font-size: 11px; color: var(--text-muted); }
+.cel { text-align: right; font-family: var(--font-mono); font-size: 12.5px; min-width: 120px; }
+.filaFalta td:first-child { border-left: 2px solid var(--danger); }
+.filaSinPrecio td:first-child { border-left: 2px solid var(--warn); }
+
+.precio { display: inline-flex; align-items: center; color: var(--accent); cursor: pointer; padding: 0 4px; border-radius: var(--radius-sm); }
+.precio:hover { background: var(--bg-hover); }
+.ant { display: block; font-size: 10.5px; color: var(--text-muted); }
+.heredado { display: inline-block; font-size: 10px; font-family: inherit; color: var(--warn); border: 1px solid rgba(150, 96, 15, 0.35); background: var(--warn-dim); border-radius: 999px; padding: 0 6px; margin-top: 2px; }
+.cat { display: grid; grid-template-columns: auto auto; gap: 1px 8px; justify-content: end; }
+.catK { font-size: 10.5px; color: var(--text-muted); align-self: center; }
+.edit { display: inline-flex; gap: 4px; align-items: center; }
+
+.falta { display: inline-block; color: var(--danger); background: var(--danger-dim); border-radius: var(--radius-sm); padding: 2px 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 0; }
+.falta:hover, .falta:focus-visible { outline: 2px solid var(--danger); outline-offset: 1px; }
+.sinPrecio { display: inline-block; color: var(--warn); background: var(--warn-dim); border-radius: var(--radius-sm); padding: 2px 8px; font-size: 12px; font-weight: 500; cursor: pointer; }
+.na { color: var(--border-strong); }
+.estado { white-space: nowrap; font-size: 12px; }
+.ok { color: var(--accent); }
+.bad { color: var(--danger); font-weight: 500; }
+.wa { color: var(--warn); font-weight: 500; }
+.info { color: var(--text-muted); }
+
+/* Alta precargada desde una celda "falta": fila desplegada debajo del alcance */
+.altaRow td { background: var(--bg-base); padding: 10px 14px; }
+.altaForm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.altaForm b { font-family: var(--font-mono); }
+.altaTitulo { color: var(--text-muted); margin-right: 4px; }
+
+.empty { padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px; }
