@@ -11,6 +11,7 @@ import {
 import { listarQuincenasGerencial } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
+import PanelPorConcepto from './PanelPorConcepto.jsx'
 import useAuthStore from '../store/authStore'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
@@ -45,6 +46,7 @@ const ANCHOS_PANEL_DEFAULT = {
   cat: 40, unidad: 100, reemplaza: 60, anterior: 85, precio: 130,
 }
 const LS_KEY_ANCHOS_PANEL = 'panel-precios-anchos'
+const LS_KEY_VISTA_PANEL = 'panel-precios-vista'
 
 // Los 4 alcances de una regla: común (solo tarea), por cliente (todas las
 // fincas de ese cliente), por finca (cliente+finca puntual, el "específico"
@@ -737,6 +739,15 @@ export default function Conceptos() {
   const [reglaCreadaNuevo, setReglaCreadaNuevo] = useState(null)
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
+  // Vista del panel: 'regla' (tabla plana, con selección y precio masivo) o
+  // 'concepto' (una fila por alcance, una columna por código — CONTEXT.md:
+  // Concepto completo). Se recuerda la última elegida.
+  const [vistaPanel, setVistaPanel] = useState(() => {
+    try { return localStorage.getItem(LS_KEY_VISTA_PANEL) === 'concepto' ? 'concepto' : 'regla' } catch { return 'regla' }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(LS_KEY_VISTA_PANEL, vistaPanel) } catch { /* sin localStorage: no persistimos */ }
+  }, [vistaPanel])
   const [precioMasivo, setPrecioMasivo] = useState('')
   // Selección del panel: guardamos las EXCLUSIONES (filas destildadas), no
   // las inclusiones — así el default es "todas tildadas" y cambiar el filtro
@@ -1411,77 +1422,104 @@ export default function Conceptos() {
             mostrarAlertas={false}
           />
 
-          {/* Barra de acción: precio masivo sobre lo filtrado (no es un filtro). */}
+          {/* Conmutador de vista + (solo en Por regla) barra de precio masivo. */}
           <div className={styles.searchBar}>
-            <input className="input input-mono" type="number" style={{ width: 120 }}
-              placeholder="$ precio"
-              value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
-            <button className="btn btn-sm btn-primary"
-              onClick={handleAplicarPrecioMasivo}
-              disabled={aplicandoMasivo || panelSeleccionado.length === 0}>
-              {aplicandoMasivo
-                ? <><span className="spinner" /> Aplicando...</>
-                : `Aplicar a la selección (${panelSeleccionado.length} de ${panelFiltrado.length})`}
-            </button>
-            <span className={styles.searchCount}>
-              {panelFiltrado.length - panelSeleccionado.length > 0
-                ? `${panelFiltrado.length - panelSeleccionado.length} destildada(s) conservan su precio`
-                : `${panelFiltrado.length} de ${panelPrecios.length} conceptos`}
-            </span>
+            <div className={styles.segmented} role="tablist" aria-label="Vista del panel">
+              <button type="button" role="tab" aria-selected={vistaPanel === 'regla'}
+                className={vistaPanel === 'regla' ? styles.segmentedOn : undefined}
+                onClick={() => setVistaPanel('regla')}>Por regla</button>
+              <button type="button" role="tab" aria-selected={vistaPanel === 'concepto'}
+                className={vistaPanel === 'concepto' ? styles.segmentedOn : undefined}
+                onClick={() => setVistaPanel('concepto')}>Por concepto</button>
+            </div>
+            {vistaPanel === 'regla' && (
+              <>
+                <input className="input input-mono" type="number" style={{ width: 120 }}
+                  placeholder="$ precio"
+                  value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
+                <button className="btn btn-sm btn-primary"
+                  onClick={handleAplicarPrecioMasivo}
+                  disabled={aplicandoMasivo || panelSeleccionado.length === 0}>
+                  {aplicandoMasivo
+                    ? <><span className="spinner" /> Aplicando...</>
+                    : `Aplicar a la selección (${panelSeleccionado.length} de ${panelFiltrado.length})`}
+                </button>
+                <span className={styles.searchCount}>
+                  {panelFiltrado.length - panelSeleccionado.length > 0
+                    ? `${panelFiltrado.length - panelSeleccionado.length} destildada(s) conservan su precio`
+                    : `${panelFiltrado.length} de ${panelPrecios.length} conceptos`}
+                </span>
+              </>
+            )}
           </div>
 
-          <div className={styles.list}>
-            {cargandoPanel && <CargandoContenido texto="Cargando panel de precios…" />}
-            {!cargandoPanel && panelFiltrado.length === 0 && (
-              <div className={styles.empty}>
-                {panelPrecios.length === 0
-                  ? 'No hay conceptos cargados para esta quincena.'
-                  : 'Ningún concepto coincide con los filtros aplicados.'}
-              </div>
-            )}
-            {!cargandoPanel && panelFiltrado.length > 0 && (
-              <div className="table-wrap">
-                <table className={styles.panelTable}>
-                  <colgroup>
-                    {COLUMNAS_PANEL.map(c => <col key={c.key} style={{ width: anchosPanel[c.key] }} />)}
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      {COLUMNAS_PANEL.map(c => (
-                        <th key={c.key} className={styles.thPanel}>
-                          {c.key === 'chk' ? (
-                            <input type="checkbox"
-                              style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
-                              aria-label="Seleccionar todas las filas filtradas"
-                              checked={panelFiltrado.length > 0 && panelSeleccionado.length === panelFiltrado.length}
-                              onChange={toggleTodasPanel} />
-                          ) : c.label}
-                          {c.key !== 'chk' && (
-                            <div className={styles.thResizer}
-                              onMouseDown={iniciarResizePanel(c.key)}
-                              onDoubleClick={() => restaurarAnchoPanel(c.key)}
-                              title="Arrastrar para redimensionar — doble click para restaurar" />
-                          )}
-                        </th>
+          {vistaPanel === 'concepto' && !cargandoPanel && (
+            <PanelPorConcepto
+              reglas={panelPrecios}
+              quincena={quincena}
+              filtroCodigo={filtroCodigoPanel}
+              filtros={filtrosPanel}
+              onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
+              guardando={guardandoPrecioPanel}
+              onCrearRegla={(datos, onSuccess) => mutCrear({ datos, onSuccess, fincaNueva: null })}
+            />
+          )}
+          {vistaPanel === 'concepto' && cargandoPanel && <CargandoContenido texto="Cargando panel de precios…" />}
+
+          {vistaPanel === 'regla' && (
+            <div className={styles.list}>
+              {cargandoPanel && <CargandoContenido texto="Cargando panel de precios…" />}
+              {!cargandoPanel && panelFiltrado.length === 0 && (
+                <div className={styles.empty}>
+                  {panelPrecios.length === 0
+                    ? 'No hay conceptos cargados para esta quincena.'
+                    : 'Ningún concepto coincide con los filtros aplicados.'}
+                </div>
+              )}
+              {!cargandoPanel && panelFiltrado.length > 0 && (
+                <div className="table-wrap">
+                  <table className={styles.panelTable}>
+                    <colgroup>
+                      {COLUMNAS_PANEL.map(c => <col key={c.key} style={{ width: anchosPanel[c.key] }} />)}
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        {COLUMNAS_PANEL.map(c => (
+                          <th key={c.key} className={styles.thPanel}>
+                            {c.key === 'chk' ? (
+                              <input type="checkbox"
+                                style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
+                                aria-label="Seleccionar todas las filas filtradas"
+                                checked={panelFiltrado.length > 0 && panelSeleccionado.length === panelFiltrado.length}
+                                onChange={toggleTodasPanel} />
+                            ) : c.label}
+                            {c.key !== 'chk' && (
+                              <div className={styles.thResizer}
+                                onMouseDown={iniciarResizePanel(c.key)}
+                                onDoubleClick={() => restaurarAnchoPanel(c.key)}
+                                title="Arrastrar para redimensionar — doble click para restaurar" />
+                            )}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {panelFiltrado.map(fila => (
+                        <PanelPrecioRow
+                          key={fila.id}
+                          fila={fila}
+                          seleccionada={!exclusionesPanel.has(fila.id)}
+                          onToggleSeleccion={() => toggleSeleccionPanel(fila.id)}
+                          onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
+                          guardando={guardandoPrecioPanel}
+                        />
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {panelFiltrado.map(fila => (
-                      <PanelPrecioRow
-                        key={fila.id}
-                        fila={fila}
-                        seleccionada={!exclusionesPanel.has(fila.id)}
-                        onToggleSeleccion={() => toggleSeleccionPanel(fila.id)}
-                        onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
-                        guardando={guardandoPrecioPanel}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

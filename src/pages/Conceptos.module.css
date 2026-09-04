@@ -419,3 +419,10 @@
   padding: 8px 0; border-top: 1px solid rgba(150, 96, 15, 0.25);
 }
 .franjaSolapItem:first-of-type { margin-top: 8px; }
+
+/* ─── Conmutador Por regla / Por concepto (Panel de precios) ─── */
+.segmented { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; }
+.segmented button { border: 0; background: var(--bg-surface); color: var(--text-secondary); padding: 5px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+.segmented button + button { border-left: 1px solid var(--border-strong); }
+.segmented button:hover { background: var(--bg-hover); }
+.segmented .segmentedOn { background: var(--accent); color: #fff; font-weight: 500; }
