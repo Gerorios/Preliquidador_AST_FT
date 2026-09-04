@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import styles from './PanelPorConcepto.module.css'
-import { agruparPorConcepto, etiquetaAlcance } from './panelPorConcepto'
+import { agruparPorConcepto, etiquetaAlcance } from './agruparPorConcepto'
 import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
 
 const fmt = (p) => `$${Number(p).toLocaleString('es-AR')}`

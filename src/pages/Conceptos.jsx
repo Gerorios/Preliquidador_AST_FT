@@ -11,7 +11,7 @@ import {
 import { listarQuincenasGerencial } from '../services/gerencial'
 import CargandoContenido from '../components/layout/CargandoContenido'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
-import PanelPorConcepto from './PanelPorConcepto.jsx'
+import PanelPorConcepto from './PanelPorConcepto'
 import useAuthStore from '../store/authStore'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
