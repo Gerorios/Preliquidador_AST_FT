@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import {
   listarConceptos, crearConcepto, actualizarConcepto, eliminarConcepto2,
   copiarConceptos, listarQuincenasConConceptos, listarConceptosFaltantes,
+  listarSolapamientos,
   listarTareas, listarClientes, listarFincas, listarPreliquidaciones,
   obtenerPanelPrecios, aplicarPrecioMasivo, listarSupervisores,
 } from '../services/preliquidacion'
@@ -334,6 +335,36 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── FranjaSolapamientos: aviso persistente de solapamientos por cliente ─────
+//
+// Solo se renderiza cuando hay al menos uno. Un solapamiento es una
+// anomalía, no trabajo cotidiano: no merece solapa propia.
+function FranjaSolapamientos({ items, onVerReglas }) {
+  const [abierta, setAbierta] = useState(true)
+  if (!items.length) return null
+  const n = items.length
+  return (
+    <div className={styles.franjaSolap} role="alert">
+      <div className={styles.franjaSolapHead} onClick={() => setAbierta(o => !o)}>
+        <span>⚠ Esta quincena tiene {n} solapamiento{n === 1 ? '' : 's'} por cliente que suma{n === 1 ? '' : 'n'}</span>
+        <span>{abierta ? '▲' : '▼'}</span>
+      </div>
+      {abierta && items.map(s => (
+        <div key={`${s.tarea_nombre}|${s.cliente_nombre}`} className={styles.franjaSolapItem}>
+          <span>
+            <b>{s.tarea_nombre}</b> · {s.cliente_nombre}: {s.reglas_por_cliente.length} regla(s) por cliente
+            {' '}+ {s.especificos.length} específica(s) en {s.fincas.join(', ')} · <b>{s.lineas_afectadas}</b> línea(s)
+            {s.codigos_coincidentes.length > 0 && (
+              <span className={styles.mismoCodigo}> · mismo código {s.codigos_coincidentes.join(', ')}: cobran DOS VECES</span>
+            )}
+          </span>
+          <button className="btn btn-sm" onClick={() => onVerReglas(s)}>Ver reglas</button>
+        </div>
+      ))}
     </div>
   )
 }
@@ -820,6 +851,12 @@ export default function Conceptos() {
     enabled: !!quincena,
   })
 
+  const { data: solapamientos = [] } = useQuery({
+    queryKey: ['solapamientos', quincena],
+    queryFn: () => listarSolapamientos(quincena),
+    enabled: !!quincena,
+  })
+
   // Cada solapa de reglas (1-4) pide únicamente su scope; el queryKey lleva
   // el scope, así que moverse entre solapas no pisa la caché de las otras.
   const { data: items = [], isLoading } = useQuery({
@@ -855,6 +892,7 @@ export default function Conceptos() {
     qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })
     qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
     qc.invalidateQueries({ queryKey: ['panel-precios'] })
+    qc.invalidateQueries({ queryKey: ['solapamientos'] })
     // Impacto reactivo (WS2): un cambio de concepto recalcula líneas en el
     // backend, así que refrescamos también Revisión y sus estadísticas.
     qc.invalidateQueries({ queryKey: ['lineas'] })
@@ -876,6 +914,16 @@ export default function Conceptos() {
   }
 
   const cerrarSolap = () => setPendienteSolap(null)
+
+  // "Ver reglas": va a la solapa Por cliente con la tarea en el buscador; las
+  // específicas se ven cambiando a Por finca con la misma búsqueda.
+  const verReglasSolap = (s) => {
+    setTab(2)
+    setBusqueda(s.tarea_nombre)
+    setFiltrosEspecificos({})
+    setMostrarNuevo(false)
+    setReglaCreadaNuevo(null)
+  }
 
   const sumarIgual = () => {
     const p = pendienteSolap
@@ -916,6 +964,7 @@ export default function Conceptos() {
       qc.invalidateQueries({ queryKey: ['conceptos'] })
       qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
       qc.invalidateQueries({ queryKey: ['panel-precios'] })
+      qc.invalidateQueries({ queryKey: ['solapamientos'] })
       qc.invalidateQueries({ queryKey: ['lineas'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
     },
@@ -953,6 +1002,11 @@ export default function Conceptos() {
     mutationFn: () => copiarConceptos(quincenaOrigen, quincena),
     onSuccess: data => {
       toast.success(data.detalle || 'Copiado')
+      if (data.solapamientos_heredados > 0) {
+        const n = data.solapamientos_heredados
+        toast(`Atención: ${n} solapamiento${n === 1 ? '' : 's'} por cliente heredado${n === 1 ? '' : 's'}. Revisá la franja de aviso.`,
+          { icon: '⚠', duration: 8000 })
+      }
       setMostrarCopiar(false); setQuincenaOrigen(''); invalidar()
     },
     onError: err => toast.error(err.message),
@@ -1150,6 +1204,8 @@ export default function Conceptos() {
           <button className="btn btn-sm" onClick={() => setMostrarCopiar(false)}>Cancelar</button>
         </div>
       )}
+
+      <FranjaSolapamientos items={solapamientos} onVerReglas={verReglasSolap} />
 
       {/* Tabs */}
       <div className={styles.tabs}>
