@@ -68,6 +68,8 @@
 /* Primera columna fija: con muchos códigos la tabla scrollea horizontal y el
    alcance tiene que seguir visible. Fondo explícito para tapar lo que pasa debajo. */
 .alcance { white-space: nowrap; position: sticky; left: 0; z-index: 1; background: var(--bg-surface); }
+/* La columna fija tapa el fondo de :hover global (src/index.css); se replica acá. */
+.tabla tbody tr:hover .alcance { background: var(--bg-elevated); }
 .alcanceSub { display: block; font-size: 11px; color: var(--text-muted); }
 .cel { text-align: right; font-family: var(--font-mono); font-size: 12.5px; min-width: 120px; }
 .filaFalta td:first-child { border-left: 2px solid var(--danger); }

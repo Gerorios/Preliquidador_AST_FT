@@ -154,6 +154,12 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
   // Si cambian los datos/filtros y el alta abierta ya no corresponde, se cierra.
   useEffect(() => { setAltaAbierta(null) }, [quincena, filtroCodigo, filtros, soloIncompletos])
 
+  // Si el filtro deja una sola tarjeta, se abre sola una vez; después el
+  // usuario puede cerrarla normalmente.
+  useEffect(() => {
+    if (bloques.length === 1) setAbiertas(prev => prev.has(bloques[0].tarea) ? prev : new Set(prev).add(bloques[0].tarea))
+  }, [bloques])
+
   const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`
 
   const toggleTarea = (tarea) => setAbiertas(prev => {
@@ -186,7 +192,7 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
       )}
 
       {bloques.map(b => {
-        const abierta = abiertas.has(b.tarea) || bloques.length === 1
+        const abierta = abiertas.has(b.tarea)
         return (
           <div key={b.tarea} className={styles.card}>
             <div className={styles.cardHead} onClick={() => toggleTarea(b.tarea)}>
