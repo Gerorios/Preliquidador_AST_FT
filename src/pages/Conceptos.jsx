@@ -331,6 +331,92 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
   )
 }
 
+// ─── DialogoSolapamiento: confirmación ante un 409 de solapamiento por cliente
+//
+// El backend detectó que la regla que se quiere crear SUMA a reglas del eje
+// cliente ya existentes (por cliente vs específicas del mismo cliente —
+// ADR-0011 reafirmado). No bloquea: muestra fincas, códigos coincidentes y
+// líneas afectadas y pide una decisión explícita. El botón peligroso
+// ("Sumar igual") NUNCA es el default.
+function DialogoSolapamiento({ solapamiento, candidato, fincaNueva, onCrearSoloFinca, onSumarIgual, onCancelar }) {
+  const s = solapamiento
+  const esPorClienteSobreEsp = s.direccion === 'por_cliente_sobre_especificos'
+  const grave = s.codigos_coincidentes.length > 0
+  const n = s.lineas_afectadas
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCancelar() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancelar])
+
+  const fmtPrecio = (p) => p == null ? '—' : `$ ${Number(p).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
+
+  return (
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="titulo-solap">
+      <div className={styles.dialogo}>
+        <div id="titulo-solap" className={styles.dialogoTitulo}>
+          ⚠ Esta regla se va a SUMAR a reglas ya existentes
+        </div>
+
+        <div className={styles.dialogoDatos}>
+          <span className={styles.textoMuted}>Tarea</span><b>{s.tarea_nombre}</b>
+          <span className={styles.textoMuted}>Cliente</span>
+          <b>{s.cliente_nombre}{esPorClienteSobreEsp ? ' (todas las fincas)' : ` / ${candidato.finca_nombre}`}</b>
+          <span className={styles.textoMuted}>Nueva regla</span>
+          <span>cód. <b className="mono">{candidato.codigo}</b> · {fmtPrecio(candidato.precio)}{candidato.categoria ? ` · cat. ${candidato.categoria}` : ''}</span>
+        </div>
+
+        {esPorClienteSobreEsp ? (
+          <>
+            <div>Ya existen <b>{s.especificos.length}</b> regla(s) específica(s) de {s.cliente_nombre} para esta tarea:</div>
+            <ul className={styles.dialogoLista}>
+              {s.especificos.map(e => (
+                <li key={e.id}>
+                  Finca <b>{e.finca_nombre}</b> · cód. <span className="mono">{e.codigo ?? '—'}</span>
+                  {e.categoria ? ` · cat. ${e.categoria}` : ''} · {fmtPrecio(e.precio)}
+                  {e.mismo_codigo && <span className={styles.mismoCodigo}> ← mismo código</span>}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
+            <div>Esta finca ya cobra por regla(s) <b>por cliente</b> de {s.cliente_nombre} (todas las fincas):</div>
+            <ul className={styles.dialogoLista}>
+              {s.reglas_por_cliente.map(r => (
+                <li key={r.id}>
+                  cód. <span className="mono">{r.codigo ?? '—'}</span>
+                  {r.categoria ? ` · cat. ${r.categoria}` : ''} · {fmtPrecio(r.precio)}
+                  {s.codigos_coincidentes.includes(r.codigo) && <span className={styles.mismoCodigo}> ← mismo código</span>}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <div className={`${styles.dialogoImpacto} ${grave ? styles.dialogoImpactoGrave : ''}`}>
+          {grave
+            ? <>Las <b>{n}</b> línea(s) de esta quincena que matchean ambas reglas cobrarían el código <span className="mono">{s.codigos_coincidentes.join(', ')}</span> DOS VECES.</>
+            : <><b>{n}</b> línea(s) de esta quincena matchean ambas reglas y cobrarían las dos (códigos distintos).</>}
+          {n === 0 && <div className={styles.textoMuted}>Hoy no hay líneas afectadas, pero el maestro se hereda a la quincena siguiente.</div>}
+          {fincaNueva && <div>Solo la finca <b>{fincaNueva}</b> no tiene regla.</div>}
+        </div>
+
+        <div className={styles.dialogoBotones}>
+          {onCrearSoloFinca
+            ? <button className="btn btn-primary" autoFocus onClick={onCrearSoloFinca}>Crear solo para {fincaNueva}</button>
+            : <button className="btn" autoFocus onClick={onCancelar}>Cancelar</button>}
+          <button className="btn btn-danger" onClick={onSumarIgual}>
+            {esPorClienteSobreEsp ? `Sumar igual a las ${s.especificos.length}` : 'Sumar igual'}
+          </button>
+          {onCrearSoloFinca && <button className="btn" onClick={onCancelar}>Cancelar</button>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── PromptOtraRegla: pregunta inline tras crear una regla ──────────────────
 // Reemplaza al formulario recién confirmado; "Sí, otra" lo re-abre con el
 // combo conservado, "No, listo" cierra como siempre.

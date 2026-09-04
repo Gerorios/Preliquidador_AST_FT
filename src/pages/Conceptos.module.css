@@ -367,3 +367,55 @@
   background: var(--accent);
   opacity: 0.5;
 }
+
+/* ─── Diálogo de solapamiento por cliente ─── */
+.overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.dialogo {
+  width: min(640px, 100%);
+  max-height: 90vh; overflow: auto;
+  background: var(--bg-elevated, #fff);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 18px 20px;
+  font-size: 0.88rem;
+}
+.dialogoTitulo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; color: var(--warn); font-size: 1rem;
+  margin-bottom: 12px;
+}
+.dialogoDatos { display: grid; grid-template-columns: 90px 1fr; gap: 4px 10px; margin-bottom: 12px; }
+.dialogoLista { margin: 6px 0 12px 0; padding-left: 18px; }
+.dialogoLista li { margin: 2px 0; }
+.mismoCodigo { color: var(--danger); font-weight: 600; }
+.dialogoImpacto {
+  padding: 10px 12px; border-radius: var(--radius);
+  background: var(--warn-dim); margin-bottom: 14px;
+}
+.dialogoImpactoGrave { background: var(--danger-dim); color: var(--danger); font-weight: 600; }
+.dialogoBotones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+/* ─── Franja de solapamientos vigentes ─── */
+.franjaSolap {
+  border: 1px solid var(--warn);
+  background: var(--warn-dim);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin: 0 0 12px 0;
+  font-size: 0.86rem;
+}
+.franjaSolapHead {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  cursor: pointer; font-weight: 600; color: var(--warn);
+}
+.franjaSolapItem {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 0; border-top: 1px solid rgba(150, 96, 15, 0.25);
+}
+.franjaSolapItem:first-of-type { margin-top: 8px; }
