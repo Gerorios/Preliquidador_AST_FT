@@ -127,13 +127,12 @@ export function agruparPorConcepto(reglas, { filtroCodigo = '', filtros = {}, so
     (etiquetaTarea.get(a) ?? a).localeCompare(etiquetaTarea.get(b) ?? b, 'es'))
   for (const tarea of claves) {
     const union = [...(codigosPorTarea.get(tarea) ?? [])].sort((a, b) => a - b)
-    let codigos = union
+    // Filtro por código: deja las tareas que tienen algún código que empieza
+    // con lo tipeado, pero muestra el concepto completo (todas sus columnas).
+    const codigos = union
     if (qCodigo) {
-      // Filtro por código: solo las tareas que tienen un código que empieza
-      // con lo tipeado (mismo criterio que la tabla plana), una columna por
-      // cada uno de esos códigos.
-      codigos = union.filter(c => String(c).startsWith(qCodigo))
-      if (codigos.length === 0) continue
+      const coincide = union.some(c => String(c).startsWith(qCodigo))
+      if (!coincide) continue
     }
 
     let filas = [...filasPorTarea.get(tarea).values()]
