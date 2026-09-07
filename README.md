@@ -2,6 +2,8 @@
 
 SPA en **React 18 + Vite 5** para generar, revisar, verificar y exportar la preliquidación de sueldos por quincena. Consume la API del backend FastAPI (`backend_preliquidacion` / `Gerorios/Preliquidador_AST_BK`).
 
+> **Máquina nueva o módulo nuevo**: la puesta a punto de ambos proyectos y la guía para incorporar módulos (Fletes es el primero) viven en el repo backend, en `docs/modulos/PUESTA-A-PUNTO.md` y `docs/modulos/GUIA-MODULOS.md`.
+
 ---
 
 ## Stack tecnológico
