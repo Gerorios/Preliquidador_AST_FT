@@ -20,9 +20,6 @@ export const generarPreliquidacion = (quincena) =>
 export const obtenerEstadisticas = (id) =>
   api.get(`/preliquidacion/${id}/estadisticas`).then(r => r.data)
 
-export const obtenerDashboardVerificacion = (id) =>
-  api.get(`/preliquidacion/${id}/dashboard-verificacion`).then(r => r.data)
-
 export const obtenerControlPlantasJornal = (id) =>
   api.get(`/preliquidacion/${id}/control-plantas-jornal`).then(r => r.data)
 
@@ -52,9 +49,6 @@ export const actualizarLinea = (lineaId, datos) =>
 // desplegable "EMPRESA — legajo" del panel. legajos_disponibles vacío = sin CUIL.
 export const obtenerLegajosDisponibles = (lineaId) =>
   api.get(`/preliquidacion/linea/${lineaId}/legajos-disponibles`).then(r => r.data)
-
-export const agregarConcepto = (lineaId, datos) =>
-  api.post(`/preliquidacion/linea/${lineaId}/concepto`, datos).then(r => r.data)
 
 export const eliminarConcepto = (conceptoId) =>
   api.delete(`/preliquidacion/linea/concepto/${conceptoId}`).then(r => r.data)
@@ -86,9 +80,6 @@ export const listarFincas = (cliente) =>
 
 export const listarTareas = () =>
   api.get('/precios/maestro/tareas').then(r => r.data)
-
-export const listarGruposPago = () =>
-  api.get('/precios/grupos-pago').then(r => r.data)
 
 // ─── Maestro unificado de Conceptos ──────────────────────────────────────────
 // Reemplaza precio_maestro + precio_comun + concepto_liquidacion anterior.
