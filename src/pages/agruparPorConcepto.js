@@ -3,14 +3,14 @@
 // panel y devuelve bloques por tarea con una fila por alcance y una columna
 // por código. Se mantiene aparte para poder razonarla y verificarla sola.
 
-export const ORDEN_ALCANCE = { comun: 0, cliente: 1, finca: 2, supervisor: 3 }
+const ORDEN_ALCANCE ={ comun: 0, cliente: 1, finca: 2, supervisor: 3 }
 
 const norm = (s) => (s ?? '').toString().trim().toUpperCase()
 
 // Alcance de una regla (ADR-0011): supervisor > finca > cliente > común.
 // Una regla con finca es SIEMPRE de alcance finca aunque no tenga cliente: si
 // cayera en "común" se mezclaría con reglas que aplican a toda la tarea.
-export function tipoAlcance(regla) {
+function tipoAlcance(regla) {
   if (norm(regla.supervisor_nombre)) return 'supervisor'
   if (norm(regla.finca_nombre)) return 'finca'
   if (norm(regla.cliente_nombre)) return 'cliente'
@@ -20,7 +20,7 @@ export function tipoAlcance(regla) {
 // Clave estable del alcance dentro de una tarea. Normalizada igual que el
 // matching del backend (strip + upper) para que "Citrusvil" y "CITRUSVIL"
 // caigan en la misma fila.
-export function claveAlcance(regla) {
+function claveAlcance(regla) {
   const tipo = tipoAlcance(regla)
   return `${tipo}|${norm(regla.cliente_nombre)}|${norm(regla.finca_nombre)}|${norm(regla.supervisor_nombre)}`
 }
