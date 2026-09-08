@@ -3,24 +3,15 @@ import { Routes, Route, Navigate, useParams, generatePath, useLocation } from 'r
 import Layout from './core/layout/Layout'
 import ProtectedRoute from './core/layout/ProtectedRoute'
 import CargandoContenido from './core/ui/CargandoContenido'
-import useAuthStore from './core/authStore'
-import { homeDeUsuario } from './core/permisos'
-import { rutas as rutasPreliquidacion, redirecciones as redirPreliquidacion, home as homePreliquidacion } from './modulos/preliquidacion/rutas'
+import Inicio from './core/inicio/Inicio'
+import { RegistroContext } from './core/registroContext'
+import { MODULOS, tarjetasPara, pantallasAsistente, etiquetaRol, moduloDeRuta, resolverPantalla } from './modulos/registro'
 
 const Login = lazy(() => import('./core/pages/Login'))
 
-// Un módulo nuevo se registra agregando sus listas acá y en Layout.jsx.
-const RUTAS = [...rutasPreliquidacion]
-const REDIRECCIONES = [...redirPreliquidacion]
-
-// Home de cada módulo registrado, en orden de prioridad. Login y ProtectedRoute
-// la usan para decidir a dónde manda cada usuario según sus permisos.
-export const HOMES = [homePreliquidacion]
-
-function HomeDeUsuario() {
-  const { usuario } = useAuthStore()
-  return <Navigate to={homeDeUsuario(usuario, HOMES)} replace />
-}
+// App es el único punto que conoce el registro de módulos: se lo inyecta al
+// núcleo por contexto para que src/core/** no importe src/modulos/**.
+const REGISTRO = { MODULOS, tarjetasPara, pantallasAsistente, etiquetaRol, moduloDeRuta, resolverPantalla }
 
 // Redirección que conserva los parámetros de la URL (p. ej. /revision/12 → /preliquidacion/revision/12)
 // y también query string y hash.
@@ -32,20 +23,37 @@ function Redireccion({ to }) {
 
 export default function App() {
   return (
-    <Suspense fallback={<CargandoContenido texto="Cargando…" />}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<ProtectedRoute homes={HOMES}><Layout /></ProtectedRoute>}>
-          <Route index element={<HomeDeUsuario />} />
-          {RUTAS.map(({ path, element, modulo, roles }) => (
-            <Route key={path} path={path} element={<ProtectedRoute modulo={modulo} roles={roles} homes={HOMES}>{element}</ProtectedRoute>} />
+    <RegistroContext.Provider value={REGISTRO}>
+      <Suspense fallback={<CargandoContenido texto="Cargando…" />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          {/* Inicio: grilla de módulos, sin menú lateral. */}
+          <Route path="/" element={<ProtectedRoute><Inicio /></ProtectedRoute>} />
+
+          {/* Un marco por módulo activo: su menú y su nombre en la marca. */}
+          {MODULOS.map(m => (
+            <Route key={m.clave} element={<ProtectedRoute><Layout modulo={m} /></ProtectedRoute>}>
+              {m.rutas.filter(r => r.path !== m.gerencial?.ruta).map(({ path, element, modulo, roles }) => (
+                <Route key={path} path={path} element={<ProtectedRoute modulo={modulo} roles={roles}>{element}</ProtectedRoute>} />
+              ))}
+              {m.redirecciones.map(({ from, to }) => (
+                <Route key={from} path={from} element={<Redireccion to={to} />} />
+              ))}
+            </Route>
           ))}
-          {REDIRECCIONES.map(({ from, to }) => (
-            <Route key={from} path={from} element={<Redireccion to={to} />} />
-          ))}
-        </Route>
-        <Route path="*" element={<HomeDeUsuario />} />
-      </Routes>
-    </Suspense>
+
+          {/* Marco transversal de Gerencial: una entrada por módulo con panel gerencial. */}
+          <Route element={<ProtectedRoute><Layout marco="gerencial" /></ProtectedRoute>}>
+            {MODULOS.filter(m => m.gerencial).map(m => {
+              const r = m.rutas.find(x => x.path === m.gerencial.ruta)
+              return <Route key={r.path} path={r.path} element={<ProtectedRoute modulo={m.clave} roles={m.gerencial.roles}>{r.element}</ProtectedRoute>} />
+            })}
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </RegistroContext.Provider>
   )
 }

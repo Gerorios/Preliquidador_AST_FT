@@ -9,12 +9,12 @@ export const PREFIJO = '/fletes'
 export const MODULO = 'fletes'
 
 export const rutas = [
-  { path: `${PREFIJO}/inicio`, element: <Inicio />, modulo: MODULO, roles: ['operador'], label: 'Inicio', icono: 'inicio', icon: '🏠', menu: true },
+  { path: `${PREFIJO}/inicio`, element: <Inicio />, modulo: MODULO, roles: ['operador'], label: 'Inicio', icono: 'inicio', menu: true },
 ]
 
 export const nav = rutas
   .filter(r => r.menu)
-  .map(({ path, label, icon, icono, modulo, roles }) => ({ to: path, label, icon, icono, modulo, roles }))
+  .map(({ path, label, icono, modulo, roles }) => ({ to: path, label, icono, modulo, roles }))
 
 export const home = (usuario) => (tienePermiso(usuario, MODULO, ['operador']) ? `${PREFIJO}/inicio` : null)
 

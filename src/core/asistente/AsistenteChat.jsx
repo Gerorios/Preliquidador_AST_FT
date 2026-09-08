@@ -1,19 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { consultarAsistente } from './asistenteApi'
+import { useRegistro } from '../registroContext'
 import styles from './AsistenteChat.module.css'
-
-// Mapea la ruta actual al nombre de pantalla que entiende el asistente.
-function pantallaActual(pathname) {
-  if (pathname.startsWith('/preliquidacion/revision')) return 'Revisión de una quincena'
-  const map = {
-    '/preliquidacion/dashboard': 'Inicio (generar quincenas)',
-    '/preliquidacion/conceptos': 'Conceptos y Precios',
-    '/preliquidacion/verificacion': 'Verificación (controles)',
-    '/preliquidacion/categorias-operarios': 'Mantenimiento (categorías de operario)',
-  }
-  return map[pathname] || null
-}
 
 const SALUDO = {
   rol: 'assistant',
@@ -24,6 +13,7 @@ const SALUDO = {
 
 export default function AsistenteChat() {
   const location = useLocation()
+  const { pantallasAsistente, resolverPantalla } = useRegistro()
   const [abierto, setAbierto] = useState(false)
   const [mensajes, setMensajes] = useState([SALUDO])
   const [input, setInput] = useState('')
@@ -54,7 +44,8 @@ export default function AsistenteChat() {
       const { respuesta } = await consultarAsistente({
         pregunta,
         historial,
-        pantalla: pantallaActual(location.pathname),
+        // El nombre de pantalla lo declara cada módulo en su descriptor.
+        pantalla: resolverPantalla(location.pathname, pantallasAsistente()),
       })
       setMensajes((prev) => [...prev, { rol: 'assistant', contenido: respuesta }])
     } catch (err) {

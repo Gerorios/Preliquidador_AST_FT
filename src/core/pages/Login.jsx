@@ -3,15 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import useAuthStore from '../authStore'
-import { homeDeUsuario } from '../permisos'
-// App.jsx es el punto de registro de módulos: ahí vive HOMES.
-import { HOMES } from '../../App'
+import { useRegistro } from '../registroContext'
 import logo from '../../assets/logo-asturiana.png'
 import styles from './Login.module.css'
 
 export default function Login() {
   const navigate = useNavigate()
   const { login, logout } = useAuthStore()
+  const { tarjetasPara } = useRegistro()
   const [form, setForm] = useState({ email: '', password: '' })
   const [cargando, setCargando] = useState(false)
 
@@ -32,14 +31,16 @@ export default function Login() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
 
-      const destino = homeDeUsuario(res.data.usuario, HOMES)
-      if (destino === '/login') {
+      // Sin ninguna tarjeta no hay nada que mostrar en el Inicio: se rechaza
+      // el ingreso en lugar de dejar la sesión abierta en una pantalla vacía.
+      const tarjetas = tarjetasPara(res.data.usuario)
+      if (tarjetas.length === 0) {
         logout()
         toast.error('Tu usuario no tiene módulos asignados. Pedile al administrador que te habilite uno.')
       } else {
         login(res.data.access_token, res.data.usuario)
         toast.success(`Bienvenido, ${res.data.usuario.nombre}`)
-        navigate(destino)
+        navigate('/')
       }
     } catch (err) {
       const msg = err.response?.data?.detail || 'Error al iniciar sesión'
@@ -53,7 +54,7 @@ export default function Login() {
     <div className={styles.page}>
       <div className={styles.card}>
         <img src={logo} alt="La Asturiana SRL" className={styles.brandMark} />
-        <div className={styles.brandSub}>SISTEMA DE PRELIQUIDACIÓN</div>
+        <div className={styles.brandSub}>SISTEMA DE GESTIÓN</div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>

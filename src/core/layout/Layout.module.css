@@ -34,6 +34,30 @@
   width: auto;
 }
 
+.sidebar.collapsed .volver {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+/* Enlace de vuelta al Inicio (grilla de módulos), arriba de todo. */
+.volver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sidebar-text-muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--sidebar-border);
+  transition: color 0.12s, background 0.12s;
+}
+
+.volver:hover {
+  color: var(--sidebar-text);
+  background: var(--sidebar-bg-elevated);
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -49,18 +73,20 @@
   flex-shrink: 0;
 }
 
-.brandName {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1.2px;
-  color: var(--sidebar-text);
-}
-
-.brandSub {
+/* Marca: arriba el nombre del sistema (chico), abajo el módulo abierto. */
+.brandSistema {
   font-size: 9px;
   letter-spacing: 0.8px;
-  color: var(--sidebar-text-muted);
+  text-transform: uppercase;
   font-family: var(--font-mono);
+  color: var(--sidebar-text-muted);
+}
+
+.brandModulo {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--sidebar-text);
   margin-top: 1px;
 }
 
@@ -97,10 +123,12 @@
 }
 
 .navIcon {
-  font-size: 14px;
-  width: 16px;
-  text-align: center;
-  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 .sidebarFooter {
@@ -137,10 +165,10 @@
   border: 1px solid var(--sidebar-border);
   border-radius: var(--radius-sm);
   color: var(--sidebar-text-muted);
-  font-size: 14px;
+  display: grid;
+  place-items: center;
   padding: 6px 0;
   cursor: pointer;
-  text-align: center;
   margin-bottom: 6px;
   transition: all 0.12s;
 }
@@ -171,14 +199,15 @@
   text-overflow: ellipsis;
 }
 
+/* La etiqueta de rol ahora la define cada módulo ("Preliquidador", "Gerente",
+   "Admin"): se muestra tal cual, sin pasarla a mayúsculas. */
 .userRole {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--sidebar-text-muted);
   margin-top: 1px;
   margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .logoutBtn {

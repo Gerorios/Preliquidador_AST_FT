@@ -13,34 +13,24 @@ const Gerencial = lazy(() => import('./pages/Gerencial'))
 export const PREFIJO = '/preliquidacion'
 export const MODULO = 'preliquidacion'
 
-// icono: nombre para <Icono/> (src/core/ui/iconos.jsx). icon: emoji, se
-// mantiene solo porque Layout.jsx de hoy todavía lo renderiza como texto;
-// Task 5 lo saca cuando Layout pase a usar <Icono nombre={icono}/>.
+// icono: nombre para <Icono/> (src/core/ui/iconos.jsx); Layout.jsx lo
+// renderiza como SVG. Ya no hay emojis en el menú.
 export const rutas = [
-  { path: `${PREFIJO}/dashboard`,            element: <Dashboard />,           modulo: MODULO, roles: ['operador'],            label: 'Inicio',        icono: 'inicio',        icon: '🏠', menu: true },
+  { path: `${PREFIJO}/dashboard`,            element: <Dashboard />,           modulo: MODULO, roles: ['operador'],            label: 'Inicio',        icono: 'inicio',        menu: true },
   { path: `${PREFIJO}/revision/:id`,         element: <Revision />,            modulo: MODULO, roles: ['operador'],            menu: false },
-  { path: `${PREFIJO}/conceptos`,            element: <Conceptos />,           modulo: MODULO, roles: ['operador', 'gerente'], label: 'Conceptos',     icono: 'conceptos',     icon: '💲', menu: true },
-  { path: `${PREFIJO}/verificacion`,         element: <Verificacion />,        modulo: MODULO, roles: ['operador'],            label: 'Verificación',  icono: 'verificacion',  icon: '✅', menu: true },
-  { path: `${PREFIJO}/categorias-operarios`, element: <CategoriasOperarios />, modulo: MODULO, roles: ['operador'],            label: 'Mantenimiento', icono: 'mantenimiento', icon: '🔧', menu: true },
+  { path: `${PREFIJO}/conceptos`,            element: <Conceptos />,           modulo: MODULO, roles: ['operador', 'gerente'], label: 'Conceptos',     icono: 'conceptos',     menu: true },
+  { path: `${PREFIJO}/verificacion`,         element: <Verificacion />,        modulo: MODULO, roles: ['operador'],            label: 'Verificación',  icono: 'verificacion',  menu: true },
+  { path: `${PREFIJO}/categorias-operarios`, element: <CategoriasOperarios />, modulo: MODULO, roles: ['operador'],            label: 'Mantenimiento', icono: 'mantenimiento', menu: true },
   // Gerencial es transversal al sistema: queda sin prefijo (grilling etapa 0, pregunta 5).
   // Deja el menú del módulo (menu: false); ahora se llega por la tarjeta Gerencial
   // del Inicio (descriptor `gerencial` más abajo), no por el nav de Preliquidación.
-  { path: '/gerencial',                      element: <Gerencial />,           modulo: MODULO, roles: ['gerente'],             label: 'Gerencial',     icono: 'gerencial',     icon: '📊', menu: false },
+  { path: '/gerencial',                      element: <Gerencial />,           modulo: MODULO, roles: ['gerente'],             label: 'Gerencial',     icono: 'gerencial',     menu: false },
 ]
 
 // El menú se deriva de rutas para que nav, modulo y roles no puedan divergir.
 export const nav = rutas
   .filter(r => r.menu)
-  .map(({ path, label, icon, icono, modulo, roles }) => ({ to: path, label, icon, icono, modulo, roles }))
-
-// Home del módulo según el usuario: null si no tiene acceso a nada de este módulo.
-// Se mantiene tal cual (gerente → /gerencial) porque App.jsx todavía arma HOMES con
-// esta función; Task 5 la reemplaza por el `home` del descriptor `modulo` (más abajo).
-export const home = (usuario) => {
-  if (tienePermiso(usuario, MODULO, ['operador'])) return `${PREFIJO}/dashboard`
-  if (tienePermiso(usuario, MODULO, ['gerente'])) return '/gerencial'
-  return null
-}
+  .map(({ path, label, icono, modulo, roles }) => ({ to: path, label, icono, modulo, roles }))
 
 // Direcciones anteriores al prefijo por módulo: favoritos guardados siguen andando.
 // Revisar si siguen haciendo falta después de 2026-12.
@@ -63,10 +53,9 @@ export const pantallas = {
   '/preliquidacion/revision/*': 'Revisión de una quincena',
 }
 
-// Home del descriptor (para las tarjetas del Inicio, PR 4): la tarjeta de
+// Home del módulo (destino de su tarjeta en el Inicio): la tarjeta de
 // Preliquidación del gerente lleva a Conceptos, no a Gerencial (eso es una
-// tarjeta aparte, ver `gerencial` abajo). Distinta de `home` de arriba: esa
-// la sigue usando App.jsx (HOMES) hasta Task 5.
+// tarjeta aparte, ver `gerencial` abajo).
 const homeDescriptor = (usuario) => {
   if (tienePermiso(usuario, MODULO, ['operador'])) return `${PREFIJO}/dashboard`
   if (tienePermiso(usuario, MODULO, ['gerente'])) return `${PREFIJO}/conceptos`

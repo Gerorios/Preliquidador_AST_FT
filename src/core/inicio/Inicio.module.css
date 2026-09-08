@@ -1,0 +1,245 @@
+/* Pantalla de Inicio: barra superior oscura (ancla de marca, igual que el
+   sidebar) y grilla de tarjetas, una por módulo al que la persona accede. */
+
+.page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+}
+
+/* ---- Barra superior ---- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.marcaLogo {
+  width: 26px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.marcaNombre {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  color: var(--sidebar-text-secondary);
+  text-transform: uppercase;
+}
+
+.marcaSistema {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--sidebar-text);
+}
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.usuarioNombre {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sidebar-text);
+  text-align: right;
+}
+
+.usuarioRol {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--sidebar-text-muted);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40ch;
+}
+
+.salir {
+  background: transparent;
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius);
+  color: var(--sidebar-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.salir:hover {
+  border-color: var(--sidebar-text-secondary);
+  color: var(--sidebar-text);
+}
+
+/* ---- Cuerpo ---- */
+
+.cuerpo {
+  flex: 1;
+  padding: 36px 24px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.titulo {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+}
+
+.tituloSufijo {
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  max-width: 820px;
+}
+
+/* La tarjeta es un <button>: los botones no heredan color ni tipografía del
+   documento, así que se fuerzan las tres cosas (si no, texto blanco y fuente
+   del sistema operativo). */
+.tarjeta {
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  min-height: 176px;
+  padding: 20px 20px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+
+.tarjeta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(34, 31, 28, 0.12);
+  border-color: var(--border-strong);
+}
+
+.tarjeta:focus-visible {
+  outline: none;
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px var(--accent-glow), 0 8px 22px rgba(34, 31, 28, 0.12);
+}
+
+.icono {
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.familiaGerencial .icono {
+  background: var(--info-dim);
+  color: var(--info);
+}
+
+.familiaAdministracion .icono {
+  background: var(--brand-dim);
+  color: var(--brand);
+}
+
+.nombre {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.descripcion {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.familiaGerencial .chip {
+  background: var(--info-dim);
+  color: var(--info);
+}
+
+.familiaAdministracion .chip {
+  background: var(--brand-dim);
+  color: var(--brand);
+}
+
+.flecha {
+  color: var(--text-muted);
+}
+
+/* ---- Sin módulos (no debería pasar: el login lo rechaza antes) ---- */
+
+.vacio {
+  max-width: 60ch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 22px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta {
+    transition: none;
+  }
+
+  .tarjeta:hover {
+    transform: none;
+  }
+}
