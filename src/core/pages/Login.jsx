@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import useAuthStore from '../authStore'
-import { homeDeRol } from '../layout/ProtectedRoute'
+import { homeDeUsuario } from '../permisos'
+// App.jsx es el punto de registro de módulos: ahí vive HOMES.
+import { HOMES } from '../../App'
 import logo from '../../assets/logo-asturiana.png'
 import styles from './Login.module.css'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login } = useAuthStore()
+  const { login, logout } = useAuthStore()
   const [form, setForm] = useState({ email: '', password: '' })
   const [cargando, setCargando] = useState(false)
 
@@ -30,9 +32,15 @@ export default function Login() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
 
-      login(res.data.access_token, res.data.usuario)
-      toast.success(`Bienvenido, ${res.data.usuario.nombre}`)
-      navigate(homeDeRol(res.data.usuario.rol))
+      const destino = homeDeUsuario(res.data.usuario, HOMES)
+      if (destino === '/login') {
+        logout()
+        toast.error('Tu usuario no tiene módulos asignados. Pedile al administrador que te habilite uno.')
+      } else {
+        login(res.data.access_token, res.data.usuario)
+        toast.success(`Bienvenido, ${res.data.usuario.nombre}`)
+        navigate(destino)
+      }
     } catch (err) {
       const msg = err.response?.data?.detail || 'Error al iniciar sesión'
       toast.error(msg)

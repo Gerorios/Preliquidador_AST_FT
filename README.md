@@ -49,15 +49,15 @@ src/
 
 ## Pantallas
 
-| Ruta | Vista | Qué hace |
-|---|---|---|
-| `/login` | Login | Email + contraseña (OAuth2 password → JWT) |
-| `/preliquidacion/dashboard` | Inicio | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
-| `/preliquidacion/revision/:id` | Revisión | Tabla completa de líneas con filtrado 100 % en cliente (búsqueda con debounce + multi-select en cascada por cliente/finca/tarea/empresa/grupo/supervisor + filtros de alerta). Panel lateral de edición por línea. Modo **liquidación masiva** (conceptos masivos, reasignación de empresa por CUIL). **Exportar Excel** |
-| `/preliquidacion/verificacion` | Verificación | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
-| `/preliquidacion/conceptos` | Conceptos | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo, con vistas "Por regla" y "Por concepto" (`PanelPorConcepto`)). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
-| `/preliquidacion/categorias-operarios` | Mantenimiento | Asignar categoría 1-7 por operario de taller y heredar de la quincena anterior |
-| `/gerencial` | Gerencial | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo |
+| Ruta | Vista | Quién | Qué hace |
+|---|---|---|---|
+| `/login` | Login | Todos | Email + contraseña (OAuth2 password → JWT) |
+| `/preliquidacion/dashboard` | Inicio | operador, admin | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
+| `/preliquidacion/revision/:id` | Revisión | operador, admin | Tabla completa de líneas con filtrado 100 % en cliente (búsqueda con debounce + multi-select en cascada por cliente/finca/tarea/empresa/grupo/supervisor + filtros de alerta). Panel lateral de edición por línea. Modo **liquidación masiva** (conceptos masivos, reasignación de empresa por CUIL). **Exportar Excel** |
+| `/preliquidacion/verificacion` | Verificación | operador, admin | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
+| `/preliquidacion/conceptos` | Conceptos | operador, gerente, admin | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo, con vistas "Por regla" y "Por concepto" (`PanelPorConcepto`)). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
+| `/preliquidacion/categorias-operarios` | Mantenimiento | operador, admin | Asignar categoría 1-7 por operario de taller y heredar de la quincena anterior |
+| `/gerencial` | Gerencial | gerente, admin | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo. El operador no la ve |
 
 Las direcciones sin prefijo (`/dashboard`, `/conceptos`, …) redirigen a las nuevas.
 
@@ -70,7 +70,9 @@ Además, un **asistente de ayuda** (chat flotante, presente en todo el layout) r
 - Token JWT guardado en localStorage (`auth-asturiana`) vía Zustand `persist`.
 - `ProtectedRoute` redirige a `/login` sin token.
 - Interceptor Axios inyecta `Authorization: Bearer` y ante un 401 hace logout + redirect.
-- El rol del usuario se muestra en el sidebar; la autorización por rol se aplica en el backend.
+- El usuario tiene un **rol global** (`admin` o `usuario`) y, además, un **rol por módulo** en `usuario.modulos` (p. ej. `{ preliquidacion: 'operador' }` u `'gerente'`). El admin ve todo; dentro de un módulo, `operador` y `gerente` ven pantallas distintas (ver tabla de Pantallas). `tienePermiso(usuario, modulo, roles)` en `src/core/permisos.js` decide el acceso; `ProtectedRoute` la usa para las rutas y `Layout` para filtrar el menú. La autorización real se aplica en el backend, el frontend solo evita mostrar lo que el backend igual rechazaría.
+- La sesión guardada en localStorage está versionada (`version: 2`): al desplegar este cambio, las sesiones anteriores (sin `modulos`) se descartan automáticamente y el usuario tiene que volver a loguearse.
+- La home después de loguear depende del módulo: un operador cae en `/preliquidacion/dashboard`, un gerente puro en `/gerencial` (ver `home()` en `rutas.jsx` y `HOMES` en `App.jsx`).
 
 ---
 
