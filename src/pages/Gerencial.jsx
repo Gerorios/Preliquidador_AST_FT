@@ -8,7 +8,7 @@ import {
   obtenerPorGrupoTarea, obtenerDesvios, obtenerIndicadores, obtenerDesviosClientes,
   obtenerControlPlantasGerencial, obtenerControlTancadasGerencial,
 } from '../services/gerencial'
-import CargandoContenido from '../components/layout/CargandoContenido'
+import CargandoContenido from '../core/ui/CargandoContenido'
 import { PlantasJornal, TancadasJornal } from '../components/preliquidacion/ControlesJornal'
 import styles from './Gerencial.module.css'
 

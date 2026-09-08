@@ -1,11 +1,11 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import Layout from './components/layout/Layout'
-import ProtectedRoute, { homeDeRol } from './components/layout/ProtectedRoute'
-import CargandoContenido from './components/layout/CargandoContenido'
-import useAuthStore from './store/authStore'
+import Layout from './core/layout/Layout'
+import ProtectedRoute, { homeDeRol } from './core/layout/ProtectedRoute'
+import CargandoContenido from './core/ui/CargandoContenido'
+import useAuthStore from './core/authStore'
 
-const Login = lazy(() => import('./pages/Login'))
+const Login = lazy(() => import('./core/pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Revision = lazy(() => import('./pages/Revision'))
 const Verificacion = lazy(() => import('./pages/Verificacion'))

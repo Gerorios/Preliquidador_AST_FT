@@ -7,7 +7,7 @@ import {
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import { PlantasJornal, TancadasJornal } from '../components/preliquidacion/ControlesJornal'
 import InputBusqueda from '../components/preliquidacion/InputBusqueda'
-import CargandoContenido from '../components/layout/CargandoContenido'
+import CargandoContenido from '../core/ui/CargandoContenido'
 import styles from './Verificacion.module.css'
 
 // Personas mensualizadas (no jornalizadas): se excluyen de todas las

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { listarPreliquidaciones, generarPreliquidacion } from '../services/preliquidacion'
-import CargandoContenido from '../components/layout/CargandoContenido'
+import CargandoContenido from '../core/ui/CargandoContenido'
 import styles from './Dashboard.module.css'
 
 const QUINCENAS = () => {

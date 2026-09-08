@@ -14,7 +14,7 @@ import {
 import PanelLinea from '../components/preliquidacion/PanelLinea'
 import FiltrosBar from '../components/preliquidacion/FiltrosBar'
 import AlertasBanner from '../components/preliquidacion/AlertasBanner'
-import CargandoContenido from '../components/layout/CargandoContenido'
+import CargandoContenido from '../core/ui/CargandoContenido'
 import styles from './Revision.module.css'
 
 function fmt(v) {

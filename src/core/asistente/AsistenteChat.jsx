@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { consultarAsistente } from '../../services/preliquidacion'
+import { consultarAsistente } from './asistenteApi'
 import styles from './AsistenteChat.module.css'
 
 // Mapea la ruta actual al nombre de pantalla que entiende el asistente.
