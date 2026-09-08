@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { consultarAsistente } from './asistenteApi'
 import { useRegistro } from '../registroContext'
+import Icono from '../ui/iconos'
 import styles from './AsistenteChat.module.css'
 
 const SALUDO = {
@@ -81,7 +82,7 @@ export default function AsistenteChat() {
           title="Ayuda del sistema"
           aria-label="Abrir la ayuda del sistema"
         >
-          <span className={styles.fabIcon}>💬</span>
+          <Icono nombre="chat" size={16} className={styles.fabIcon} />
           <span className={styles.fabLabel}>Ayuda</span>
         </button>
       )}
@@ -99,7 +100,7 @@ export default function AsistenteChat() {
               title="Cerrar"
               aria-label="Cerrar la ayuda"
             >
-              ✕
+              <Icono nombre="cerrar" size={15} />
             </button>
           </header>
 

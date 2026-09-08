@@ -14,6 +14,8 @@ const PATHS = {
   flecha: <path d="M5 12h14M13 6l6 6-6 6" />,
   atras: <path d="M19 12H5M11 18l-6-6 6-6" />,
   salir: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />,
+  chat: <path d="M21 12a8 8 0 0 1-8 8H8l-5 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z" />,
+  cerrar: <path d="M18 6 6 18M6 6l12 12" />,
 }
 
 export default function Icono({ nombre, size = 18, className }) {

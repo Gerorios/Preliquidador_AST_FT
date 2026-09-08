@@ -7,12 +7,17 @@ import AsistenteChat from '../asistente/AsistenteChat'
 import logoIcono from '../../assets/logo-asturiana-icono.png'
 import styles from './Inicio.module.css'
 
-// Etiqueta global de la persona en la barra superior: el admin ve "Admin",
-// el resto el resumen de sus roles por módulo (p. ej. "preliquidacion: gerente").
-const etiquetaGlobal = (usuario) => {
+// Etiqueta global de la persona en la barra superior: el admin ve "Admin", el
+// resto el resumen de sus roles por módulo con los nombres que declara cada
+// módulo (p. ej. "Preliquidación: Gerente", no "preliquidacion: gerente").
+// Un módulo que la persona tiene asignado pero no está activo/registrado se
+// omite: no hay nombre ni etiqueta que mostrar.
+const etiquetaGlobal = (usuario, MODULOS, etiquetaRol) => {
   if (!usuario) return ''
   if (usuario.rol === 'admin') return 'Admin'
-  const pares = Object.entries(usuario.modulos ?? {}).map(([m, r]) => `${m}: ${r}`)
+  const pares = MODULOS
+    .filter(m => usuario.modulos?.[m.clave])
+    .map(m => `${m.nombre}: ${etiquetaRol(usuario, m) ?? usuario.modulos[m.clave]}`)
   return pares.length ? pares.join(' · ') : 'sin módulos'
 }
 
@@ -21,7 +26,7 @@ const CLASE_FAMILIA = {
   administracion: styles.familiaAdministracion,
 }
 
-function BarraSuperior({ usuario, onSalir }) {
+function BarraSuperior({ usuario, etiqueta, onSalir }) {
   return (
     <header className={styles.topbar}>
       <div className={styles.marca}>
@@ -35,7 +40,7 @@ function BarraSuperior({ usuario, onSalir }) {
         {usuario && (
           <div>
             <div className={styles.usuarioNombre}>{usuario.nombre}</div>
-            <div className={styles.usuarioRol}>{etiquetaGlobal(usuario)}</div>
+            <div className={styles.usuarioRol}>{etiqueta}</div>
           </div>
         )}
         <button type="button" className={styles.salir} onClick={onSalir}>
@@ -52,7 +57,7 @@ function BarraSuperior({ usuario, onSalir }) {
 export default function Inicio() {
   const navigate = useNavigate()
   const { usuario, logout } = useAuthStore()
-  const { tarjetasPara } = useRegistro()
+  const { tarjetasPara, MODULOS, etiquetaRol } = useRegistro()
   const tarjetas = tarjetasPara(usuario)
 
   const salir = () => {
@@ -63,7 +68,7 @@ export default function Inicio() {
   return (
     <div className={styles.page}>
       <CargandoOverlay />
-      <BarraSuperior usuario={usuario} onSalir={salir} />
+      <BarraSuperior usuario={usuario} etiqueta={etiquetaGlobal(usuario, MODULOS, etiquetaRol)} onSalir={salir} />
 
       <main className={styles.cuerpo}>
         <h1 className={styles.titulo}>
