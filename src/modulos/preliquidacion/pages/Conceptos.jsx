@@ -13,6 +13,7 @@ import CargandoContenido from '../../../core/ui/CargandoContenido'
 import FiltrosBar from '../components/FiltrosBar'
 import PanelPorConcepto from './PanelPorConcepto'
 import useAuthStore from '../../../core/authStore'
+import { tienePermiso } from '../../../core/permisos'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
 
@@ -725,7 +726,7 @@ export default function Conceptos() {
   // así que su selector de quincenas no puede salir de listarPreliquidaciones:
   // usamos /gerencial/quincenas en su lugar (ver más abajo).
   const { usuario } = useAuthStore()
-  const esGerente = usuario?.rol === 'gerente'
+  const esGerente = !tienePermiso(usuario, 'preliquidacion', ['operador'])
   const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
   // Solapamiento por cliente pendiente de decisión: el POST respondió 409 y
   // guardamos lo necesario para reintentar (confirmando o como específica).

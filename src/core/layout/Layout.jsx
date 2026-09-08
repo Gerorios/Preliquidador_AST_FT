@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '../authStore'
+import { tienePermiso } from '../permisos'
 import CargandoOverlay from '../ui/CargandoOverlay'
 import AsistenteChat from '../asistente/AsistenteChat'
 import logoIcono from '../../assets/logo-asturiana-icono.png'
@@ -36,7 +37,7 @@ export default function Layout() {
         </div>
 
         <nav className={styles.nav}>
-          {NAV.filter(({ roles }) => roles.includes(usuario?.rol)).map(({ to, label, icon }) => (
+          {NAV.filter(({ modulo, roles }) => tienePermiso(usuario, modulo, roles)).map(({ to, label, icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -55,7 +56,11 @@ export default function Layout() {
           {usuario && !colapsado && (
             <div className={styles.userBox}>
               <div className={styles.userName}>{usuario.nombre}</div>
-              <div className={styles.userRole}>{usuario.rol}</div>
+              <div className={styles.userRole}>
+                {usuario.rol === 'admin'
+                  ? 'admin'
+                  : Object.entries(usuario.modulos ?? {}).map(([m, r]) => `${m}: ${r}`).join(' · ') || 'sin módulos'}
+              </div>
               <button className={styles.logoutBtn} onClick={handleLogout}>
                 Cerrar sesión
               </button>
