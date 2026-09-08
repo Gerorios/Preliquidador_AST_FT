@@ -16,24 +16,22 @@ const OPERATIVO = ['admin', 'jefe']
 const TODOS = ['admin', 'jefe', 'gerente']
 
 export const rutas = [
-  { path: `${PREFIJO}/dashboard`,            element: <Dashboard />,           roles: OPERATIVO },
-  { path: `${PREFIJO}/revision/:id`,         element: <Revision />,            roles: OPERATIVO },
-  { path: `${PREFIJO}/verificacion`,         element: <Verificacion />,        roles: OPERATIVO },
-  { path: `${PREFIJO}/conceptos`,            element: <Conceptos />,           roles: TODOS },
-  { path: `${PREFIJO}/categorias-operarios`, element: <CategoriasOperarios />, roles: OPERATIVO },
+  { path: `${PREFIJO}/dashboard`,            element: <Dashboard />,           roles: OPERATIVO, label: 'Inicio',        icon: '🏠', menu: true },
+  { path: `${PREFIJO}/revision/:id`,         element: <Revision />,            roles: OPERATIVO, menu: false },
+  { path: `${PREFIJO}/conceptos`,            element: <Conceptos />,           roles: TODOS,     label: 'Conceptos',     icon: '💲', menu: true },
+  { path: `${PREFIJO}/verificacion`,         element: <Verificacion />,        roles: OPERATIVO, label: 'Verificación',  icon: '✅', menu: true },
+  { path: `${PREFIJO}/categorias-operarios`, element: <CategoriasOperarios />, roles: OPERATIVO, label: 'Mantenimiento', icon: '🔧', menu: true },
   // Gerencial es transversal al sistema: queda sin prefijo (grilling etapa 0, pregunta 5).
-  { path: '/gerencial',                      element: <Gerencial />,           roles: TODOS },
+  { path: '/gerencial',                      element: <Gerencial />,           roles: TODOS,     label: 'Gerencial',     icon: '📊', menu: true },
 ]
 
-export const nav = [
-  { to: `${PREFIJO}/dashboard`,            label: 'Inicio',        icon: '🏠', roles: OPERATIVO },
-  { to: `${PREFIJO}/conceptos`,            label: 'Conceptos',     icon: '💲', roles: TODOS },
-  { to: `${PREFIJO}/verificacion`,         label: 'Verificación',  icon: '✅', roles: OPERATIVO },
-  { to: `${PREFIJO}/categorias-operarios`, label: 'Mantenimiento', icon: '🔧', roles: OPERATIVO },
-  { to: '/gerencial',                      label: 'Gerencial',     icon: '📊', roles: TODOS },
-]
+// El menú se deriva de rutas para que nav y roles no puedan divergir.
+export const nav = rutas
+  .filter(r => r.menu)
+  .map(({ path, label, icon, roles }) => ({ to: path, label, icon, roles }))
 
 // Direcciones anteriores al prefijo por módulo: favoritos guardados siguen andando.
+// Revisar si siguen haciendo falta después de 2026-12.
 export const redirecciones = [
   { from: '/dashboard',            to: `${PREFIJO}/dashboard` },
   { from: '/revision/:id',         to: `${PREFIJO}/revision/:id` },

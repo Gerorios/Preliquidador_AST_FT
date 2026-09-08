@@ -55,8 +55,9 @@ src/
 | `/preliquidacion/dashboard` | Inicio | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
 | `/preliquidacion/revision/:id` | Revisión | Tabla completa de líneas con filtrado 100 % en cliente (búsqueda con debounce + multi-select en cascada por cliente/finca/tarea/empresa/grupo/supervisor + filtros de alerta). Panel lateral de edición por línea. Modo **liquidación masiva** (conceptos masivos, reasignación de empresa por CUIL). **Exportar Excel** |
 | `/preliquidacion/verificacion` | Verificación | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
-| `/preliquidacion/conceptos` | Conceptos | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
+| `/preliquidacion/conceptos` | Conceptos | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo, con vistas "Por regla" y "Por concepto" (`PanelPorConcepto`)). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
 | `/preliquidacion/categorias-operarios` | Mantenimiento | Asignar categoría 1-7 por operario de taller y heredar de la quincena anterior |
+| `/gerencial` | Gerencial | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo |
 
 Las direcciones sin prefijo (`/dashboard`, `/conceptos`, …) redirigen a las nuevas.
 

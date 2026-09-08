@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate, useParams, generatePath } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams, generatePath, useLocation } from 'react-router-dom'
 import Layout from './core/layout/Layout'
 import ProtectedRoute, { homeDeRol } from './core/layout/ProtectedRoute'
 import CargandoContenido from './core/ui/CargandoContenido'
@@ -17,10 +17,12 @@ function HomePorRol() {
   return <Navigate to={homeDeRol(usuario?.rol)} replace />
 }
 
-// Redirección que conserva los parámetros de la URL (p. ej. /revision/12 → /preliquidacion/revision/12).
+// Redirección que conserva los parámetros de la URL (p. ej. /revision/12 → /preliquidacion/revision/12)
+// y también query string y hash.
 function Redireccion({ to }) {
   const params = useParams()
-  return <Navigate to={generatePath(to, params)} replace />
+  const { search, hash } = useLocation()
+  return <Navigate to={{ pathname: generatePath(to, params), search, hash }} replace />
 }
 
 export default function App() {
