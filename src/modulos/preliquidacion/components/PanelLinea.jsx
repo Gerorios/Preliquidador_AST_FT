@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obtenerLegajosDisponibles } from '../../services/preliquidacion'
+import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obtenerLegajosDisponibles } from '../services/preliquidacion'
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados

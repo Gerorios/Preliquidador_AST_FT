@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import styles from '../../pages/Verificacion.module.css'
+import styles from '../pages/Verificacion.module.css'
 
 // Controles de pago Plantas vs Jornal y Tancadas vs Jornal, compartidos entre
 // Verificación (liquidador: puede cargar el valor hora vía `onGuardar`) y la

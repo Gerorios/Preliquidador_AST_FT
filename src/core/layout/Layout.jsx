@@ -1,20 +1,15 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import useAuthStore from '../../store/authStore'
-import CargandoOverlay from './CargandoOverlay'
+import useAuthStore from '../authStore'
+import CargandoOverlay from '../ui/CargandoOverlay'
 import AsistenteChat from '../asistente/AsistenteChat'
 import logoIcono from '../../assets/logo-asturiana-icono.png'
 import styles from './Layout.module.css'
+import { nav as navPreliquidacion } from '../../modulos/preliquidacion/rutas'
 
-// roles: quién ve cada entrada. El gerente solo llega a Gerencial y
-// Conceptos (lectura); el backend rechaza el resto con 403 igual.
-const NAV = [
-  { to: '/dashboard',     label: 'Inicio',        icon: '🏠', roles: ['admin', 'jefe'] },
-  { to: '/conceptos',     label: 'Conceptos',     icon: '💲', roles: ['admin', 'jefe', 'gerente'] },
-  { to: '/verificacion',  label: 'Verificación',  icon: '✅', roles: ['admin', 'jefe'] },
-  { to: '/categorias-operarios', label: 'Mantenimiento', icon: '🔧', roles: ['admin', 'jefe'] },
-  { to: '/gerencial',     label: 'Gerencial',     icon: '📊', roles: ['admin', 'jefe', 'gerente'] },
-]
+// Entradas de menú de cada módulo. Los roles filtran quién ve cada una; el
+// backend rechaza igual con 403 lo que no corresponde.
+const NAV = [...navPreliquidacion]
 
 export default function Layout() {
   const navigate = useNavigate()

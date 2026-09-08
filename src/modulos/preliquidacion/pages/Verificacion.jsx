@@ -4,10 +4,10 @@ import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
   obtenerControlTancadasJornal, setValorHoraPulv, setValorHoraTractorista,
 } from '../services/preliquidacion'
-import FiltrosBar from '../components/preliquidacion/FiltrosBar'
-import { PlantasJornal, TancadasJornal } from '../components/preliquidacion/ControlesJornal'
-import InputBusqueda from '../components/preliquidacion/InputBusqueda'
-import CargandoContenido from '../components/layout/CargandoContenido'
+import FiltrosBar from '../components/FiltrosBar'
+import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
+import InputBusqueda from '../components/InputBusqueda'
+import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Verificacion.module.css'
 
 // Personas mensualizadas (no jornalizadas): se excluyen de todas las

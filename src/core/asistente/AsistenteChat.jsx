@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { consultarAsistente } from '../../services/preliquidacion'
+import { consultarAsistente } from './asistenteApi'
 import styles from './AsistenteChat.module.css'
 
 // Mapea la ruta actual al nombre de pantalla que entiende el asistente.
 function pantallaActual(pathname) {
-  if (pathname.startsWith('/revision')) return 'Revisión de una quincena'
+  if (pathname.startsWith('/preliquidacion/revision')) return 'Revisión de una quincena'
   const map = {
-    '/dashboard': 'Inicio (generar quincenas)',
-    '/conceptos': 'Conceptos y Precios',
-    '/verificacion': 'Verificación (controles)',
-    '/categorias-operarios': 'Mantenimiento (categorías de operario)',
+    '/preliquidacion/dashboard': 'Inicio (generar quincenas)',
+    '/preliquidacion/conceptos': 'Conceptos y Precios',
+    '/preliquidacion/verificacion': 'Verificación (controles)',
+    '/preliquidacion/categorias-operarios': 'Mantenimiento (categorías de operario)',
   }
   return map[pathname] || null
 }

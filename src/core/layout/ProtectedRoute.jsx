@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom'
-import useAuthStore from '../../store/authStore'
+import useAuthStore from '../authStore'
 
 // Página de inicio según rol: el gerente solo ve la vista gerencial.
-export const homeDeRol = (rol) => (rol === 'gerente' ? '/gerencial' : '/dashboard')
+export const homeDeRol = (rol) => (rol === 'gerente' ? '/gerencial' : '/preliquidacion/dashboard')
 
 export default function ProtectedRoute({ roles, children }) {
   const { token, usuario } = useAuthStore()

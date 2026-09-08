@@ -27,19 +27,22 @@ SPA en **React 18 + Vite 5** para generar, revisar, verificar y exportar la prel
 ```
 src/
 ├── main.jsx                 # Entrada; providers (React Query, Router, Toaster)
-├── App.jsx                  # Rutas (lazy)
+├── App.jsx                  # Compone las rutas de cada módulo + redirecciones
 ├── index.css                # Estilos globales + design tokens
 ├── assets/                  # Logos La Asturiana
-├── store/authStore.js       # Auth (Zustand + persist, clave "auth-asturiana")
-├── services/
+├── core/                    # NÚCLEO COMPARTIDO (ADR-0013)
 │   ├── api.js               # Axios: baseURL /api, Bearer automático, logout en 401
-│   └── preliquidacion.js    # Todas las funciones de endpoint
-├── pages/                   # Login, Dashboard, Revision, Verificacion,
-│                            # Conceptos, CategoriasOperarios
-└── components/
-    ├── layout/              # Layout (sidebar), ProtectedRoute, loaders/overlay
-    ├── preliquidacion/      # PanelLinea, FiltrosBar, AlertasBanner
-    └── asistente/           # AsistenteChat (widget flotante de ayuda)
+│   ├── authStore.js         # Sesión (Zustand + persist, clave "auth-asturiana")
+│   ├── layout/              # Layout (sidebar, compone el menú de cada módulo), ProtectedRoute
+│   ├── ui/                  # CargandoContenido, CargandoOverlay
+│   ├── asistente/           # AsistenteChat + asistenteApi (ayuda de uso, transversal)
+│   └── pages/Login.jsx
+└── modulos/
+    └── preliquidacion/      # MÓDULO Preliquidación de sueldos
+        ├── rutas.jsx        # rutas, menú y redirecciones del módulo (lo único que el núcleo conoce)
+        ├── pages/           # Dashboard, Revision, Verificacion, Conceptos, CategoriasOperarios, Gerencial, PanelPorConcepto
+        ├── components/      # PanelLinea, FiltrosBar, AlertasBanner, ControlesJornal, InputBusqueda
+        └── services/        # preliquidacion.js, gerencial.js
 ```
 
 ---
@@ -49,11 +52,14 @@ src/
 | Ruta | Vista | Qué hace |
 |---|---|---|
 | `/login` | Login | Email + contraseña (OAuth2 password → JWT) |
-| `/dashboard` | Inicio | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
-| `/revision/:id` | Revisión | Tabla completa de líneas con filtrado 100 % en cliente (búsqueda con debounce + multi-select en cascada por cliente/finca/tarea/empresa/grupo/supervisor + filtros de alerta). Panel lateral de edición por línea. Modo **liquidación masiva** (conceptos masivos, reasignación de empresa por CUIL). **Exportar Excel** |
-| `/verificacion` | Verificación | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
-| `/conceptos` | Conceptos | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
-| `/categorias-operarios` | Mantenimiento | Asignar categoría 1-7 por operario de taller y heredar de la quincena anterior |
+| `/preliquidacion/dashboard` | Inicio | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
+| `/preliquidacion/revision/:id` | Revisión | Tabla completa de líneas con filtrado 100 % en cliente (búsqueda con debounce + multi-select en cascada por cliente/finca/tarea/empresa/grupo/supervisor + filtros de alerta). Panel lateral de edición por línea. Modo **liquidación masiva** (conceptos masivos, reasignación de empresa por CUIL). **Exportar Excel** |
+| `/preliquidacion/verificacion` | Verificación | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
+| `/preliquidacion/conceptos` | Conceptos | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo, con vistas "Por regla" y "Por concepto" (`PanelPorConcepto`)). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
+| `/preliquidacion/categorias-operarios` | Mantenimiento | Asignar categoría 1-7 por operario de taller y heredar de la quincena anterior |
+| `/gerencial` | Gerencial | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo |
+
+Las direcciones sin prefijo (`/dashboard`, `/conceptos`, …) redirigen a las nuevas.
 
 Además, un **asistente de ayuda** (chat flotante, presente en todo el layout) responde dudas de uso enviando la pantalla actual como contexto; no accede a datos reales.
 
@@ -82,6 +88,8 @@ npm run preview   # sirve el build generado
 En desarrollo, Vite proxya `/api` → `http://localhost:8000` (ver `vite.config.js`), por lo que no hay problemas de CORS ni variables de entorno que configurar.
 
 En producción, `dist/` se sirve con nginx, que también proxya `/api/` al backend (ver `docs/DEPLOY.md` del backend).
+
+Para desarrollar contra la base de prueba `testing` y no contra producción, ver `docs/modulos/PUESTA-A-PUNTO.md` del repo backend.
 
 ---
 

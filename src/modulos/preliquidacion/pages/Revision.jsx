@@ -11,10 +11,10 @@ import {
   legajosPorCuil, reasignarEmpresaMasivo,
   exportarQuincenaExcel,
 } from '../services/preliquidacion'
-import PanelLinea from '../components/preliquidacion/PanelLinea'
-import FiltrosBar from '../components/preliquidacion/FiltrosBar'
-import AlertasBanner from '../components/preliquidacion/AlertasBanner'
-import CargandoContenido from '../components/layout/CargandoContenido'
+import PanelLinea from '../components/PanelLinea'
+import FiltrosBar from '../components/FiltrosBar'
+import AlertasBanner from '../components/AlertasBanner'
+import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Revision.module.css'
 
 function fmt(v) {
@@ -484,7 +484,7 @@ export default function Revision() {
     <div className={styles.page}>
       {/* Topbar */}
       <div className={styles.topbar}>
-        <button className="btn btn-sm" onClick={() => navigate('/dashboard')}>← Volver</button>
+        <button className="btn btn-sm" onClick={() => navigate('/preliquidacion/dashboard')}>← Volver</button>
         <div className={styles.topbarInfo}>
           {stats && (
             <>
@@ -509,7 +509,7 @@ export default function Revision() {
             mensaje={<><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</>}
             ctaLabel="Ir a Conceptos →"
             ctaSubrayada={false}
-            onFiltrar={() => navigate('/conceptos')}
+            onFiltrar={() => navigate('/preliquidacion/conceptos')}
           />
         )}
         {stats?.lineas_con_alerta > 0 && stats?.incompletas === 0 && (

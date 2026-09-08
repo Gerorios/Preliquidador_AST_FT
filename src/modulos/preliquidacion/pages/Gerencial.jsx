@@ -8,8 +8,8 @@ import {
   obtenerPorGrupoTarea, obtenerDesvios, obtenerIndicadores, obtenerDesviosClientes,
   obtenerControlPlantasGerencial, obtenerControlTancadasGerencial,
 } from '../services/gerencial'
-import CargandoContenido from '../components/layout/CargandoContenido'
-import { PlantasJornal, TancadasJornal } from '../components/preliquidacion/ControlesJornal'
+import CargandoContenido from '../../../core/ui/CargandoContenido'
+import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import styles from './Gerencial.module.css'
 
 const moneda = new Intl.NumberFormat('es-AR', {

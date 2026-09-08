@@ -9,10 +9,10 @@ import {
   obtenerPanelPrecios, aplicarPrecioMasivo, listarSupervisores,
 } from '../services/preliquidacion'
 import { listarQuincenasGerencial } from '../services/gerencial'
-import CargandoContenido from '../components/layout/CargandoContenido'
-import FiltrosBar from '../components/preliquidacion/FiltrosBar'
+import CargandoContenido from '../../../core/ui/CargandoContenido'
+import FiltrosBar from '../components/FiltrosBar'
 import PanelPorConcepto from './PanelPorConcepto'
-import useAuthStore from '../store/authStore'
+import useAuthStore from '../../../core/authStore'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
 

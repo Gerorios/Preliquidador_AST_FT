@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { listarPreliquidaciones, generarPreliquidacion } from '../services/preliquidacion'
-import CargandoContenido from '../components/layout/CargandoContenido'
+import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Dashboard.module.css'
 
 const QUINCENAS = () => {
@@ -104,7 +104,7 @@ export default function Dashboard() {
               <tbody>
                 {preliquidaciones.map(p => {
                   return (
-                    <tr key={p.id} onClick={() => navigate(`/revision/${p.id}`)}>
+                    <tr key={p.id} onClick={() => navigate(`/preliquidacion/revision/${p.id}`)}>
                       <td className="mono">{formatQuincena(p.quincena)}</td>
                       <td className="mono">{p.total_lineas}</td>
                       <td>
@@ -116,7 +116,7 @@ export default function Dashboard() {
                       <td>
                         <button
                           className="btn btn-sm"
-                          onClick={e => { e.stopPropagation(); navigate(`/revision/${p.id}`) }}
+                          onClick={e => { e.stopPropagation(); navigate(`/preliquidacion/revision/${p.id}`) }}
                         >
                           Abrir →
                         </button>
