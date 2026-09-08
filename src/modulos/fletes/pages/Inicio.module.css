@@ -1,0 +1,17 @@
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.titulo {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.texto {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
