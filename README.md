@@ -1,6 +1,6 @@
-# Sistema de Preliquidación — Frontend — La Asturiana SRL
+# Sistema de gestión La Asturiana — Frontend
 
-SPA en **React 18 + Vite 5** para generar, revisar, verificar y exportar la preliquidación de sueldos por quincena. Consume la API del backend FastAPI (`backend_preliquidacion` / `Gerorios/Preliquidador_AST_BK`).
+SPA en **React 18 + Vite 5** para los distintos módulos de gestión de La Asturiana SRL. **Preliquidación** (generar, revisar, verificar y exportar la preliquidación de sueldos por quincena) es el primer módulo. Consume la API del backend FastAPI (`backend_preliquidacion` / `Gerorios/Preliquidador_AST_BK`).
 
 > **Máquina nueva o módulo nuevo**: la puesta a punto de ambos proyectos y la guía para incorporar módulos (Fletes es el primero) viven en el repo backend, en `docs/modulos/PUESTA-A-PUNTO.md` y `docs/modulos/GUIA-MODULOS.md`.
 
@@ -34,15 +34,19 @@ src/
 │   ├── api.js               # Axios: baseURL /api, Bearer automático, logout en 401
 │   ├── authStore.js         # Sesión (Zustand + persist, clave "auth-asturiana")
 │   ├── layout/              # Layout (sidebar, compone el menú de cada módulo), ProtectedRoute
-│   ├── ui/                  # CargandoContenido, CargandoOverlay
+│   ├── ui/                  # CargandoContenido, CargandoOverlay, iconos.jsx (íconos SVG del sistema)
+│   ├── inicio/              # Inicio.jsx: pantalla de tarjetas tras el login (una por módulo + Gerencial)
+│   ├── registroContext.js   # Contexto que expone el registro de módulos al núcleo (inyectado por App.jsx)
 │   ├── asistente/           # AsistenteChat + asistenteApi (ayuda de uso, transversal)
 │   └── pages/Login.jsx
 └── modulos/
-    └── preliquidacion/      # MÓDULO Preliquidación de sueldos
-        ├── rutas.jsx        # rutas, menú y redirecciones del módulo (lo único que el núcleo conoce)
-        ├── pages/           # Dashboard, Revision, Verificacion, Conceptos, CategoriasOperarios, Gerencial, PanelPorConcepto
-        ├── components/      # PanelLinea, FiltrosBar, AlertasBanner, ControlesJornal, InputBusqueda
-        └── services/        # preliquidacion.js, gerencial.js
+    ├── registro.js          # Registro de módulos: alta con una línea, arma tarjetas del Inicio y pantallas del asistente
+    ├── preliquidacion/      # MÓDULO Preliquidación de sueldos
+    │   ├── rutas.jsx        # rutas, menú, redirecciones y descriptor `modulo` (lo único que el núcleo conoce)
+    │   ├── pages/           # Dashboard, Revision, Verificacion, Conceptos, CategoriasOperarios, Gerencial, PanelPorConcepto
+    │   ├── components/      # PanelLinea, FiltrosBar, AlertasBanner, ControlesJornal, InputBusqueda
+    │   └── services/        # preliquidacion.js, gerencial.js
+    └── fletes/              # Molde de módulo (PR 4, etapa 0): inactivo, no se monta ni aparece en el Inicio
 ```
 
 ---
@@ -52,16 +56,51 @@ src/
 | Ruta | Vista | Quién | Qué hace |
 |---|---|---|---|
 | `/login` | Login | Todos | Email + contraseña (OAuth2 password → JWT) |
-| `/preliquidacion/dashboard` | Inicio | operador, admin | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
+| `/` | Inicio | Todos | Tarjetas: una por módulo al que la persona accede, más **Gerencial** (tarjeta del sistema, no de un módulo) |
+| `/preliquidacion/dashboard` | Inicio (Preliquidación) | operador, admin | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
 | `/preliquidacion/revision/:id` | Revisión | operador, admin | Tabla completa de líneas con filtrado 100 % en cliente (búsqueda con debounce + multi-select en cascada por cliente/finca/tarea/empresa/grupo/supervisor + filtros de alerta). Panel lateral de edición por línea. Modo **liquidación masiva** (conceptos masivos, reasignación de empresa por CUIL). **Exportar Excel** |
 | `/preliquidacion/verificacion` | Verificación | operador, admin | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
 | `/preliquidacion/conceptos` | Conceptos | operador, gerente, admin | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo, con vistas "Por regla" y "Por concepto" (`PanelPorConcepto`)). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
 | `/preliquidacion/categorias-operarios` | Mantenimiento | operador, admin | Asignar categoría 1-7 por operario de taller y heredar de la quincena anterior |
-| `/gerencial` | Gerencial | gerente, admin | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo. El operador no la ve |
+| `/gerencial` | Gerencial | gerente, admin | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo, se llega por su propia tarjeta en el Inicio (no es un módulo). El operador no la ve |
 
 Las direcciones sin prefijo (`/dashboard`, `/conceptos`, …) redirigen a las nuevas.
 
 Además, un **asistente de ayuda** (chat flotante, presente en todo el layout) responde dudas de uso enviando la pantalla actual como contexto; no accede a datos reales.
+
+---
+
+## Inicio y módulos
+
+Después de loguearse, la persona cae en `/` (`src/core/inicio/Inicio.jsx`): una pantalla de tarjetas, sin sidebar, con una tarjeta por cada módulo al que tiene acceso más, si corresponde, la tarjeta **Gerencial**. Cada tarjeta lleva a la "home" de ese módulo para el rol de la persona. El registro de módulos (`src/modulos/registro.js`) arma esa lista a partir de los descriptores `modulo` que exporta cada `rutas.jsx`.
+
+Qué tarjetas ve cada rol (con Preliquidación como único módulo activo hoy):
+
+| Rol | Tarjetas en el Inicio |
+|---|---|
+| admin | Preliquidación + Gerencial |
+| Preliquidador (operador de Preliquidación) | Preliquidación (lleva a `/preliquidacion/dashboard`) |
+| Gerente | Preliquidación (lleva a `/preliquidacion/conceptos`, no al dashboard del operador) + Gerencial |
+
+**Gerencial** no es un módulo: es una tarjeta del sistema. Aparece cuando la persona tiene rol `gerente` (o es admin) en algún módulo que declara vista gerencial, y lleva a `/gerencial` (transversal, sin prefijo de módulo).
+
+## Cómo agregar un módulo
+
+1. Crear `src/modulos/<modulo>/rutas.jsx` que exporte el descriptor `modulo` (ver `src/modulos/preliquidacion/rutas.jsx` como referencia completa). Sus campos:
+   - `clave`, `nombre`, `descripcion(usuario)`, `icono` (nombre de `src/core/ui/iconos.jsx`)
+   - `activo` (boolean): si es `false`, el módulo no se monta en `App.jsx` ni aparece en el Inicio (así vive el molde `fletes` hoy)
+   - `prefijo`, `rutas`, `nav` (menú del módulo, derivado de `rutas` para que no puedan divergir), `redirecciones`
+   - `etiquetasRol`: mapa de rol interno del módulo (p. ej. `operador`, `gerente`) a la etiqueta visible (p. ej. `Preliquidador`)
+   - `rolesTarjeta`: roles del módulo que ven su tarjeta en el Inicio
+   - `home(usuario)`: ruta a la que lleva la tarjeta, según el rol de la persona en el módulo
+   - `pantallas`: mapa ruta → nombre, para que el asistente de ayuda reconozca las pantallas del módulo
+   - `gerencial`: `{ ruta, roles }` si el módulo tiene vista gerencial, o `null`
+2. Agregar una línea en `src/modulos/registro.js`: importar el `modulo` y sumarlo al arreglo `TODOS`.
+3. Poner `activo: true` en el descriptor cuando el módulo tenga su primera pantalla real, para que se monte y aparezca en el Inicio.
+
+## Íconos
+
+Los íconos SVG del sistema viven en `src/core/ui/iconos.jsx` (`<Icono nombre="..." />`), un mapa de nombre a trazo `<path>`/`<svg>` interno; ya no hay emojis en menú ni tarjetas. Para agregar uno: sumar la clave y su trazo al objeto `PATHS` del archivo. Un nombre no registrado cae en el ícono `modulos` y avisa por consola solo en desarrollo.
 
 ---
 
