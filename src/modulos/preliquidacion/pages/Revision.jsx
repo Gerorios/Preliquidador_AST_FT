@@ -11,10 +11,10 @@ import {
   legajosPorCuil, reasignarEmpresaMasivo,
   exportarQuincenaExcel,
 } from '../services/preliquidacion'
-import PanelLinea from '../components/preliquidacion/PanelLinea'
-import FiltrosBar from '../components/preliquidacion/FiltrosBar'
-import AlertasBanner from '../components/preliquidacion/AlertasBanner'
-import CargandoContenido from '../core/ui/CargandoContenido'
+import PanelLinea from '../components/PanelLinea'
+import FiltrosBar from '../components/FiltrosBar'
+import AlertasBanner from '../components/AlertasBanner'
+import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Revision.module.css'
 
 function fmt(v) {

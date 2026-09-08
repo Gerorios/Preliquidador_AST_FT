@@ -1,4 +1,4 @@
-import api from '../core/api'
+import api from '../../../core/api'
 
 // Todos aceptan { quincena } o { mes: 'YYYY-MM' } (exactamente uno) y empresa opcional.
 const params = ({ quincena, mes, empresa, ...resto }) => ({

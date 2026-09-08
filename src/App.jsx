@@ -6,12 +6,12 @@ import CargandoContenido from './core/ui/CargandoContenido'
 import useAuthStore from './core/authStore'
 
 const Login = lazy(() => import('./core/pages/Login'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Revision = lazy(() => import('./pages/Revision'))
-const Verificacion = lazy(() => import('./pages/Verificacion'))
-const Conceptos = lazy(() => import('./pages/Conceptos'))
-const CategoriasOperarios = lazy(() => import('./pages/CategoriasOperarios'))
-const Gerencial = lazy(() => import('./pages/Gerencial'))
+const Dashboard = lazy(() => import('./modulos/preliquidacion/pages/Dashboard'))
+const Revision = lazy(() => import('./modulos/preliquidacion/pages/Revision'))
+const Verificacion = lazy(() => import('./modulos/preliquidacion/pages/Verificacion'))
+const Conceptos = lazy(() => import('./modulos/preliquidacion/pages/Conceptos'))
+const CategoriasOperarios = lazy(() => import('./modulos/preliquidacion/pages/CategoriasOperarios'))
+const Gerencial = lazy(() => import('./modulos/preliquidacion/pages/Gerencial'))
 
 const OPERATIVO = ['admin', 'jefe']
 const TODOS = ['admin', 'jefe', 'gerente']

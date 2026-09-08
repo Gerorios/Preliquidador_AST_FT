@@ -5,7 +5,7 @@ import {
   listarPreliquidaciones, listarOperariosMantenimiento,
   setCategoriaOperario, heredarCategoriasOperario,
 } from '../services/preliquidacion'
-import CargandoContenido from '../core/ui/CargandoContenido'
+import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './CategoriasOperarios.module.css'
 
 const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
