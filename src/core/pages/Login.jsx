@@ -11,7 +11,7 @@ import styles from './Login.module.css'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login } = useAuthStore()
+  const { login, logout } = useAuthStore()
   const [form, setForm] = useState({ email: '', password: '' })
   const [cargando, setCargando] = useState(false)
 
@@ -32,9 +32,15 @@ export default function Login() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
 
-      login(res.data.access_token, res.data.usuario)
-      toast.success(`Bienvenido, ${res.data.usuario.nombre}`)
-      navigate(homeDeUsuario(res.data.usuario, HOMES))
+      const destino = homeDeUsuario(res.data.usuario, HOMES)
+      if (destino === '/login') {
+        logout()
+        toast.error('Tu usuario no tiene módulos asignados. Pedile al administrador que te habilite uno.')
+      } else {
+        login(res.data.access_token, res.data.usuario)
+        toast.success(`Bienvenido, ${res.data.usuario.nombre}`)
+        navigate(destino)
+      }
     } catch (err) {
       const msg = err.response?.data?.detail || 'Error al iniciar sesión'
       toast.error(msg)

@@ -721,7 +721,7 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
 
 export default function Conceptos() {
   const qc = useQueryClient()
-  // El gerente opera esta pantalla igual que admin/jefe (el backend ya le
+  // El gerente opera esta pantalla igual que admin/operador (el backend ya le
   // permite las mutaciones). Lo único vedado es /api/preliquidacion/... (403),
   // así que su selector de quincenas no puede salir de listarPreliquidaciones:
   // usamos /gerencial/quincenas en su lugar (ver más abajo).
