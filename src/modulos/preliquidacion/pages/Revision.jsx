@@ -484,7 +484,7 @@ export default function Revision() {
     <div className={styles.page}>
       {/* Topbar */}
       <div className={styles.topbar}>
-        <button className="btn btn-sm" onClick={() => navigate('/dashboard')}>← Volver</button>
+        <button className="btn btn-sm" onClick={() => navigate('/preliquidacion/dashboard')}>← Volver</button>
         <div className={styles.topbarInfo}>
           {stats && (
             <>
@@ -509,7 +509,7 @@ export default function Revision() {
             mensaje={<><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</>}
             ctaLabel="Ir a Conceptos →"
             ctaSubrayada={false}
-            onFiltrar={() => navigate('/conceptos')}
+            onFiltrar={() => navigate('/preliquidacion/conceptos')}
           />
         )}
         {stats?.lineas_con_alerta > 0 && stats?.incompletas === 0 && (

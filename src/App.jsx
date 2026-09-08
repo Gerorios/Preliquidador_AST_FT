@@ -1,24 +1,26 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams, generatePath } from 'react-router-dom'
 import Layout from './core/layout/Layout'
 import ProtectedRoute, { homeDeRol } from './core/layout/ProtectedRoute'
 import CargandoContenido from './core/ui/CargandoContenido'
 import useAuthStore from './core/authStore'
+import { rutas as rutasPreliquidacion, redirecciones as redirPreliquidacion } from './modulos/preliquidacion/rutas'
 
 const Login = lazy(() => import('./core/pages/Login'))
-const Dashboard = lazy(() => import('./modulos/preliquidacion/pages/Dashboard'))
-const Revision = lazy(() => import('./modulos/preliquidacion/pages/Revision'))
-const Verificacion = lazy(() => import('./modulos/preliquidacion/pages/Verificacion'))
-const Conceptos = lazy(() => import('./modulos/preliquidacion/pages/Conceptos'))
-const CategoriasOperarios = lazy(() => import('./modulos/preliquidacion/pages/CategoriasOperarios'))
-const Gerencial = lazy(() => import('./modulos/preliquidacion/pages/Gerencial'))
 
-const OPERATIVO = ['admin', 'jefe']
-const TODOS = ['admin', 'jefe', 'gerente']
+// Un módulo nuevo se registra agregando sus listas acá y en Layout.jsx.
+const RUTAS = [...rutasPreliquidacion]
+const REDIRECCIONES = [...redirPreliquidacion]
 
 function HomePorRol() {
   const { usuario } = useAuthStore()
   return <Navigate to={homeDeRol(usuario?.rol)} replace />
+}
+
+// Redirección que conserva los parámetros de la URL (p. ej. /revision/12 → /preliquidacion/revision/12).
+function Redireccion({ to }) {
+  const params = useParams()
+  return <Navigate to={generatePath(to, params)} replace />
 }
 
 export default function App() {
@@ -28,12 +30,12 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<HomePorRol />} />
-          <Route path="dashboard" element={<ProtectedRoute roles={OPERATIVO}><Dashboard /></ProtectedRoute>} />
-          <Route path="revision/:id" element={<ProtectedRoute roles={OPERATIVO}><Revision /></ProtectedRoute>} />
-          <Route path="verificacion" element={<ProtectedRoute roles={OPERATIVO}><Verificacion /></ProtectedRoute>} />
-          <Route path="conceptos" element={<ProtectedRoute roles={TODOS}><Conceptos /></ProtectedRoute>} />
-          <Route path="categorias-operarios" element={<ProtectedRoute roles={OPERATIVO}><CategoriasOperarios /></ProtectedRoute>} />
-          <Route path="gerencial" element={<ProtectedRoute roles={TODOS}><Gerencial /></ProtectedRoute>} />
+          {RUTAS.map(({ path, element, roles }) => (
+            <Route key={path} path={path} element={<ProtectedRoute roles={roles}>{element}</ProtectedRoute>} />
+          ))}
+          {REDIRECCIONES.map(({ from, to }) => (
+            <Route key={from} path={from} element={<Redireccion to={to} />} />
+          ))}
         </Route>
         <Route path="*" element={<HomePorRol />} />
       </Routes>

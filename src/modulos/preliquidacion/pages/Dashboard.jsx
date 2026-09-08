@@ -104,7 +104,7 @@ export default function Dashboard() {
               <tbody>
                 {preliquidaciones.map(p => {
                   return (
-                    <tr key={p.id} onClick={() => navigate(`/revision/${p.id}`)}>
+                    <tr key={p.id} onClick={() => navigate(`/preliquidacion/revision/${p.id}`)}>
                       <td className="mono">{formatQuincena(p.quincena)}</td>
                       <td className="mono">{p.total_lineas}</td>
                       <td>
@@ -116,7 +116,7 @@ export default function Dashboard() {
                       <td>
                         <button
                           className="btn btn-sm"
-                          onClick={e => { e.stopPropagation(); navigate(`/revision/${p.id}`) }}
+                          onClick={e => { e.stopPropagation(); navigate(`/preliquidacion/revision/${p.id}`) }}
                         >
                           Abrir →
                         </button>
