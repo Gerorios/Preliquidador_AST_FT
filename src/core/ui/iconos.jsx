@@ -4,7 +4,7 @@
 const PATHS = {
   preliquidacion: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>,
   gerencial: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
-  fletes: <><path d="M2 7h12v9H2zM14 10h5l3 3v3h-8z" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></>,
+  terceros: <><path d="M2 7h12v9H2zM14 10h5l3 3v3h-8z" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></>,
   administracion: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M18 8v6M15 11h6" /></>,
   inicio: <><path d="M3 11 12 4l9 7" /><path d="M5 10v10h14V10" /></>,
   conceptos: <><path d="M12 2v20" /><path d="M17 6.5c0-2-2.2-3-5-3s-5 1-5 3 2 3 5 3 5 1 5 3-2.2 3-5 3-5-1-5-3" /></>,
