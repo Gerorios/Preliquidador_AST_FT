@@ -23,6 +23,14 @@ export const tarjetasPara = (usuario) => {
       descripcion: `Indicadores, evolución y desvíos de ${conGerencial.map(m => m.nombre).join(', ')}.`,
       etiqueta: usuario?.rol === 'admin' ? 'Admin' : 'Gerente', ruta: conGerencial[0].gerencial.ruta })
   }
+  // Administración es del Sistema (no un módulo): solo el admin global la ve.
+  if (usuario?.rol === 'admin') {
+    deModulos.push({
+      clave: 'administracion', nombre: 'Administración', icono: 'administracion',
+      familia: 'administracion', etiqueta: 'Admin', ruta: '/administracion',
+      descripcion: 'Usuarios, roles y accesos del sistema.',
+    })
+  }
   return deModulos
 }
 

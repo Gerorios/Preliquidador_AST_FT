@@ -4,9 +4,11 @@ import { tienePermiso } from '../permisos'
 
 // Sin sesión → login. Con sesión pero sin permiso en el módulo de la ruta →
 // vuelta al Inicio, que solo muestra tarjetas de módulos a los que sí accede.
-export default function ProtectedRoute({ modulo, roles, children }) {
+export default function ProtectedRoute({ modulo, roles, soloAdmin, children }) {
   const { token, usuario } = useAuthStore()
   if (!token) return <Navigate to="/login" replace />
+  // Administración es del Sistema, no de un módulo: exige el rol global.
+  if (soloAdmin && usuario?.rol !== 'admin') return <Navigate to="/" replace />
   if (modulo && !tienePermiso(usuario, modulo, roles)) return <Navigate to="/" replace />
   return children
 }

@@ -4,7 +4,7 @@ import { useRegistro } from '../registroContext'
 import Icono from '../ui/iconos'
 import CargandoOverlay from '../ui/CargandoOverlay'
 import AsistenteChat from '../asistente/AsistenteChat'
-import logoIcono from '../../assets/logo-asturiana-icono.png'
+import BarraSuperior from '../layout/BarraSuperior'
 import styles from './Inicio.module.css'
 
 // Etiqueta global de la persona en la barra superior: el admin ve "Admin", el
@@ -24,31 +24,6 @@ const etiquetaGlobal = (usuario, MODULOS, etiquetaRol) => {
 const CLASE_FAMILIA = {
   gerencial: styles.familiaGerencial,
   administracion: styles.familiaAdministracion,
-}
-
-function BarraSuperior({ usuario, etiqueta, onSalir }) {
-  return (
-    <header className={styles.topbar}>
-      <div className={styles.marca}>
-        <img src={logoIcono} alt="La Asturiana" className={styles.marcaLogo} />
-        <div>
-          <div className={styles.marcaNombre}>La Asturiana</div>
-          <div className={styles.marcaSistema}>Sistema de gestión</div>
-        </div>
-      </div>
-      <div className={styles.usuario}>
-        {usuario && (
-          <div>
-            <div className={styles.usuarioNombre}>{usuario.nombre}</div>
-            <div className={styles.usuarioRol}>{etiqueta}</div>
-          </div>
-        )}
-        <button type="button" className={styles.salir} onClick={onSalir}>
-          Cerrar sesión
-        </button>
-      </div>
-    </header>
-  )
 }
 
 // Pantalla de Inicio (PR 4): sin menú lateral, una tarjeta por módulo al que
