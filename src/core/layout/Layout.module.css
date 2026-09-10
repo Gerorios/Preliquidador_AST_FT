@@ -197,17 +197,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* La etiqueta de rol ahora la define cada módulo ("Preliquidador", "Gerente",
-   "Admin"): se muestra tal cual, sin pasarla a mayúsculas. */
-.userRole {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--sidebar-text-muted);
-  margin-top: 1px;
   margin-bottom: 8px;
-  letter-spacing: 0.3px;
 }
 
 /* Mismo tratamiento visual que .logoutBtn, para un <Link> en vez de un

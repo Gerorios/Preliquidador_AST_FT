@@ -7,20 +7,6 @@ import AsistenteChat from '../asistente/AsistenteChat'
 import BarraSuperior from '../layout/BarraSuperior'
 import styles from './Inicio.module.css'
 
-// Etiqueta global de la persona en el encabezado del Inicio: el admin ve
-// "Admin", el resto el resumen de sus roles por módulo con los nombres que
-// declara cada módulo (p. ej. "Preliquidación: Gerente", no
-// "preliquidacion: gerente"). Un módulo que la persona tiene asignado pero no
-// está activo/registrado se omite: no hay nombre ni etiqueta que mostrar.
-const etiquetaGlobal = (usuario, MODULOS, etiquetaRol) => {
-  if (!usuario) return ''
-  if (usuario.rol === 'admin') return 'Admin'
-  const pares = MODULOS
-    .filter(m => usuario.modulos?.[m.clave])
-    .map(m => `${m.nombre}: ${etiquetaRol(usuario, m) ?? usuario.modulos[m.clave]}`)
-  return pares.length ? pares.join(' · ') : 'sin módulos'
-}
-
 // El padrón de empleados guarda el nombre en mayúsculas y con el apellido
 // primero ("GOMEZ ADRIAN ALEJANDRO"), que en un saludo se lee a los gritos.
 // Esto lo pasa a capitalización por palabra ("Gomez Adrian Alejandro"), pero
@@ -47,9 +33,8 @@ const CLASE_FAMILIA = {
 export default function Inicio() {
   const navigate = useNavigate()
   const { usuario, logout } = useAuthStore()
-  const { tarjetasPara, MODULOS, etiquetaRol } = useRegistro()
+  const { tarjetasPara } = useRegistro()
   const tarjetas = tarjetasPara(usuario)
-  const etiqueta = etiquetaGlobal(usuario, MODULOS, etiquetaRol)
   const nombre = nombreParaSaludo(usuario?.nombre)
   const saludo = nombre ? `Bienvenido, ${nombre}` : 'Bienvenido'
 
@@ -64,13 +49,8 @@ export default function Inicio() {
       <BarraSuperior />
 
       <main className={styles.cuerpo}>
-        {/* El saludo es lo primero que se lee; el rol baja acá desde la barra
-            como chip, para no perder una información que sirve. */}
         <header className={styles.encabezado}>
-          <div className={styles.saludoLinea}>
-            <h1 className={styles.saludo}>{saludo}</h1>
-            {etiqueta && <span className="badge badge-muted">{etiqueta}</span>}
-          </div>
+          <h1 className={styles.saludo}>{saludo}</h1>
           <p className={styles.subtitulo}>Elegí dónde trabajar</p>
         </header>
 
@@ -104,7 +84,6 @@ export default function Inicio() {
                   <div className={styles.descripcion}>{t.descripcion}</div>
                 </div>
                 <div className={styles.pie}>
-                  {t.etiqueta ? <span className={styles.chip}>{t.etiqueta}</span> : <span />}
                   <Icono nombre="flecha" className={styles.flecha} />
                 </div>
               </button>

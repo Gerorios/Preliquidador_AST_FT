@@ -16,7 +16,7 @@ import styles from './Layout.module.css'
 export default function Layout({ modulo, marco }) {
   const navigate = useNavigate()
   const { usuario, logout } = useAuthStore()
-  const { MODULOS, etiquetaRol } = useRegistro()
+  const { MODULOS } = useRegistro()
   const [colapsado, setColapsado] = useState(false)
 
   const esGerencial = marco === 'gerencial'
@@ -30,10 +30,6 @@ export default function Layout({ modulo, marco }) {
     : (modulo?.nav ?? []).filter(n => tienePermiso(usuario, n.modulo, n.roles))
 
   const titulo = esGerencial ? 'Gerencial' : (modulo?.nombre ?? '')
-
-  const etiqueta = esGerencial
-    ? (usuario?.rol === 'admin' ? 'Admin' : 'Gerente')
-    : etiquetaRol(usuario, modulo)
 
   const handleLogout = () => {
     logout()
@@ -79,7 +75,6 @@ export default function Layout({ modulo, marco }) {
           {usuario && !colapsado && (
             <div className={styles.userBox}>
               <div className={styles.userName}>{usuario.nombre}</div>
-              <div className={styles.userRole}>{etiqueta ?? 'sin rol'}</div>
               <Link to="/cambiar-password" className={styles.linkSecundario}>
                 Cambiar mi contraseña
               </Link>
