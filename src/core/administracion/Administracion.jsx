@@ -1,9 +1,20 @@
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '../authStore'
 import BarraSuperior from '../layout/BarraSuperior'
+import CargandoContenido from '../ui/CargandoContenido'
+import { modulosDelSistema } from './adminApi'
+import ListaUsuarios from './ListaUsuarios'
+import AltaDesdePadron from './AltaDesdePadron'
+import styles from './Administracion.module.css'
 
-// Andamio mínimo: la pantalla real (listado, alta e invitación de usuarios) la
-// completa una task siguiente. Esto solo hace que la ruta resuelva.
+// Administración de usuarios del Sistema (etapa 0, PR 5). Reemplaza correr
+// scripts por SSH: da de alta gente del padrón de empleados, le asigna módulo
+// y rol, desactiva a quien se va y resetea contraseñas.
+//
+// Los dos bloques comparten la lista de módulos activos, que se pide una sola
+// vez acá: de ella salen las columnas de accesos y todos los selectores de rol,
+// con las etiquetas que declara cada módulo ("Preliquidador", no "operador").
 export default function Administracion() {
   const navigate = useNavigate()
   const { usuario, logout } = useAuthStore()
@@ -13,10 +24,36 @@ export default function Administracion() {
     navigate('/login')
   }
 
+  const { data: modulos = [], isLoading, isError, error } = useQuery({
+    queryKey: ['modulos-sistema'],
+    queryFn: modulosDelSistema,
+    staleTime: 5 * 60 * 1000,
+  })
+
   return (
-    <div>
-      <BarraSuperior usuario={usuario} etiqueta="Admin" onSalir={salir} volverA="/" titulo="Administración" />
-      <p style={{ padding: 24 }}>En preparación.</p>
+    <div className={styles.page}>
+      <BarraSuperior
+        usuario={usuario}
+        etiqueta="Admin"
+        onSalir={salir}
+        volverA="/"
+        titulo="Administración"
+      />
+
+      <main className={styles.cuerpo}>
+        {isLoading ? (
+          <CargandoContenido texto="Cargando módulos del sistema…" />
+        ) : isError ? (
+          <div className={styles.error}>
+            No se pudieron cargar los módulos del sistema: {error.message}
+          </div>
+        ) : (
+          <>
+            <ListaUsuarios modulos={modulos} />
+            <AltaDesdePadron modulos={modulos} />
+          </>
+        )}
+      </main>
     </div>
   )
 }

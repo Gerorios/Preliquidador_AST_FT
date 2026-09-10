@@ -7,6 +7,8 @@ const PATHS = {
   fletes: <><path d="M2 7h12v9H2zM14 10h5l3 3v3h-8z" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></>,
   administracion: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M18 8v6M15 11h6" /></>,
   inicio: <><path d="M3 11 12 4l9 7" /><path d="M5 10v10h14V10" /></>,
+  usuarios: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M16.5 4.8a3.5 3.5 0 0 1 0 6.4" /><path d="M18.5 20a6.5 6.5 0 0 0-3-5.4" /></>,
+  copiar: <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>,
   conceptos: <><path d="M12 2v20" /><path d="M17 6.5c0-2-2.2-3-5-3s-5 1-5 3 2 3 5 3 5 1 5 3-2.2 3-5 3-5-1-5-3" /></>,
   verificacion: <path d="M20 6 9 17l-5-5" />,
   mantenimiento: <path d="M14.5 5.5a4 4 0 0 0 4 4l2-2a5.5 5.5 0 0 1-7.5 7.5L6 22l-3-3 7-7a5.5 5.5 0 0 1 7.5-7.5z" />,
