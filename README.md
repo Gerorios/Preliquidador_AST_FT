@@ -2,7 +2,7 @@
 
 SPA en **React 18 + Vite 5** para los distintos módulos de gestión de La Asturiana SRL. **Preliquidación** (generar, revisar, verificar y exportar la preliquidación de sueldos por quincena) es el primer módulo. Consume la API del backend FastAPI (`backend_preliquidacion` / `Gerorios/Preliquidador_AST_BK`).
 
-> **Máquina nueva o módulo nuevo**: la puesta a punto de ambos proyectos y la guía para incorporar módulos (Fletes es el primero) viven en el repo backend, en `docs/modulos/PUESTA-A-PUNTO.md` y `docs/modulos/GUIA-MODULOS.md`.
+> **Máquina nueva o módulo nuevo**: la puesta a punto de ambos proyectos y la guía para incorporar módulos (Liquidación Terceros es el primero) viven en el repo backend, en `docs/modulos/PUESTA-A-PUNTO.md` y `docs/modulos/GUIA-MODULOS.md`.
 
 ---
 
@@ -46,7 +46,7 @@ src/
     │   ├── pages/           # Dashboard, Revision, Verificacion, Conceptos, CategoriasOperarios, Gerencial, PanelPorConcepto
     │   ├── components/      # PanelLinea, FiltrosBar, AlertasBanner, ControlesJornal, InputBusqueda
     │   └── services/        # preliquidacion.js, gerencial.js
-    └── fletes/              # Molde de módulo (PR 4, etapa 0): inactivo, no se monta ni aparece en el Inicio
+    └── terceros/            # Molde de módulo (PR 4, etapa 0): inactivo, no se monta ni aparece en el Inicio
 ```
 
 ---
@@ -88,7 +88,7 @@ Qué tarjetas ve cada rol (con Preliquidación como único módulo activo hoy):
 
 1. Crear `src/modulos/<modulo>/rutas.jsx` que exporte el descriptor `modulo` (ver `src/modulos/preliquidacion/rutas.jsx` como referencia completa). Sus campos:
    - `clave`, `nombre`, `descripcion(usuario)`, `icono` (nombre de `src/core/ui/iconos.jsx`)
-   - `activo` (boolean): si es `false`, el módulo no se monta en `App.jsx` ni aparece en el Inicio (así vive el molde `fletes` hoy)
+   - `activo` (boolean): si es `false`, el módulo no se monta en `App.jsx` ni aparece en el Inicio (así vive el molde `terceros` hoy)
    - `prefijo`, `rutas`, `nav` (menú del módulo, derivado de `rutas` para que no puedan divergir), `redirecciones`
    - `etiquetasRol`: mapa de rol interno del módulo (p. ej. `operador`, `gerente`) a la etiqueta visible (p. ej. `Preliquidador`)
    - `rolesTarjeta`: roles del módulo que ven su tarjeta en el Inicio
