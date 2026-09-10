@@ -3,16 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../ui/CargandoContenido'
 import Icono from '../ui/iconos'
-import { buscarPadron, crearUsuarios } from './adminApi'
+import { ROLES_GLOBALES, buscarPadron, crearUsuarios } from './adminApi'
 import styles from './Administracion.module.css'
 
 const MINIMO = 3
 const AYUDA_BUSQUEDA = 'Escribí al menos 3 letras del apellido o 3 dígitos del CUIL'
-
-const ROLES_GLOBALES = [
-  { valor: 'usuario', etiqueta: 'Usuario' },
-  { valor: 'admin', etiqueta: 'Administrador' },
-]
 
 const plural = (n, singular, plural_) => `${n} ${n === 1 ? singular : plural_}`
 

@@ -1,5 +1,14 @@
 import api from '../api'
 
+// Los roles GLOBALES del sistema son los valores del enum RolUsuario del
+// backend (app/core/models.py), con su nombre para mostrar. Los roles POR
+// MÓDULO no van acá: los declara cada módulo en `etiquetas_rol` y llegan por
+// `modulosDelSistema()`.
+export const ROLES_GLOBALES = [
+  { valor: 'usuario', etiqueta: 'Usuario' },
+  { valor: 'admin', etiqueta: 'Administrador' },
+]
+
 // Cliente de la API de Administración (núcleo). Los módulos se conocen por
 // `modulosDelSistema()`, no importando el registro del frontend: la pantalla
 // tiene que funcionar con los módulos que el backend declare activos.

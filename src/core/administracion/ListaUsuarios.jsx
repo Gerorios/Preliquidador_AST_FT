@@ -4,14 +4,9 @@ import toast from 'react-hot-toast'
 import CargandoContenido from '../ui/CargandoContenido'
 import Icono from '../ui/iconos'
 import {
-  actualizarModulos, actualizarUsuario, listarUsuarios, resetearPassword,
+  ROLES_GLOBALES, actualizarModulos, actualizarUsuario, listarUsuarios, resetearPassword,
 } from './adminApi'
 import styles from './Administracion.module.css'
-
-const ROLES_GLOBALES = [
-  { valor: 'usuario', etiqueta: 'Usuario' },
-  { valor: 'admin', etiqueta: 'Administrador' },
-]
 
 // Con lo que la persona entra al sistema: el CUIL si vino del padrón, el mail
 // para los usuarios anteriores al PR 5, que se crearon a mano.
@@ -28,6 +23,13 @@ export default function ListaUsuarios({ modulos }) {
   // Id del usuario sin CUIL al que se le está tipeando una contraseña a mano.
   const [resetManual, setResetManual] = useState(null)
   const [passwordManual, setPasswordManual] = useState('')
+  // Qué filas tienen un pedido en el aire, como claves 'accion:id'. Hace falta
+  // llevarlo aparte porque las tres mutaciones son una sola instancia para toda
+  // la tabla, y `mutacion.variables` solo recuerda la última invocación: sin
+  // esto, tocar la fila B rehabilitaría la fila A con su pedido todavía sin
+  // responder. Se guardan repetidos y se saca de a uno, para que dos pedidos
+  // encimados sobre la misma fila la liberen recién con el último.
+  const [enVuelo, setEnVuelo] = useState([])
 
   const { data: usuarios = [], isLoading, isError, error } = useQuery({
     queryKey: ['admin-usuarios'],
@@ -55,8 +57,19 @@ export default function ListaUsuarios({ modulos }) {
 
   const refrescar = () => qc.invalidateQueries({ queryKey: ['admin-usuarios'] })
 
+  const tomar = (accion, id) => setEnVuelo(prev => [...prev, `${accion}:${id}`])
+  const soltar = (accion, id) => setEnVuelo(prev => {
+    const i = prev.indexOf(`${accion}:${id}`)
+    return i === -1 ? prev : [...prev.slice(0, i), ...prev.slice(i + 1)]
+  })
+
+  // Deshabilita los controles de UNA fila mientras su propio pedido está en vuelo.
+  const ocupada = (accion, id) => enVuelo.includes(`${accion}:${id}`)
+
   const mutUsuario = useMutation({
     mutationFn: ({ id, cambio }) => actualizarUsuario(id, cambio),
+    onMutate: ({ id }) => tomar('usuario', id),
+    onSettled: (_data, _error, { id }) => soltar('usuario', id),
     onSuccess: () => {
       toast.success('Usuario actualizado')
       refrescar()
@@ -66,6 +79,8 @@ export default function ListaUsuarios({ modulos }) {
 
   const mutModulos = useMutation({
     mutationFn: ({ id, mapa }) => actualizarModulos(id, mapa),
+    onMutate: ({ id }) => tomar('modulos', id),
+    onSettled: (_data, _error, { id }) => soltar('modulos', id),
     onSuccess: () => {
       toast.success('Accesos actualizados')
       refrescar()
@@ -75,10 +90,16 @@ export default function ListaUsuarios({ modulos }) {
 
   const mutPassword = useMutation({
     mutationFn: ({ id, password }) => resetearPassword(id, password),
+    onMutate: ({ id }) => tomar('password', id),
+    onSettled: (_data, _error, { id }) => soltar('password', id),
     onSuccess: (data, variables) => {
       setPasswordNueva({ id: variables.id, nombre: variables.nombre, password: data.password })
-      setResetManual(null)
-      setPasswordManual('')
+      // El cuadro de contraseña a mano se cierra solo si es el de este usuario:
+      // si hay otro abierto con algo tipeado, no se le pisa lo escrito.
+      if (resetManual === variables.id) {
+        setResetManual(null)
+        setPasswordManual('')
+      }
       toast.success('Contraseña reseteada')
     },
     onError: (e) => toast.error(e.message),
@@ -126,10 +147,6 @@ export default function ListaUsuarios({ modulos }) {
   // Columnas fijas (nombre, identificador, rol, estado, acciones) + una por
   // módulo activo + la de accesos inactivos si hace falta.
   const columnas = 5 + modulos.length + (hayAccesosInactivos ? 1 : 0)
-
-  // Solo se bloquea la fila que está esperando respuesta: mientras se guarda
-  // un usuario, los demás siguen editables.
-  const ocupada = (mutacion, id) => mutacion.isPending && mutacion.variables?.id === id
 
   return (
     <section className={`card ${styles.bloque}`}>
@@ -185,7 +202,7 @@ export default function ListaUsuarios({ modulos }) {
                       <select
                         className={`input ${styles.selectRol}`}
                         value={u.rol}
-                        disabled={ocupada(mutUsuario, u.id)}
+                        disabled={ocupada('usuario', u.id)}
                         onChange={e => mutUsuario.mutate({ id: u.id, cambio: { rol: e.target.value } })}
                       >
                         {ROLES_GLOBALES.map(r => (
@@ -199,7 +216,7 @@ export default function ListaUsuarios({ modulos }) {
                         <select
                           className={`input ${styles.selectRol}`}
                           value={asignados[m.clave] ?? ''}
-                          disabled={ocupada(mutModulos, u.id)}
+                          disabled={ocupada('modulos', u.id)}
                           onChange={e => cambiarModulo(u, m.clave, e.target.value)}
                         >
                           <option value="">— Sin acceso —</option>
@@ -239,7 +256,7 @@ export default function ListaUsuarios({ modulos }) {
                         <button
                           type="button"
                           className={`btn btn-sm ${u.activo ? 'btn-danger' : 'btn-primary'}`}
-                          disabled={ocupada(mutUsuario, u.id)}
+                          disabled={ocupada('usuario', u.id)}
                           onClick={() => mutUsuario.mutate({ id: u.id, cambio: { activo: !u.activo } })}
                         >
                           {u.activo ? 'Desactivar' : 'Activar'}
@@ -247,7 +264,7 @@ export default function ListaUsuarios({ modulos }) {
                         <button
                           type="button"
                           className="btn btn-sm"
-                          disabled={ocupada(mutPassword, u.id)}
+                          disabled={ocupada('password', u.id)}
                           onClick={() => pedirReset(u)}
                         >
                           Resetear contraseña
@@ -273,7 +290,7 @@ export default function ListaUsuarios({ modulos }) {
                           <button
                             type="button"
                             className="btn btn-sm btn-primary"
-                            disabled={ocupada(mutPassword, u.id)}
+                            disabled={ocupada('password', u.id)}
                             onClick={() => confirmarResetManual(u)}
                           >
                             Resetear

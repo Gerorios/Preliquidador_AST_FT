@@ -86,10 +86,11 @@
   cursor: pointer;
 }
 
-/* Los fondos van con la fila entera y con `tr.clase` a propósito: el `:hover`
-   global de src/index.css pinta `tbody tr` y le gana a una clase suelta. */
-.tabla tbody tr.filaMarcada,
-.tabla tbody tr.filaMarcada:hover {
+/* Los fondos van sobre la fila entera y con el selector escrito `tr.clase` a
+   propósito: src/index.css pinta `tbody tr:hover`, que le gana a una clase
+   suelta. Calificada con `tbody tr` la clase gana, también sobre el hover: no
+   hacen falta reglas `:hover` propias. */
+.tabla tbody tr.filaMarcada {
   background: var(--accent-glow);
 }
 
@@ -101,8 +102,7 @@
   color: var(--text-muted);
 }
 
-.tabla tbody tr.filaDetalle,
-.tabla tbody tr.filaDetalle:hover {
+.tabla tbody tr.filaDetalle {
   background: var(--warn-dim);
 }
 
