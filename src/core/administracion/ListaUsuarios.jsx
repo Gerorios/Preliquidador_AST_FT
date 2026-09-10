@@ -81,8 +81,14 @@ export default function ListaUsuarios({ modulos }) {
     mutationFn: ({ id, mapa }) => actualizarModulos(id, mapa),
     onMutate: ({ id }) => tomar('modulos', id),
     onSettled: (_data, _error, { id }) => soltar('modulos', id),
-    onSuccess: () => {
+    onSuccess: (_data, { advertirSinAcceso }) => {
       toast.success('Accesos actualizados')
+      // Quitar accesos es legítimo, pero que un usuario no-admin quede sin
+      // ningún módulo no puede pasar en silencio: sin módulos no puede
+      // entrar (Login lo rechaza por falta de módulos asignados).
+      if (advertirSinAcceso) {
+        toast('Este usuario se quedó sin acceso a ningún módulo: no va a poder entrar hasta que le asignes uno.')
+      }
       refrescar()
     },
     onError: (e) => toast.error(e.message),
@@ -112,7 +118,8 @@ export default function ListaUsuarios({ modulos }) {
     const mapa = { ...(usuario.modulos ?? {}) }
     if (rol) mapa[clave] = rol
     else delete mapa[clave]
-    mutModulos.mutate({ id: usuario.id, mapa })
+    const advertirSinAcceso = usuario.rol !== 'admin' && Object.keys(mapa).length === 0
+    mutModulos.mutate({ id: usuario.id, mapa, advertirSinAcceso })
   }
 
   const pedirReset = (usuario) => {

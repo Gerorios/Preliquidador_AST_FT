@@ -67,6 +67,11 @@ export default function AltaDesdePadron({ modulos }) {
   const rolesDelLote = () =>
     Object.fromEntries(Object.entries(rolesModulo).filter(([, rol]) => rol))
 
+  // Un usuario con rol 'usuario' y sin ningún módulo asignado no tiene con qué
+  // entrar (Login lo rechaza por falta de módulos): un admin sí, porque ve
+  // todo sin necesitar accesos por módulo.
+  const sinAccesoAlguno = rolGlobal !== 'admin' && Object.keys(rolesDelLote()).length === 0
+
   const mutCrear = useMutation({
     mutationFn: () => crearUsuarios(marcados, rolGlobal, rolesDelLote()),
     onSuccess: (respuesta) => {
@@ -231,16 +236,23 @@ export default function AltaDesdePadron({ modulos }) {
           )}
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary btn-lg"
-          disabled={seleccion.length === 0 || mutCrear.isPending}
-          onClick={() => mutCrear.mutate()}
-        >
-          {mutCrear.isPending
-            ? <><span className="spinner" /> Creando…</>
-            : `Crear ${plural(seleccion.length, 'usuario', 'usuarios')}`}
-        </button>
+        <div className={styles.accionAlta}>
+          <button
+            type="button"
+            className="btn btn-primary btn-lg"
+            disabled={seleccion.length === 0 || mutCrear.isPending || sinAccesoAlguno}
+            onClick={() => mutCrear.mutate()}
+          >
+            {mutCrear.isPending
+              ? <><span className="spinner" /> Creando…</>
+              : `Crear ${plural(seleccion.length, 'usuario', 'usuarios')}`}
+          </button>
+          {sinAccesoAlguno && (
+            <span className={styles.nota}>
+              Elegí al menos un módulo: sin acceso a ninguno, la persona no va a poder entrar.
+            </span>
+          )}
+        </div>
       </div>
 
       {resultado && (

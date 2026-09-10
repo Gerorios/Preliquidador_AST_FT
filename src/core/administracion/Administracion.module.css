@@ -199,6 +199,13 @@
   gap: 6px;
 }
 
+.accionAlta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .chipMarcada {
   display: inline-flex;
   align-items: center;
