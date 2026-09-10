@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import useAuthStore from '../authStore'
 import { useRegistro } from '../registroContext'
 import Icono from '../ui/iconos'
@@ -49,6 +49,13 @@ export default function Inicio() {
         <h1 className={styles.titulo}>
           Módulos <span className={styles.tituloSufijo}>· elegí dónde trabajar</span>
         </h1>
+
+        {usuario?.password_inicial && (
+          <div className={styles.avisoPassword}>
+            Estás usando tu contraseña inicial.{' '}
+            <Link to="/cambiar-password">Cambiala por una propia</Link>.
+          </div>
+        )}
 
         {tarjetas.length === 0 ? (
           <div className={styles.vacio}>

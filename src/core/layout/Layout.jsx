@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom'
 import useAuthStore from '../authStore'
 import { tienePermiso } from '../permisos'
 import { useRegistro } from '../registroContext'
@@ -80,6 +80,9 @@ export default function Layout({ modulo, marco }) {
             <div className={styles.userBox}>
               <div className={styles.userName}>{usuario.nombre}</div>
               <div className={styles.userRole}>{etiqueta ?? 'sin rol'}</div>
+              <Link to="/cambiar-password" className={styles.linkSecundario}>
+                Cambiar mi contraseña
+              </Link>
               <button className={styles.logoutBtn} onClick={handleLogout}>
                 Cerrar sesión
               </button>

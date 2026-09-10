@@ -33,12 +33,13 @@ src/
 ├── core/                    # NÚCLEO COMPARTIDO (ADR-0013)
 │   ├── api.js               # Axios: baseURL /api, Bearer automático, logout en 401
 │   ├── authStore.js         # Sesión (Zustand + persist, clave "auth-asturiana")
-│   ├── layout/              # Layout (sidebar, compone el menú de cada módulo), ProtectedRoute
+│   ├── layout/              # Layout (sidebar, compone el menú de cada módulo), BarraSuperior (topbar de las pantallas sin sidebar), ProtectedRoute
 │   ├── ui/                  # CargandoContenido, CargandoOverlay, iconos.jsx (íconos SVG del sistema)
 │   ├── inicio/              # Inicio.jsx: pantalla de tarjetas tras el login (una por módulo + Gerencial)
+│   ├── administracion/      # Administración de usuarios del Sistema (alta desde el padrón, lista con reseteo/baja/edición de accesos)
 │   ├── registroContext.js   # Contexto que expone el registro de módulos al núcleo (inyectado por App.jsx)
 │   ├── asistente/           # AsistenteChat + asistenteApi (ayuda de uso, transversal)
-│   └── pages/Login.jsx
+│   └── pages/               # Login.jsx, CambiarPassword.jsx (cambio voluntario de la propia contraseña)
 └── modulos/
     ├── registro.js          # Registro de módulos: alta con una línea, arma tarjetas del Inicio y pantallas del asistente
     ├── preliquidacion/      # MÓDULO Preliquidación de sueldos
@@ -55,8 +56,10 @@ src/
 
 | Ruta | Vista | Quién | Qué hace |
 |---|---|---|---|
-| `/login` | Login | Todos | Email + contraseña (OAuth2 password → JWT) |
+| `/login` | Login | Todos | Identificador + contraseña (OAuth2 password → JWT). El identificador es el email para quien lo tiene, o el **CUIL** (con o sin guiones) para quien no |
 | `/` | Inicio | Todos | Tarjetas: una por módulo al que la persona accede, más **Gerencial** (tarjeta del sistema, no de un módulo) |
+| `/administracion` | Administración | Solo **admin** | Alta de usuarios desde el padrón de empleados, accesos y roles por módulo, reseteo de contraseña y baja/reactivación. La identidad de cada persona es su CUIL: es también su usuario y su contraseña inicial |
+| `/cambiar-password` | Cambiar mi contraseña | Todos | Cambio voluntario de la propia contraseña (pide la actual). No bloquea nada: quien sigue con la inicial (el CUIL) puede seguir trabajando |
 | `/preliquidacion/dashboard` | Inicio (Preliquidación) | operador, admin | Elegir quincena, **Generar/Actualizar** preliquidación, historial con alertas |
 | `/preliquidacion/revision/:id` | Revisión | operador, admin | Tabla completa de líneas con filtrado 100 % en cliente (búsqueda con debounce + multi-select en cascada por cliente/finca/tarea/empresa/grupo/supervisor + filtros de alerta). Panel lateral de edición por línea. Modo **liquidación masiva** (conceptos masivos, reasignación de empresa por CUIL). **Exportar Excel** |
 | `/preliquidacion/verificacion` | Verificación | operador, admin | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
@@ -107,8 +110,9 @@ Los íconos SVG del sistema viven en `src/core/ui/iconos.jsx` (`<Icono nombre=".
 ## Autenticación
 
 - Token JWT guardado en localStorage (`auth-asturiana`) vía Zustand `persist`.
-- `ProtectedRoute` redirige a `/login` sin token.
+- `ProtectedRoute` redirige a `/login` sin token; con la prop `soloAdmin` (usada en `/administracion`) exige además el rol global `admin`, sin necesidad de declarar un módulo.
 - Interceptor Axios inyecta `Authorization: Bearer` y ante un 401 hace logout + redirect.
+- El login devuelve `usuario.password_inicial` (booleano, calculado en el backend contra el hash guardado): es `true` mientras la persona siga entrando con el CUIL sin cambiarlo. El Inicio muestra un aviso no bloqueante mientras sea `true`, con un enlace a `/cambiar-password`; al cambiarla, el propio front actualiza el store (`login(token, { ...usuario, password_inicial: false })`) para que el aviso baje sin recargar. No hay recuperación de contraseña por mail (el sistema no manda correo): si alguien la olvida, un admin se la resetea desde Administración.
 - El usuario tiene un **rol global** (`admin` o `usuario`) y, además, un **rol por módulo** en `usuario.modulos` (p. ej. `{ preliquidacion: 'operador' }` u `'gerente'`). El admin ve todo; dentro de un módulo, `operador` y `gerente` ven pantallas distintas (ver tabla de Pantallas). `tienePermiso(usuario, modulo, roles)` en `src/core/permisos.js` decide el acceso; `ProtectedRoute` la usa para las rutas y `Layout` para filtrar el menú. La autorización real se aplica en el backend, el frontend solo evita mostrar lo que el backend igual rechazaría.
 - La sesión guardada en localStorage está versionada (`version: 2`): al desplegar este cambio, las sesiones anteriores (sin `modulos`) se descartan automáticamente y el usuario tiene que volver a loguearse.
 - La home después de loguear depende del módulo: un operador cae en `/preliquidacion/dashboard`, un gerente puro en `/gerencial` (ver `home()` en `rutas.jsx` y `HOMES` en `App.jsx`).
