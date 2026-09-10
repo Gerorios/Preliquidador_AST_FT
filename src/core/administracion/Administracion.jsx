@@ -1,6 +1,4 @@
-import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import useAuthStore from '../authStore'
 import BarraSuperior from '../layout/BarraSuperior'
 import CargandoContenido from '../ui/CargandoContenido'
 import { modulosDelSistema } from './adminApi'
@@ -16,14 +14,6 @@ import styles from './Administracion.module.css'
 // vez acá: de ella salen las columnas de accesos y todos los selectores de rol,
 // con las etiquetas que declara cada módulo ("Preliquidador", no "operador").
 export default function Administracion() {
-  const navigate = useNavigate()
-  const { usuario, logout } = useAuthStore()
-
-  const salir = () => {
-    logout()
-    navigate('/login')
-  }
-
   const { data: modulos = [], isLoading, isError, error } = useQuery({
     queryKey: ['modulos-sistema'],
     queryFn: modulosDelSistema,
@@ -32,13 +22,7 @@ export default function Administracion() {
 
   return (
     <div className={styles.page}>
-      <BarraSuperior
-        usuario={usuario}
-        etiqueta="Admin"
-        onSalir={salir}
-        volverA="/"
-        titulo="Administración"
-      />
+      <BarraSuperior volverA="/" titulo="Administración" />
 
       <main className={styles.cuerpo}>
         {isLoading ? (

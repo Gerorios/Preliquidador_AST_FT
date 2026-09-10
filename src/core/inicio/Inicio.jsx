@@ -7,11 +7,11 @@ import AsistenteChat from '../asistente/AsistenteChat'
 import BarraSuperior from '../layout/BarraSuperior'
 import styles from './Inicio.module.css'
 
-// Etiqueta global de la persona en la barra superior: el admin ve "Admin", el
-// resto el resumen de sus roles por módulo con los nombres que declara cada
-// módulo (p. ej. "Preliquidación: Gerente", no "preliquidacion: gerente").
-// Un módulo que la persona tiene asignado pero no está activo/registrado se
-// omite: no hay nombre ni etiqueta que mostrar.
+// Etiqueta global de la persona en el encabezado del Inicio: el admin ve
+// "Admin", el resto el resumen de sus roles por módulo con los nombres que
+// declara cada módulo (p. ej. "Preliquidación: Gerente", no
+// "preliquidacion: gerente"). Un módulo que la persona tiene asignado pero no
+// está activo/registrado se omite: no hay nombre ni etiqueta que mostrar.
 const etiquetaGlobal = (usuario, MODULOS, etiquetaRol) => {
   if (!usuario) return ''
   if (usuario.rol === 'admin') return 'Admin'
@@ -20,6 +20,21 @@ const etiquetaGlobal = (usuario, MODULOS, etiquetaRol) => {
     .map(m => `${m.nombre}: ${etiquetaRol(usuario, m) ?? usuario.modulos[m.clave]}`)
   return pares.length ? pares.join(' · ') : 'sin módulos'
 }
+
+// El padrón de empleados guarda el nombre en mayúsculas y con el apellido
+// primero ("GOMEZ ADRIAN ALEJANDRO"), que en un saludo se lee a los gritos.
+// Esto lo pasa a capitalización por palabra ("Gomez Adrian Alejandro"), pero
+// toca solo las palabras que vienen enteras en mayúsculas y sin números: así
+// lo que alguien escribió a mano se respeta ("Gero (prueba PR5)" queda igual,
+// con su sigla intacta) y los paréntesis, guiones y apóstrofos siguen siendo
+// límite de palabra ("O'Connor", "Rodriguez-Perez"). No intenta separar el
+// apellido de los nombres: el dato no trae ningún separador confiable.
+const nombreParaSaludo = (nombre) => (nombre ?? '').trim().replace(
+  /[\p{L}\p{M}\p{N}]+/gu,
+  palabra => (/\p{N}/u.test(palabra) || palabra !== palabra.toLocaleUpperCase('es-AR'))
+    ? palabra
+    : palabra.charAt(0) + palabra.slice(1).toLocaleLowerCase('es-AR'),
+)
 
 const CLASE_FAMILIA = {
   gerencial: styles.familiaGerencial,
@@ -34,6 +49,9 @@ export default function Inicio() {
   const { usuario, logout } = useAuthStore()
   const { tarjetasPara, MODULOS, etiquetaRol } = useRegistro()
   const tarjetas = tarjetasPara(usuario)
+  const etiqueta = etiquetaGlobal(usuario, MODULOS, etiquetaRol)
+  const nombre = nombreParaSaludo(usuario?.nombre)
+  const saludo = nombre ? `Bienvenido, ${nombre}` : 'Bienvenido'
 
   const salir = () => {
     logout()
@@ -43,12 +61,18 @@ export default function Inicio() {
   return (
     <div className={styles.page}>
       <CargandoOverlay />
-      <BarraSuperior usuario={usuario} etiqueta={etiquetaGlobal(usuario, MODULOS, etiquetaRol)} onSalir={salir} />
+      <BarraSuperior />
 
       <main className={styles.cuerpo}>
-        <h1 className={styles.titulo}>
-          Módulos <span className={styles.tituloSufijo}>· elegí dónde trabajar</span>
-        </h1>
+        {/* El saludo es lo primero que se lee; el rol baja acá desde la barra
+            como chip, para no perder una información que sirve. */}
+        <header className={styles.encabezado}>
+          <div className={styles.saludoLinea}>
+            <h1 className={styles.saludo}>{saludo}</h1>
+            {etiqueta && <span className="badge badge-muted">{etiqueta}</span>}
+          </div>
+          <p className={styles.subtitulo}>Elegí dónde trabajar</p>
+        </header>
 
         {usuario?.password_inicial && (
           <div className={styles.avisoPassword}>
@@ -62,9 +86,6 @@ export default function Inicio() {
             <p>
               Tu usuario no tiene módulos asignados. Pedile al administrador que te habilite uno.
             </p>
-            <button type="button" className="btn" onClick={salir}>
-              Cerrar sesión
-            </button>
           </div>
         ) : (
           <div className={styles.grilla}>
@@ -90,6 +111,29 @@ export default function Inicio() {
             ))}
           </div>
         )}
+
+        {/* Acciones de cuenta: abajo, después de las tarjetas y separadas por
+            un divisor. Son botones visibles, pero en escala de botón para no
+            competir con las tarjetas, que son la acción principal. También
+            cubren el estado sin módulos, que por eso ya no lleva su propio
+            botón de cerrar sesión. */}
+        <footer className={styles.acciones}>
+          <hr className={`divider ${styles.divisor}`} />
+          <div className={styles.accionesBotones}>
+            <Link to="/cambiar-password" className={`btn btn-lg ${styles.accion}`}>
+              <Icono nombre="llave" size={16} />
+              Cambiar mi contraseña
+            </Link>
+            <button
+              type="button"
+              className={`btn btn-lg btn-danger ${styles.accion} ${styles.accionPeligro}`}
+              onClick={salir}
+            >
+              <Icono nombre="salir" size={16} />
+              Cerrar sesión
+            </button>
+          </div>
+        </footer>
       </main>
 
       <AsistenteChat />

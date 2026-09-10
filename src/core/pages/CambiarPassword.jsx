@@ -10,21 +10,16 @@ const MINIMO = 8
 
 // Cambio voluntario de la propia contraseña. La inicial es el CUIL: nadie
 // queda impedido de trabajar por no cambiarla, así que esta pantalla no es
-// obligatoria ni bloquea nada — se llega por el aviso del Inicio o por el
-// enlace de la barra/menú. Pide la contraseña actual porque, si alguien deja
-// la sesión abierta, un tercero no puede quedarse con la cuenta; si la
-// persona la olvida, la resetea un admin desde Administración (no hay
-// recuperación por mail).
+// obligatoria ni bloquea nada — se llega por el aviso del Inicio, por el
+// botón del pie del Inicio o por el menú lateral de un módulo. Pide la
+// contraseña actual porque, si alguien deja la sesión abierta, un tercero no
+// puede quedarse con la cuenta; si la persona la olvida, la resetea un admin
+// desde Administración (no hay recuperación por mail).
 export default function CambiarPassword() {
   const navigate = useNavigate()
-  const { usuario, token, login, logout } = useAuthStore()
+  const { usuario, token, login } = useAuthStore()
   const [form, setForm] = useState({ actual: '', nueva: '', repetir: '' })
   const [enviando, setEnviando] = useState(false)
-
-  const salir = () => {
-    logout()
-    navigate('/login')
-  }
 
   const cambiar = (campo) => (e) => setForm(f => ({ ...f, [campo]: e.target.value }))
 
@@ -66,7 +61,7 @@ export default function CambiarPassword() {
 
   return (
     <div className={styles.page}>
-      <BarraSuperior usuario={usuario} etiqueta="" onSalir={salir} volverA="/" titulo="Cambiar mi contraseña" />
+      <BarraSuperior volverA="/" titulo="Cambiar mi contraseña" />
 
       <main className={styles.cuerpo}>
         <form className={`card ${styles.card}`} onSubmit={handleSubmit}>

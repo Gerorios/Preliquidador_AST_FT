@@ -4,9 +4,12 @@ import logoIcono from '../../assets/logo-asturiana-icono.png'
 import styles from './BarraSuperior.module.css'
 
 // Barra superior de las pantallas sin menú lateral (Inicio, Administración,
-// Cambiar contraseña). `volverA` agrega el enlace de vuelta; en el Inicio no
-// se pasa, porque el Inicio ES el punto de partida.
-export default function BarraSuperior({ usuario, etiqueta, onSalir, volverA, titulo }) {
+// Cambiar contraseña). Es solo identidad: marca y en qué pantalla estoy.
+// Las acciones de cuenta (cambiar contraseña, cerrar sesión) viven en el pie
+// del Inicio, que es el punto de partida de todas estas pantallas; acá
+// apretadas a la derecha quedaban mal acomodadas y le robaban aire al título.
+// `volverA` agrega el enlace de vuelta; en el Inicio no se pasa.
+export default function BarraSuperior({ volverA, titulo }) {
   return (
     <header className={styles.topbar}>
       <div className={styles.marca}>
@@ -20,20 +23,6 @@ export default function BarraSuperior({ usuario, etiqueta, onSalir, volverA, tit
           <div className={styles.marcaNombre}>La Asturiana</div>
           <div className={styles.marcaSistema}>{titulo ?? 'Sistema de gestión'}</div>
         </div>
-      </div>
-      <div className={styles.usuario}>
-        {usuario && (
-          <div>
-            <div className={styles.usuarioNombre}>{usuario.nombre}</div>
-            <div className={styles.usuarioRol}>{etiqueta}</div>
-          </div>
-        )}
-        <Link to="/cambiar-password" className={styles.enlaceSecundario}>
-          Cambiar mi contraseña
-        </Link>
-        <button type="button" className={styles.salir} onClick={onSalir}>
-          Cerrar sesión
-        </button>
       </div>
     </header>
   )

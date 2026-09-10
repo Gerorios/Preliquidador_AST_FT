@@ -18,16 +18,44 @@
   gap: 22px;
 }
 
-.titulo {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.2px;
+/* ---- Encabezado: el saludo es el protagonista de la pantalla ---- */
+
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 820px;
+}
+
+/* El chip de rol va al lado del saludo y baja solo si no entra (nombre largo
+   del padrón o ventana angosta). */
+.saludoLinea {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+/* Jerarquía por tamaño y peso, no por mayúsculas: las mayúsculas están
+   reservadas para las etiquetas chicas del sistema de diseño. */
+.saludo {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
   color: var(--text-primary);
 }
 
-.tituloSufijo {
+.subtitulo {
+  font-size: 15px;
+  font-weight: 400;
   color: var(--text-muted);
-  font-weight: 300;
+}
+
+@media (max-width: 560px) {
+  .saludo {
+    font-size: 22px;
+  }
 }
 
 /* Aviso no bloqueante: la contraseña inicial (el CUIL) sigue funcionando,
@@ -156,16 +184,53 @@
 
 .vacio {
   max-width: 60ch;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
   padding: 22px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   color: var(--text-muted);
   font-size: 13px;
+}
+
+/* ---- Pie: acciones de cuenta (bajaron de la barra superior) ---- */
+
+.acciones {
+  max-width: 820px;
+  margin-top: 8px;
+}
+
+.divisor {
+  margin: 0 0 18px;
+}
+
+.accionesBotones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Botones de verdad y bien visibles, pero en escala de botón: las tarjetas
+   siguen siendo lo más prominente de la pantalla. */
+.accion {
+  padding: 9px 18px;
+  text-decoration: none;
+}
+
+.accion:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* .btn-danger no trae hover propio en index.css: se lo damos acá con el mismo
+   patrón que .btn-primary (relleno pleno al pasar el mouse). */
+.accionPeligro:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--bg-base);
+}
+
+.accionPeligro:focus-visible {
+  outline-color: var(--danger);
 }
 
 @media (prefers-reduced-motion: reduce) {

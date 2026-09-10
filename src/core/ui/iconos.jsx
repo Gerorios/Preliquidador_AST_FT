@@ -18,6 +18,7 @@ const PATHS = {
   salir: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />,
   chat: <path d="M21 12a8 8 0 0 1-8 8H8l-5 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z" />,
   cerrar: <path d="M18 6 6 18M6 6l12 12" />,
+  llave: <><circle cx="8" cy="16" r="4" /><path d="M10.8 13.2 20 4M16.5 7.5l2.5 2.5M14.5 9.5l2.5 2.5" /></>,
 }
 
 export default function Icono({ nombre, size = 18, className }) {
