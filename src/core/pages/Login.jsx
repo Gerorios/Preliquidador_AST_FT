@@ -11,20 +11,22 @@ export default function Login() {
   const navigate = useNavigate()
   const { login, logout } = useAuthStore()
   const { tarjetasPara } = useRegistro()
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ identificador: '', password: '' })
   const [cargando, setCargando] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.email || !form.password) {
-      toast.error('Ingresá email y contraseña')
+    if (!form.identificador || !form.password) {
+      toast.error('Ingresá tu usuario y contraseña')
       return
     }
     setCargando(true)
     try {
-      // OAuth2 requiere form-data con username/password
+      // OAuth2 requiere form-data con username/password. El backend acepta
+      // tanto el email real (usuarios anteriores) como el CUIL, con guiones,
+      // espacios o pelado (personas dadas de alta desde el padrón).
       const formData = new URLSearchParams()
-      formData.append('username', form.email)
+      formData.append('username', form.identificador)
       formData.append('password', form.password)
 
       const res = await axios.post('/api/auth/login', formData, {
@@ -58,15 +60,15 @@ export default function Login() {
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
-            <label className="field-label">EMAIL</label>
+            <label className="field-label">CUIL O EMAIL</label>
             <input
               className="input"
-              type="email"
-              placeholder="usuario@asturiana.com"
-              value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              type="text"
+              placeholder="20123456789 o usuario@asturiana.com"
+              value={form.identificador}
+              onChange={e => setForm(f => ({ ...f, identificador: e.target.value }))}
               autoFocus
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
 
