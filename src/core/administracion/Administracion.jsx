@@ -22,7 +22,7 @@ export default function Administracion() {
 
   return (
     <div className={styles.page}>
-      <BarraSuperior volverA="/" titulo="Administración" />
+      <BarraSuperior volverA="/" titulo="Administración" mostrarCambioPassword />
 
       <main className={styles.cuerpo}>
         {isLoading ? (

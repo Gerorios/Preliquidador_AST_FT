@@ -61,3 +61,31 @@
   outline: 2px solid var(--sidebar-text-secondary);
   outline-offset: 2px;
 }
+
+/* Acción de cuenta a la derecha (hoy solo "Cambiar mi contraseña", y solo en
+   Administración: ver comentario de mostrarCambioPassword en el JSX). */
+.accionCuenta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sidebar-text-secondary);
+  text-decoration: none;
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.accionCuenta:hover {
+  color: var(--sidebar-text);
+  border-color: var(--sidebar-text-secondary);
+}
+
+.accionCuenta:focus-visible {
+  outline: 2px solid var(--sidebar-text-secondary);
+  outline-offset: 2px;
+}

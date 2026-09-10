@@ -200,28 +200,6 @@
   margin-bottom: 8px;
 }
 
-/* Mismo tratamiento visual que .logoutBtn, para un <Link> en vez de un
-   <button> (el enlace a "Cambiar mi contraseña"). Solo se muestra con el
-   menú expandido: colapsado, este bloque completo no se renderiza. */
-.linkSecundario {
-  display: block;
-  background: none;
-  border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-sm);
-  color: var(--sidebar-text-muted);
-  font-size: 11px;
-  padding: 4px 8px;
-  margin-bottom: 6px;
-  text-align: left;
-  text-decoration: none;
-  transition: all 0.12s;
-}
-
-.linkSecundario:hover {
-  color: var(--sidebar-text);
-  border-color: var(--sidebar-text-secondary);
-}
-
 .logoutBtn {
   background: none;
   border: 1px solid var(--sidebar-border);
