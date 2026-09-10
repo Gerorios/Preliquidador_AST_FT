@@ -1,0 +1,266 @@
+/* Pantalla de Administración: dos bloques (la lista de usuarios y el alta
+   desde el padrón), cada uno en una .card del design system. Acá solo vive lo
+   que las clases globales de src/index.css no cubren. */
+
+.page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+}
+
+.cuerpo {
+  flex: 1;
+  padding: 28px 24px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1280px;
+  width: 100%;
+}
+
+/* ---- Bloque ---- */
+
+.bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.encabezado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.subtitulo {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.buscador {
+  width: 260px;
+  margin-left: auto;
+}
+
+.contador {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.buscadorPadron {
+  width: 320px;
+}
+
+/* ---- Tablas ---- */
+
+/* Las filas de estas tablas no son clickeables (salvo las del padrón, que se
+   marcan): el cursor de mano global confundiría. */
+.tablaWrap {
+  max-height: 480px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-base);
+}
+
+.tabla tbody tr {
+  cursor: default;
+}
+
+.tabla tbody tr.filaInactiva td {
+  color: var(--text-muted);
+}
+
+.tabla tbody tr.filaMarcable {
+  cursor: pointer;
+}
+
+/* Los fondos van sobre la fila entera y con el selector escrito `tr.clase` a
+   propósito: src/index.css pinta `tbody tr:hover`, que le gana a una clase
+   suelta. Calificada con `tbody tr` la clase gana, también sobre el hover: no
+   hacen falta reglas `:hover` propias. */
+.tabla tbody tr.filaMarcada {
+  background: var(--accent-glow);
+}
+
+.tabla tbody tr.filaDeshabilitada {
+  background: var(--bg-surface);
+}
+
+.tabla tbody tr.filaDeshabilitada td {
+  color: var(--text-muted);
+}
+
+.tabla tbody tr.filaDetalle {
+  background: var(--warn-dim);
+}
+
+.tabla tbody tr.filaDetalle td {
+  background: transparent;
+  white-space: normal;
+}
+
+.columnaCasilla {
+  width: 34px;
+}
+
+.casilla {
+  width: var(--control-size);
+  height: var(--control-size);
+  cursor: pointer;
+}
+
+.selectRol {
+  width: 170px;
+}
+
+.guion {
+  color: var(--text-muted);
+}
+
+.acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.empleos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 320px;
+}
+
+/* ---- Contraseña reseteada ---- */
+
+.cajaPassword {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.inputPassword {
+  width: 200px;
+}
+
+.passwordValor {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  user-select: all;
+}
+
+.aviso {
+  color: var(--text-muted);
+}
+
+/* ---- Roles del lote y pie del alta ---- */
+
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+}
+
+.piePadron {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.marcadas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.accionAlta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.chipMarcada {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.chipMarcada:hover {
+  background: var(--accent);
+  color: var(--bg-base);
+}
+
+/* ---- Resultado del alta ---- */
+
+.resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-dim);
+}
+
+.leyenda {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* ---- Estados ---- */
+
+.nota {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.vacio {
+  padding: 28px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.error {
+  padding: 14px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  background: var(--danger-dim);
+  color: var(--danger);
+  font-size: 12px;
+}

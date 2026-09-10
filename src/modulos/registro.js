@@ -8,6 +8,13 @@ export const MODULOS = TODOS.filter(m => m.activo)
 
 export const moduloDeRuta = (pathname) => MODULOS.find(m => pathname.startsWith(m.prefijo)) ?? null
 
+// La persona ya no ve su propio rol en la interfaz (pedido explícito del
+// dueño del sistema); esta función queda sin consumidores en el núcleo, pero
+// no se borra: "etiqueta de rol" es un término del dominio (ver CONTEXT.md),
+// parte del contrato que declara cada módulo, y Administración sigue
+// necesitando los roles para administrar (los suyos salen de `etiquetas_rol`,
+// que expone el backend). Volver a mostrar el rol a la persona debería costar
+// una línea, no rehacer el mecanismo.
 export const etiquetaRol = (usuario, modulo) =>
   usuario?.rol === 'admin' ? 'Admin' : (modulo?.etiquetasRol?.[usuario?.modulos?.[modulo?.clave]] ?? null)
 
@@ -16,12 +23,20 @@ export const tarjetasPara = (usuario) => {
   const deModulos = MODULOS
     .filter(m => tienePermiso(usuario, m.clave, m.rolesTarjeta))
     .map(m => ({ clave: m.clave, nombre: m.nombre, descripcion: m.descripcion(usuario), icono: m.icono,
-                 etiqueta: etiquetaRol(usuario, m), ruta: m.home(usuario), familia: 'modulo' }))
+                 ruta: m.home(usuario), familia: 'modulo' }))
   const conGerencial = MODULOS.filter(m => m.gerencial && tienePermiso(usuario, m.clave, m.gerencial.roles))
   if (conGerencial.length) {
     deModulos.push({ clave: 'gerencial', nombre: 'Gerencial', icono: 'gerencial', familia: 'gerencial',
       descripcion: `Indicadores, evolución y desvíos de ${conGerencial.map(m => m.nombre).join(', ')}.`,
-      etiqueta: usuario?.rol === 'admin' ? 'Admin' : 'Gerente', ruta: conGerencial[0].gerencial.ruta })
+      ruta: conGerencial[0].gerencial.ruta })
+  }
+  // Administración es del Sistema (no un módulo): solo el admin global la ve.
+  if (usuario?.rol === 'admin') {
+    deModulos.push({
+      clave: 'administracion', nombre: 'Administración', icono: 'administracion',
+      familia: 'administracion', ruta: '/administracion',
+      descripcion: 'Usuarios, roles y accesos del sistema.',
+    })
   }
   return deModulos
 }
