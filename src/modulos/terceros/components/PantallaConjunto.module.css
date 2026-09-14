@@ -1,0 +1,86 @@
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.ayuda {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+
+/* El thead ya es sticky en index.css; acá solo se agrega que sea clickeable. */
+.th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.th:hover {
+  color: var(--text-primary);
+}
+
+.flecha {
+  margin-left: 6px;
+  font-size: 9px;
+  color: var(--accent);
+}
+
+.empty {
+  padding: 50px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.error {
+  padding: 40px 50px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.errorTitulo {
+  font-weight: 600;
+  color: var(--danger);
+  font-size: 14px;
+}

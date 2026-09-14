@@ -2,7 +2,14 @@
   padding: 24px 32px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .titulo {
@@ -12,6 +19,135 @@
 }
 
 .texto {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
+  max-width: 76ch;
+}
+
+.vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: border-color 0.12s, background 0.12s;
+  min-height: 118px;
+}
+
+.tarjeta:hover {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+}
+
+.tarjetaTitulo {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.tarjetaTotal {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  margin-top: 6px;
+}
+
+.tarjetaUnidad {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tarjetaFilas {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: auto;
+}
+
+.tarjetaError {
+  font-size: 12px;
+  color: var(--warn);
+  margin-top: 8px;
+  line-height: 1.45;
+}
+
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panelTitulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.panelTexto {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 76ch;
+}
+
+.estados {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.estado {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 14px;
+  border-left: 2px solid var(--border-strong);
+}
+
+.estadoAviso {
+  border-left-color: var(--warn);
+}
+
+.estadoNumero {
+  font-size: 20px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.estadoLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.estadoDetalle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tarjetaCargando {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
 }

@@ -47,7 +47,14 @@ src/
     │   ├── pages/           # Dashboard, Revision, Verificacion, Conceptos, CategoriasOperarios, Gerencial, PanelPorConcepto
     │   ├── components/      # PanelLinea, FiltrosBar, AlertasBanner, ControlesJornal, InputBusqueda
     │   └── services/        # preliquidacion.js, gerencial.js
-    └── terceros/            # Molde de módulo (PR 4, etapa 0): inactivo, no se monta ni aparece en el Inicio
+    └── terceros/            # MÓDULO Liquidación Terceros (activo desde su etapa 2)
+        ├── rutas.jsx        # rutas, menú y descriptor `modulo`
+        ├── conjuntos.js     # los cuatro conjuntos de la quincena y su clave de caché compartida
+        ├── quincenaStore.js # la quincena elegida, compartida por las cinco pantallas
+        ├── formato.js       # números, pesos, horas y fechas del módulo
+        ├── pages/           # Inicio, Viajes, Combustible, Repuestos, HorasTaller
+        ├── components/      # PantallaConjunto (el molde de las cuatro tablas), SelectorQuincena
+        └── services/        # terceros.js
 ```
 
 ---
@@ -65,6 +72,11 @@ src/
 | `/preliquidacion/verificacion` | Verificación | operador, admin | Controles de auditoría: horas > 13/día, tancadas > 35/día, plantas > 6.000/día, resumen por empleado ($/día), Plantas vs Jornal y Tancadas vs Jornal (del backend), carga del valor hora de pulverización |
 | `/preliquidacion/conceptos` | Conceptos | operador, gerente, admin | Maestro de reglas/precios por quincena en 4 pestañas: **Sin concepto** (faltantes), **Comunes**, **Específicos** (con "reemplaza al común"), **Panel de precios** (edición inline + precio masivo, con vistas "Por regla" y "Por concepto" (`PanelPorConcepto`)). Copiar conceptos de otra quincena. Cada cambio invalida líneas y stats (impacto reactivo) |
 | `/preliquidacion/categorias-operarios` | Mantenimiento | operador, admin | Asignar categoría 1-7 por operario de taller y heredar de la quincena anterior |
+| `/terceros/inicio` | Inicio (Liquidación Terceros) | operador de `terceros`, admin | Resumen de la quincena: una tarjeta por conjunto con su total y sus filas, más el tablero de horas de taller (aprobadas / pendientes / rechazadas). Cada tarjeta es su propio pedido, así aparecen a medida que llegan y la que falla no voltea a las demás |
+| `/terceros/viajes` | Viajes | operador de `terceros`, admin | Traslados de personal de la quincena, con buscador y orden por columna. Solo lectura |
+| `/terceros/combustible` | Combustible | operador de `terceros`, admin | Cargas de los colectivos con su vale. Solo lectura |
+| `/terceros/repuestos` | Repuestos | operador de `terceros`, admin | Salidas del taller hacia máquinas de terceros, con las **dos fechas** (la del movimiento, que es la que hoy decide la quincena, y la de la descarga, que es la correcta). Solo lectura |
+| `/terceros/horas-taller` | Horas de taller | operador de `terceros`, admin | Mano de obra sobre máquinas de terceros, con su estado. Solo se cobran las aprobadas. Solo lectura |
 | `/gerencial` | Gerencial | gerente, admin | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo, se llega por su propia tarjeta en el Inicio (no es un módulo). El operador no la ve |
 
 Las direcciones sin prefijo (`/dashboard`, `/conceptos`, …) redirigen a las nuevas.
@@ -91,7 +103,7 @@ Qué tarjetas ve cada rol (con Preliquidación como único módulo activo hoy):
 
 1. Crear `src/modulos/<modulo>/rutas.jsx` que exporte el descriptor `modulo` (ver `src/modulos/preliquidacion/rutas.jsx` como referencia completa). Sus campos:
    - `clave`, `nombre`, `descripcion(usuario)`, `icono` (nombre de `src/core/ui/iconos.jsx`)
-   - `activo` (boolean): si es `false`, el módulo no se monta en `App.jsx` ni aparece en el Inicio (así vive el molde `terceros` hoy)
+   - `activo` (boolean): si es `false`, el módulo no se monta en `App.jsx` ni aparece en el Inicio. Es como vive un módulo mientras es solo un molde; `terceros` estuvo así hasta tener sus primeras pantallas
    - `prefijo`, `rutas`, `nav` (menú del módulo, derivado de `rutas` para que no puedan divergir), `redirecciones`
    - `etiquetasRol`: mapa de rol interno del módulo (p. ej. `operador`, `gerente`) a la etiqueta visible (p. ej. `Preliquidador`)
    - `rolesTarjeta`: roles del módulo que ven su tarjeta en el Inicio
