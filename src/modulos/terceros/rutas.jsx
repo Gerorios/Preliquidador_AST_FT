@@ -5,14 +5,17 @@ import { tienePermiso } from '../../core/permisos'
 // las consume sin conocer las pantallas.
 //
 // Activo desde la etapa 2 (2026-09-14): dejó de ser un molde cuando tuvo sus
-// primeras pantallas reales. Son de solo lectura — muestran lo que llega de los
-// sistemas de origen, sin tarifas ni neto, que empiezan en la etapa 4.
+// primeras pantallas reales. Todas de solo lectura — muestran lo que llega de
+// los sistemas de origen, sin tarifas ni neto, que empiezan en la etapa 4.
+// La de Alertas (etapa 3) no muestra datos sino lo que NO se encuentra entre
+// los tres sistemas; por eso es la única sin selector de quincena.
 // Ver, en el repo backend, docs/modulos/terceros/plan-terceros.md.
 const Inicio = lazy(() => import('./pages/Inicio'))
 const Viajes = lazy(() => import('./pages/Viajes'))
 const Combustible = lazy(() => import('./pages/Combustible'))
 const Repuestos = lazy(() => import('./pages/Repuestos'))
 const HorasTaller = lazy(() => import('./pages/HorasTaller'))
+const Alertas = lazy(() => import('./pages/Alertas'))
 
 export const PREFIJO = '/terceros'
 export const MODULO = 'terceros'
@@ -27,6 +30,7 @@ export const rutas = [
   { path: `${PREFIJO}/combustible`,  element: <Combustible />, modulo: MODULO, roles: ['operador'], label: 'Combustible',     icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/repuestos`,    element: <Repuestos />,   modulo: MODULO, roles: ['operador'], label: 'Repuestos',       icono: 'modulos',       menu: true },
   { path: `${PREFIJO}/horas-taller`, element: <HorasTaller />, modulo: MODULO, roles: ['operador'], label: 'Horas de taller', icono: 'mantenimiento', menu: true },
+  { path: `${PREFIJO}/alertas`,      element: <Alertas />,     modulo: MODULO, roles: ['operador'], label: 'Alertas',          icono: 'verificacion',   menu: true },
 ]
 
 // El menú se deriva de rutas para que nav, modulo y roles no puedan divergir.
@@ -45,6 +49,7 @@ export const pantallas = {
   '/terceros/combustible': 'Cargas de combustible de la quincena',
   '/terceros/repuestos': 'Repuestos aplicados a máquinas de terceros',
   '/terceros/horas-taller': 'Horas de taller sobre máquinas de terceros',
+  '/terceros/alertas': 'Alertas de cruce entre los sistemas de origen',
 }
 
 export const modulo = {

@@ -1,0 +1,239 @@
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.texto {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 88ch;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-right: 4px;
+}
+
+/* ─── El resumen estructural ─────────────────────────────────────────── */
+
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panelTitulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.panelTexto {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 88ch;
+  line-height: 1.55;
+}
+
+.cifras {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.cifra {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 14px;
+  border-left: 2px solid var(--border-strong);
+}
+
+.cifraNumero {
+  font-size: 19px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.cifraLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ─── Grupos por severidad ───────────────────────────────────────────── */
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.grupoCabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+.grupoTitulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.grupoAyuda {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pastilla {
+  min-width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+/* ─── Una alerta ─────────────────────────────────────────────────────── */
+
+.alerta {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.alertaCabecera {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.alertaTitulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.alertaSistema {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.alertaImpacto {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.alertaDetalle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 92ch;
+}
+
+.alertaRefs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.ref {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+/* Las tres severidades usan los tokens ya definidos, sin colores nuevos. */
+.alta { border-left-color: var(--danger); }
+.media { border-left-color: var(--warn); }
+.baja { border-left-color: var(--info); }
+
+.pastilla.alta { background: var(--danger-dim); color: var(--danger); }
+.pastilla.media { background: var(--warn-dim); color: var(--warn); }
+.pastilla.baja { background: var(--info-dim); color: var(--info); }
+
+/* ─── Estados ────────────────────────────────────────────────────────── */
+
+.vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.error {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.errorTitulo {
+  font-weight: 600;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.errorNota {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 70ch;
+  margin: 0 auto;
+}

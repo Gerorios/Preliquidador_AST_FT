@@ -32,3 +32,10 @@ export const obtenerHorasTaller = (quincena) =>
 // Para la pantalla de listado, que solo necesita las filas.
 export const listarHorasTaller = (quincena) =>
   obtenerHorasTaller(quincena).then(d => d.horas)
+
+// Alertas de cruce entre los tres sistemas de origen (etapa 3).
+// No llevan quincena: un problema de cruce es del maestro, no de un período.
+// El año sirve para una sola cosa: saber si una máquina descolgada tuvo
+// movimiento, que es lo que separa una alerta accionable de una fila muerta.
+export const obtenerAlertas = (anio) =>
+  api.get(`/terceros/alertas${anio ? `?anio=${anio}` : ''}`).then(r => r.data)

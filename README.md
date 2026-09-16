@@ -52,7 +52,7 @@ src/
         ├── conjuntos.js     # los cuatro conjuntos de la quincena y su clave de caché compartida
         ├── quincenaStore.js # la quincena elegida, compartida por las cinco pantallas
         ├── formato.js       # números, pesos, horas y fechas del módulo
-        ├── pages/           # Inicio, Viajes, Combustible, Repuestos, HorasTaller
+        ├── pages/           # Inicio, Viajes, Combustible, Repuestos, HorasTaller, Alertas
         ├── components/      # PantallaConjunto (el molde de las cuatro tablas), SelectorQuincena
         └── services/        # terceros.js
 ```
@@ -77,6 +77,7 @@ src/
 | `/terceros/combustible` | Combustible | operador de `terceros`, admin | Cargas de los colectivos con su vale. Solo lectura |
 | `/terceros/repuestos` | Repuestos | operador de `terceros`, admin | Salidas del taller hacia máquinas de terceros, con las **dos fechas** (la del movimiento, que es la que hoy decide la quincena, y la de la descarga, que es la correcta). Solo lectura |
 | `/terceros/horas-taller` | Horas de taller | operador de `terceros`, admin | Mano de obra sobre máquinas de terceros, con su estado. Solo se cobran las aprobadas. Solo lectura |
+| `/terceros/alertas` | Alertas de cruce | operador de `terceros`, admin | Lo que un sistema de origen dice y otro no encuentra, agrupado por urgencia y con **el sistema donde se corrige cada cosa**. Es la única pantalla del módulo sin selector de quincena: un problema de cruce es del maestro, no de un período |
 | `/gerencial` | Gerencial | gerente, admin | Vista gerencial: indicadores de mano de obra, evolución, por cliente y grupo de tareas, desvíos, controles de pago. Transversal al sistema: queda sin prefijo, se llega por su propia tarjeta en el Inicio (no es un módulo). El operador no la ve |
 
 Las direcciones sin prefijo (`/dashboard`, `/conceptos`, …) redirigen a las nuevas.
