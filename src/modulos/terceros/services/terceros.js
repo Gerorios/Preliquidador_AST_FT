@@ -24,14 +24,21 @@ export const listarCombustible = (quincena) =>
 export const listarRepuestos = (quincena) =>
   api.get(`/terceros/repuestos?quincena=${quincena}`).then(r => r.data)
 
-// Devuelve { horas: [...], estados: {...} }: las dos cosas salen de la misma
-// lectura del Sheet de la app del taller, que tarda unos seis segundos.
-export const obtenerHorasTaller = (quincena) =>
-  api.get(`/terceros/horas-taller?quincena=${quincena}`).then(r => r.data)
+// Horas de REPARACIÓN: el taller de la empresa arreglando la máquina del
+// tercero. Se le descuentan. Devuelve { horas, estados }: las dos cosas salen
+// de la misma lectura del Sheet, que tarda unos seis segundos.
+export const obtenerHorasReparacion = (quincena) =>
+  api.get(`/terceros/horas-reparacion?quincena=${quincena}`).then(r => r.data)
 
 // Para la pantalla de listado, que solo necesita las filas.
-export const listarHorasTaller = (quincena) =>
-  obtenerHorasTaller(quincena).then(d => d.horas)
+export const listarHorasReparacion = (quincena) =>
+  obtenerHorasReparacion(quincena).then(d => d.horas)
+
+// Horas de SERVICIO: la máquina del tercero trabajando en nuestras fincas. Se
+// le pagan. Van en el sentido contrario a las de reparación, por eso son dos
+// pantallas y no una con un filtro.
+export const listarHorasServicio = (quincena) =>
+  api.get(`/terceros/horas-servicio?quincena=${quincena}`).then(r => r.data)
 
 // Alertas de cruce entre los tres sistemas de origen (etapa 3).
 // No llevan quincena: un problema de cruce es del maestro, no de un período.

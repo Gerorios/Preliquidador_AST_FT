@@ -15,12 +15,12 @@ const columnas = [
   { clave: 'horas_total', label: 'Total', align: 'right', formato: comoHoras },
 ]
 
-export default function HorasTaller() {
+export default function HorasReparacion() {
   return (
     <PantallaConjunto
-      clave="horas-taller"
+      clave="horas-reparacion"
       columnas={columnas}
-      ayuda="Mano de obra del taller aplicada a máquinas de terceros. Solo se cobran las aprobadas: una pendiente espera a que el taller la apruebe y entra en la quincena que esté abierta. Las rechazadas no aparecen acá; se cuentan en la portada del módulo."
+      ayuda="Mano de obra del taller de la empresa aplicada a máquinas de terceros: se le DESCUENTA al dueño. No confundir con las Horas de servicio, que son su máquina trabajando para nosotros. Solo se cobran las aprobadas: una pendiente espera, y entra en la quincena que esté abierta cuando se apruebe. Las rechazadas no aparecen acá; se cuentan en la portada."
     />
   )
 }

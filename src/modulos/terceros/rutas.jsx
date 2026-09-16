@@ -14,7 +14,8 @@ const Inicio = lazy(() => import('./pages/Inicio'))
 const Viajes = lazy(() => import('./pages/Viajes'))
 const Combustible = lazy(() => import('./pages/Combustible'))
 const Repuestos = lazy(() => import('./pages/Repuestos'))
-const HorasTaller = lazy(() => import('./pages/HorasTaller'))
+const HorasReparacion = lazy(() => import('./pages/HorasReparacion'))
+const HorasServicio = lazy(() => import('./pages/HorasServicio'))
 const Alertas = lazy(() => import('./pages/Alertas'))
 
 export const PREFIJO = '/terceros'
@@ -29,7 +30,8 @@ export const rutas = [
   { path: `${PREFIJO}/viajes`,       element: <Viajes />,      modulo: MODULO, roles: ['operador'], label: 'Viajes',          icono: 'terceros',      menu: true },
   { path: `${PREFIJO}/combustible`,  element: <Combustible />, modulo: MODULO, roles: ['operador'], label: 'Combustible',     icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/repuestos`,    element: <Repuestos />,   modulo: MODULO, roles: ['operador'], label: 'Repuestos',       icono: 'modulos',       menu: true },
-  { path: `${PREFIJO}/horas-taller`, element: <HorasTaller />, modulo: MODULO, roles: ['operador'], label: 'Horas de taller', icono: 'mantenimiento', menu: true },
+  { path: `${PREFIJO}/horas-servicio`,   element: <HorasServicio />,   modulo: MODULO, roles: ['operador'], label: 'Horas de servicio',   icono: 'gerencial',     menu: true },
+  { path: `${PREFIJO}/horas-reparacion`, element: <HorasReparacion />, modulo: MODULO, roles: ['operador'], label: 'Horas de reparación', icono: 'mantenimiento', menu: true },
   { path: `${PREFIJO}/alertas`,      element: <Alertas />,     modulo: MODULO, roles: ['operador'], label: 'Alertas',          icono: 'verificacion',   menu: true },
 ]
 
@@ -48,7 +50,8 @@ export const pantallas = {
   '/terceros/viajes': 'Viajes de la quincena',
   '/terceros/combustible': 'Cargas de combustible de la quincena',
   '/terceros/repuestos': 'Repuestos aplicados a máquinas de terceros',
-  '/terceros/horas-taller': 'Horas de taller sobre máquinas de terceros',
+  '/terceros/horas-servicio': 'Horas de la maquinaria del tercero trabajando en las fincas (se le pagan)',
+  '/terceros/horas-reparacion': 'Horas del taller sobre máquinas de terceros (se le descuentan)',
   '/terceros/alertas': 'Alertas de cruce entre los sistemas de origen',
 }
 

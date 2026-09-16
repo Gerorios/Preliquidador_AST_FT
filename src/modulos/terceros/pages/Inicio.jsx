@@ -37,12 +37,12 @@ function Tarjeta({ conjunto, quincena }) {
   )
 }
 
-// Lee de la misma consulta que la tarjeta de horas: /terceros/horas-taller
+// Lee de la misma consulta que la tarjeta de reparación: /horas-reparacion
 // devuelve el listado y el recuento juntos, de una sola lectura del Sheet.
 function TableroHoras({ quincena }) {
-  const conjunto = conjuntoPorClave('horas-taller')
+  const conjunto = conjuntoPorClave('horas-reparacion')
   const { data } = useQuery({
-    queryKey: claveQuery('horas-taller', quincena),
+    queryKey: claveQuery('horas-reparacion', quincena),
     queryFn: () => conjunto.traer(quincena),
     enabled: !!quincena,
     retry: false,
@@ -53,7 +53,7 @@ function TableroHoras({ quincena }) {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.panelTitulo}>Horas de taller de la quincena</div>
+      <div className={styles.panelTitulo}>Horas de reparación de la quincena</div>
       <p className={styles.panelTexto}>
         Solo se cobran las aprobadas. Lo que siga pendiente cuando se emita el recibo no se
         cobra en esta quincena: conviene reclamarlo al taller antes de liquidar.
