@@ -55,7 +55,7 @@ export const pantallas = {
 export const modulo = {
   clave: MODULO,
   nombre: 'Liquidación Terceros',
-  descripcion: () => 'Liquidación a terceros: fletes y horas de taller.',
+  descripcion: () => 'Liquidación a terceros: servicio de fletes y maquinaria.',
   icono: 'terceros',
   activo: true,
   prefijo: PREFIJO,
