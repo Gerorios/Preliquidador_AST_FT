@@ -46,3 +46,13 @@ export const listarHorasServicio = (quincena) =>
 // movimiento, que es lo que separa una alerta accionable de una fila muerta.
 export const obtenerAlertas = (anio) =>
   api.get(`/terceros/alertas${anio ? `?anio=${anio}` : ''}`).then(r => r.data)
+
+// ─── La quincena generada (etapa 5) ─────────────────────────────────────────
+// Generar trae las cinco fuentes y las guarda. No congela nada: se puede volver
+// a llamar mientras el recibo no esté emitido, y reconcilia en vez de rehacer.
+
+export const listarLiquidaciones = () =>
+  api.get('/terceros/liquidaciones').then(r => r.data)
+
+export const generarLiquidacion = (quincena) =>
+  api.post('/terceros/liquidaciones/generar', { quincena }).then(r => r.data)

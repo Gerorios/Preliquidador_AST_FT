@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .topbar {
@@ -10,6 +12,7 @@
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .titulo {
@@ -19,83 +22,55 @@
 }
 
 .texto {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
-  max-width: 76ch;
+  max-width: 92ch;
+  flex-shrink: 0;
+}
+
+.nota {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 92ch;
+  flex-shrink: 0;
 }
 
 .vacio {
-  padding: 40px;
+  padding: 50px;
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
 }
 
-.grilla {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
-}
-
-.tarjeta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 16px 18px;
-  background: var(--bg-surface);
+.content {
+  flex: 1;
+  overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+
+.enlace {
+  color: var(--accent);
   text-decoration: none;
-  transition: border-color 0.12s, background 0.12s;
-  min-height: 118px;
-}
-
-.tarjeta:hover {
-  border-color: var(--accent);
-  background: var(--bg-elevated);
-}
-
-.tarjetaTitulo {
-  font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary);
-  letter-spacing: 0.3px;
 }
 
-.tarjetaTotal {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  margin-top: 6px;
-}
+.enlace:hover { text-decoration: underline; }
 
-.tarjetaUnidad {
-  font-size: 11px;
-  color: var(--text-muted);
-}
+.actual td { background: var(--accent-glow); }
 
-.tarjetaFilas {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: auto;
-}
-
-.tarjetaError {
-  font-size: 12px;
-  color: var(--warn);
-  margin-top: 8px;
-  line-height: 1.45;
-}
+/* ─── El detalle de lo que hizo el último generar ─────────────────────── */
 
 .panel {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px 18px;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .panelTitulo {
@@ -104,50 +79,43 @@
   color: var(--text-primary);
 }
 
-.panelTexto {
-  font-size: 12px;
-  color: var(--text-secondary);
-  max-width: 76ch;
-}
-
-.estados {
-  display: flex;
-  gap: 28px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-.estado {
+.detalle {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 8px 14px;
-  border-left: 2px solid var(--border-strong);
+  gap: 4px;
 }
 
-.estadoAviso {
-  border-left-color: var(--warn);
+.detalleFila {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 12px;
 }
 
-.estadoNumero {
-  font-size: 20px;
-  font-weight: 600;
-  font-family: var(--font-mono);
+.detalleNombre {
+  min-width: 150px;
   color: var(--text-primary);
+  font-weight: 500;
 }
 
-.estadoLabel {
-  font-size: 12px;
+.detalleDato {
+  min-width: 130px;
   color: var(--text-secondary);
+  font-family: var(--font-mono);
 }
 
-.estadoDetalle {
-  font-size: 11px;
-  color: var(--text-muted);
+.detalleAlta {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
-.tarjetaCargando {
-  font-size: 12px;
+.detalleBaja {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.detalleIgual {
   color: var(--text-muted);
-  margin-top: 10px;
 }
