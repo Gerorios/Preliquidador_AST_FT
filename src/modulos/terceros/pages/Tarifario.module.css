@@ -155,3 +155,14 @@
   gap: 6px;
   justify-content: flex-end;
 }
+
+/* Un importe que todavía no se cargó. No es cero: cero sería "no se le cobra". */
+.sinPrecio {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--border);
+}
+
+.sinPrecio:hover { color: var(--accent); }

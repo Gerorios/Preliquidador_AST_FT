@@ -82,3 +82,9 @@ export const eliminarTarifa = (tipo, id) =>
 
 export const copiarTarifario = (desde, hasta, tipos) =>
   api.post('/terceros/tarifario/copiar', { desde, hasta, tipos }).then(r => r.data)
+
+// El padrón de lo que se le asegura a cada tercero: sus colectivos, su
+// maquinaria y sus choferes. No lleva quincena — es el padrón del sistema de
+// campo, no un movimiento.
+export const listarBienes = () =>
+  api.get('/terceros/bienes').then(r => r.data)

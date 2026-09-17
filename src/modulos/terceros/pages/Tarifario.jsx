@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import SelectorQuincena from '../components/SelectorQuincena'
+import Seguros from '../components/Seguros'
 import useQuincenaStore from '../quincenaStore'
 import { TARIFARIOS, tarifarioPorClave } from '../tarifarios'
 import {
@@ -247,8 +248,12 @@ export default function Tarifario() {
 
       <div className={styles.content}>
         {!quincena && <div className={styles.vacio}>Elegí una quincena para cargar sus tarifas.</div>}
-        {quincena && isLoading && <CargandoContenido />}
-        {quincena && !isLoading && (
+        {quincena && isLoading && activo !== 'seguros' && <CargandoContenido />}
+        {/* Los seguros no se tipean: se eligen del padrón del sistema de campo,
+            porque son 382 bienes y personas y el nombre tiene que coincidir
+            exacto o el seguro no se le imputa a nadie. */}
+        {quincena && activo === 'seguros' && <Seguros quincena={quincena} />}
+        {quincena && !isLoading && activo !== 'seguros' && (
           <table>
             <thead>
               <tr>
@@ -268,7 +273,7 @@ export default function Tarifario() {
             </tbody>
           </table>
         )}
-        {quincena && !isLoading && filas.length === 0 && (
+        {quincena && !isLoading && activo !== 'seguros' && filas.length === 0 && (
           <div className={styles.vacio}>
             Esta quincena todavía no tiene tarifas de {tarifario.titulo.toLowerCase()}.
             Cargalas arriba, o copialas de otra quincena.

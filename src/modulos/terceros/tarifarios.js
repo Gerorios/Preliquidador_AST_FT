@@ -59,14 +59,23 @@ export const TARIFARIOS = [
     valores: [{ clave: 'precio', label: 'Precio por hora', tipo: 'pesos' }],
   },
   {
+    // Esta solapa NO usa la tabla genérica: la dibuja components/Seguros.jsx.
+    // Son 382 bienes y personas y el nombre tiene que coincidir exacto con el
+    // del sistema de campo, así que se elige de un padrón en vez de tipearse.
+    // Las dimensiones quedan declaradas igual porque el backend las valida.
     clave: 'seguros',
     titulo: 'Seguros',
-    ayuda: 'La cuota de cada póliza. No llega por archivo ni sale de ningún sistema: la carga a mano quien tiene los seguros a cargo.',
+    ayuda: 'La cuota de cada póliza, elegida del padrón del sistema de campo. Hay tres clases: la del automotor cubre un colectivo o una máquina, y las del chofer cubren a una persona. Filtrá por dueño y cargá los importes; dejar uno vacío es decir que a ese no se le cobra.',
+    propia: true,
     dimensiones: [
       { clave: 'tercero', label: 'Tercero', obligatoria: true },
-      { clave: 'maquinaria', label: 'Máquina', obligatoria: true },
+      { clave: 'tipo_seguro', label: 'Tipo de póliza', obligatoria: true },
+      { clave: 'sujeto', label: 'Máquina o chofer', obligatoria: true },
     ],
-    valores: [{ clave: 'importe', label: 'Importe de la cuota', tipo: 'pesos' }],
+    valores: [
+      { clave: 'importe', label: 'Importe de la cuota', tipo: 'pesos' },
+      { clave: 'referencia', label: 'Patente o CUIL', tipo: 'texto' },
+    ],
   },
 ]
 
