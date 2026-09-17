@@ -3,12 +3,16 @@ import { useQuery } from '@tanstack/react-query'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import { obtenerAlertas } from '../services/terceros'
 import { comoEntero } from '../formato'
-import styles from './Alertas.module.css'
+import styles from './Verificaciones.module.css'
 
 // Esta pantalla no arregla nada: es la herramienta con la que se hace la
-// limpieza de los sistemas de origen. Por eso cada alerta se presenta por
-// DÓNDE SE CORRIGE y no por dónde se detectó — lo que el liquidador necesita
-// saber es a quién avisarle.
+// limpieza de los sistemas de origen. Por eso cada aviso se presenta por DÓNDE
+// SE CORRIGE y no por dónde se detectó — lo que el liquidador necesita saber es
+// a quién avisarle.
+//
+// Hoy contiene una sola familia de verificaciones, las Alertas de cruce entre
+// sistemas. La etapa 9 suma los duplicados dentro de cada fuente y las reagrupa
+// por origen, que es como el usuario las pidió.
 
 const SEVERIDADES = [
   {
@@ -81,7 +85,7 @@ function ResumenMaquinaria({ m }) {
   )
 }
 
-export default function Alertas() {
+export default function Verificaciones() {
   const [anio, setAnio] = useState(new Date().getFullYear())
   const [sistema, setSistema] = useState('')
 
@@ -105,7 +109,7 @@ export default function Alertas() {
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
-        <div className={styles.titulo}>Alertas de cruce</div>
+        <div className={styles.titulo}>Verificaciones</div>
         <select className="input" style={{ width: 150 }} value={anio}
                 onChange={e => setAnio(Number(e.target.value))} aria-label="Año">
           {anios.map(a => <option key={a} value={a}>Movimiento de {a}</option>)}
@@ -123,9 +127,10 @@ export default function Alertas() {
       </div>
 
       <p className={styles.texto}>
-        Lo que un sistema dice y otro no encuentra. Nada de esto se resuelve solo ni se adivina
-        por parecido: cada alerta dice en qué sistema hay que corregirla. No lleva quincena
-        porque un problema de cruce es del maestro, no de un período.
+        Lo que hay que mirar antes de liquidar. Por ahora son los cruces entre sistemas: lo que
+        uno dice y otro no encuentra. Nada se resuelve solo ni se adivina por parecido — cada
+        aviso dice en qué sistema hay que corregirlo. No lleva quincena porque un problema de
+        cruce es del maestro, no de un período.
       </p>
 
       <div className={styles.content}>

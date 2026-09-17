@@ -16,7 +16,7 @@ const Combustible = lazy(() => import('./pages/Combustible'))
 const Repuestos = lazy(() => import('./pages/Repuestos'))
 const HorasReparacion = lazy(() => import('./pages/HorasReparacion'))
 const HorasServicio = lazy(() => import('./pages/HorasServicio'))
-const Alertas = lazy(() => import('./pages/Alertas'))
+const Verificaciones = lazy(() => import('./pages/Verificaciones'))
 
 export const PREFIJO = '/terceros'
 export const MODULO = 'terceros'
@@ -32,7 +32,7 @@ export const rutas = [
   { path: `${PREFIJO}/repuestos`,    element: <Repuestos />,   modulo: MODULO, roles: ['operador'], label: 'Repuestos',       icono: 'modulos',       menu: true },
   { path: `${PREFIJO}/horas-servicio`,   element: <HorasServicio />,   modulo: MODULO, roles: ['operador'], label: 'Horas de servicio',   icono: 'gerencial',     menu: true },
   { path: `${PREFIJO}/horas-reparacion`, element: <HorasReparacion />, modulo: MODULO, roles: ['operador'], label: 'Horas de reparación', icono: 'mantenimiento', menu: true },
-  { path: `${PREFIJO}/alertas`,      element: <Alertas />,     modulo: MODULO, roles: ['operador'], label: 'Alertas',          icono: 'verificacion',   menu: true },
+  { path: `${PREFIJO}/verificaciones`, element: <Verificaciones />, modulo: MODULO, roles: ['operador'], label: 'Verificaciones',     icono: 'verificacion',  menu: true },
 ]
 
 // El menú se deriva de rutas para que nav, modulo y roles no puedan divergir.
@@ -52,7 +52,7 @@ export const pantallas = {
   '/terceros/repuestos': 'Repuestos aplicados a máquinas de terceros',
   '/terceros/horas-servicio': 'Horas de la maquinaria del tercero trabajando en las fincas (se le pagan)',
   '/terceros/horas-reparacion': 'Horas del taller sobre máquinas de terceros (se le descuentan)',
-  '/terceros/alertas': 'Alertas de cruce entre los sistemas de origen',
+  '/terceros/verificaciones': 'Verificaciones: lo que hay que mirar antes de liquidar',
 }
 
 export const modulo = {
