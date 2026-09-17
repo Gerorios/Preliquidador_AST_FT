@@ -56,3 +56,29 @@ export const listarLiquidaciones = () =>
 
 export const generarLiquidacion = (quincena) =>
   api.post('/terceros/liquidaciones/generar', { quincena }).then(r => r.data)
+
+// ─── El Tarifario (etapa 6) ─────────────────────────────────────────────────
+// Un solo juego de llamadas para los cinco tarifarios: cambia el `tipo`.
+
+export const obtenerResumenTarifario = (quincena) =>
+  api.get(`/terceros/tarifario/resumen?quincena=${quincena}`).then(r => r.data)
+
+export const listarTarifas = (tipo, quincena) =>
+  api.get(`/terceros/tarifario/${tipo}?quincena=${quincena}`).then(r => r.data)
+
+export const crearTarifa = (tipo, quincena, datos) =>
+  api.post(`/terceros/tarifario/${tipo}?quincena=${quincena}`, datos).then(r => r.data)
+
+export const actualizarTarifa = (tipo, id, datos) =>
+  api.patch(`/terceros/tarifario/${tipo}/${id}`, datos).then(r => r.data)
+
+// Deja el precio como está, pero dicho por una persona: le saca la marca de
+// heredado sin cambiar el número.
+export const confirmarTarifa = (tipo, id) =>
+  api.post(`/terceros/tarifario/${tipo}/${id}/confirmar`).then(r => r.data)
+
+export const eliminarTarifa = (tipo, id) =>
+  api.delete(`/terceros/tarifario/${tipo}/${id}`).then(r => r.data)
+
+export const copiarTarifario = (desde, hasta, tipos) =>
+  api.post('/terceros/tarifario/copiar', { desde, hasta, tipos }).then(r => r.data)

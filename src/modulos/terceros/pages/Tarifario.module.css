@@ -1,0 +1,157 @@
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.aviso {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--warn);
+  background: var(--warn-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.copiar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copiarTexto {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ─── Las solapas de los cinco tarifarios ─────────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tab:hover { color: var(--text-primary); }
+
+.tabActivo {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.tabCuenta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+.tabPunto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.ayuda {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 92ch;
+  flex-shrink: 0;
+}
+
+.nota {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 92ch;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+
+.vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ─── Filas ───────────────────────────────────────────────────────────── */
+
+/* La fila de carga no es un dato: no se comporta como las demás. */
+.nueva td {
+  background: var(--bg-elevated);
+  padding: 8px 10px;
+}
+
+.nueva:hover td { background: var(--bg-elevated); }
+
+/* Heredada = vino copiada y nadie la confirmó. Paga igual; se marca para que
+   nadie arrastre un precio viejo sin mirarlo. */
+.heredada td:first-child {
+  border-left: 2px solid var(--warn);
+}
+
+.cualquiera {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 12px;
+}
+
+.precio {
+  font-family: var(--font-mono);
+  cursor: pointer;
+  border-bottom: 1px dashed var(--border-strong);
+}
+
+.precio:hover { color: var(--accent); }
+
+.acciones {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
