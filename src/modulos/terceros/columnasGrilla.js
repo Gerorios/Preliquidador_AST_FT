@@ -34,6 +34,11 @@ const PRECIO   = { clave: 'precio', label: 'Precio', align: 'right', formato: co
 const IMPORTE  = { clave: 'importe', label: 'Importe', align: 'right', tipo: 'importe', ancho: 130 }
 const ESTADO   = { clave: 'estado', label: 'Estado', tipo: 'estado', ancho: 120 }
 
+// Las unidades se muestran como se dicen. 'hsmaquina' es el valor que guarda
+// la base —el mismo que usa Preliquidación— y no algo para leer en una tabla.
+const UNIDADES = { hsmaquina: 'Hora máquina', unidades: 'Cantidad' }
+const comoUnidad = (v) => UNIDADES[v] ?? v ?? ''
+
 const cantidad = (label, ancho = 88) =>
   ({ clave: 'cantidad', label, align: 'right', formato: comoNumero, ancho })
 
@@ -47,7 +52,7 @@ export const COLUMNAS = {
     TERCERO, CLIENTE, FINCA, CAPATAZ,
     { clave: 'resumen', label: 'Detalle', calculado: resumen },
     cantidad('Cantidad'),
-    { clave: 'unidad', label: 'Unidad', ancho: 70 },
+    { clave: 'unidad', label: 'Unidad', formato: comoUnidad, ancho: 70 },
     PRECIO, IMPORTE, ESTADO,
   ],
 
@@ -79,7 +84,7 @@ export const COLUMNAS = {
     cantidad('Cantidad'),
     // Acá sí: la tarifa elige entre hora de máquina y cantidad, y cuál eligió
     // es lo que explica el importe.
-    { clave: 'unidad', label: 'Se paga por', ancho: 100 },
+    { clave: 'unidad', label: 'Se paga por', formato: comoUnidad, ancho: 110 },
     PRECIO, IMPORTE, ESTADO,
   ],
 

@@ -2,14 +2,19 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import FiltroMultiple from '../components/FiltroMultiple'
+import NuevaTarifa from '../components/NuevaTarifa'
 import SelectorQuincena from '../components/SelectorQuincena'
 import Seguros from '../components/Seguros'
+import SinPrecio from '../components/SinPrecio'
 import useQuincenaStore from '../quincenaStore'
 import { TARIFARIOS, tarifarioPorClave } from '../tarifarios'
 import {
-  listarTarifas, crearTarifa, actualizarTarifa, confirmarTarifa,
+  listarTarifas, actualizarTarifa, confirmarTarifa, confirmarTarifasEnLote,
   eliminarTarifa, copiarTarifario, obtenerResumenTarifario, listarQuincenas,
+  listarCombinaciones,
 } from '../services/terceros'
+import { opcionesCascada, pasaFiltros } from '../filtrar'
 import { comoPesos, comoEntero } from '../formato'
 import styles from './Tarifario.module.css'
 
@@ -17,74 +22,14 @@ import styles from './Tarifario.module.css'
 // tarifarios.js, así que agregar una dimensión es tocar un archivo y no cinco
 // pantallas iguales.
 //
+// Los cinco trabajan igual, y eso no es cosmética: el liquidador entra a uno
+// distinto cada día y no tiene por qué volver a aprender dónde está cada cosa.
+// Arriba se carga, abajo se filtra, y el listado de lo que falta se abre desde
+// una solapa en vez de vivir en un cuadro que estorba cuando no hace falta.
+//
 // Una fila resaltada es una tarifa heredada: vino copiada de otra quincena y
 // nadie la confirmó. Paga igual — el resaltado existe para no arrastrar un
 // precio viejo sin darse cuenta si hubo aumento.
-
-function Nueva({ tarifario, quincena, onListo }) {
-  const [datos, setDatos] = useState({})
-  const qc = useQueryClient()
-
-  // Tocar un precio recalcula esa parte de la quincena del lado del servidor,
-  // así que lo que la grilla tenga en caché quedó viejo.
-  const invalidarTodo = () => {
-    qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
-    qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
-  }
-
-  const crear = useMutation({
-    mutationFn: () => crearTarifa(tarifario.clave, quincena, datos),
-    onSuccess: () => {
-      toast.success('Tarifa cargada')
-      setDatos({})
-      invalidarTodo()
-      onListo?.()
-    },
-    onError: err => toast.error(err.message),
-  })
-
-  const set = (k, v) => setDatos(d => ({ ...d, [k]: v }))
-
-  return (
-    <tr className={styles.nueva}>
-      {tarifario.dimensiones.map(d => (
-        <td key={d.clave}>
-          <input
-            className="input"
-            placeholder={d.obligatoria ? `${d.label} *` : `${d.label} (cualquiera)`}
-            value={datos[d.clave] ?? ''}
-            onChange={e => set(d.clave, e.target.value)}
-          />
-        </td>
-      ))}
-      {tarifario.valores.map(v => (
-        <td key={v.clave}>
-          {v.tipo === 'opciones' ? (
-            <select className="input" value={datos[v.clave] ?? ''}
-                    onChange={e => set(v.clave, e.target.value)}>
-              <option value="">{v.requerida ? 'Elegir…' : '—'}</option>
-              {v.opciones.map(o => (
-                <option key={o} value={o}>{v.etiquetas?.[o] ?? o}</option>
-              ))}
-            </select>
-          ) : (
-            <input className="input" type="number" step="0.01" placeholder="0,00"
-                   value={datos[v.clave] ?? ''}
-                   onChange={e => set(v.clave, e.target.value)} />
-          )}
-        </td>
-      ))}
-      <td />
-      <td>
-        <button className="btn btn-primary btn-sm"
-                disabled={crear.isPending}
-                onClick={() => crear.mutate()}>
-          Agregar
-        </button>
-      </td>
-    </tr>
-  )
-}
 
 function Fila({ tarifario, fila }) {
   const qc = useQueryClient()
@@ -92,6 +37,7 @@ function Fila({ tarifario, fila }) {
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
     qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
+    qc.invalidateQueries({ queryKey: ['terceros', 'liquidaciones'] })
   }
 
   const guardar = useMutation({
@@ -183,6 +129,7 @@ function Copiar({ quincena }) {
       )
       qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
       qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
+      qc.invalidateQueries({ queryKey: ['terceros', 'liquidaciones'] })
     },
     onError: err => toast.error(err.message),
   })
@@ -208,7 +155,11 @@ function Copiar({ quincena }) {
 export default function Tarifario() {
   const quincena = useQuincenaStore(s => s.quincena)
   const [activo, setActivo] = useState(TARIFARIOS[0].clave)
+  const [modo, setModo] = useState('cargadas')
+  const [filtros, setFiltros] = useState({})
+  const qc = useQueryClient()
   const tarifario = tarifarioPorClave(activo)
+  const propio = tarifario.propia   // Seguros se dibuja aparte: sale de un padrón
 
   const { data: resumen = {} } = useQuery({
     queryKey: ['terceros', 'tarifario', 'resumen', quincena],
@@ -222,10 +173,50 @@ export default function Tarifario() {
     enabled: !!quincena,
   })
 
+  const { data: combinaciones = [] } = useQuery({
+    queryKey: ['terceros', 'tarifario', 'combinaciones', activo, quincena],
+    queryFn: () => listarCombinaciones(activo, quincena),
+    enabled: !!quincena && !propio,
+  })
+
+  const sinPrecio = useMemo(
+    () => combinaciones.filter(c => c.sin_precio > 0).length, [combinaciones])
+
   const sinConfirmar = useMemo(
     () => Object.values(resumen).reduce((n, r) => n + (r.heredadas ?? 0), 0),
     [resumen]
   )
+
+  const claves = useMemo(
+    () => tarifario.dimensiones.map(d => d.clave), [tarifario])
+
+  const opciones = useMemo(
+    () => opcionesCascada(filas, claves, filtros), [filas, claves, filtros])
+
+  const visibles = useMemo(
+    () => filas.filter(f => pasaFiltros(f, claves, filtros)), [filas, claves, filtros])
+
+  // Confirmar es decir "este precio lo miré", sin tocarlo. Copiar una quincena
+  // trae doscientas reglas heredadas, y confirmarlas de a una es el trabajo que
+  // copiar vino a evitar. Va sobre lo filtrado, como todo lo demás.
+  const heredadas = visibles.filter(f => f.heredada)
+
+  const confirmar = useMutation({
+    mutationFn: () => confirmarTarifasEnLote(activo, heredadas.map(f => f.id)),
+    onSuccess: (d) => {
+      toast.success(`${comoEntero(d.cargadas)} regla(s) confirmadas`)
+      qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+    },
+    onError: err => toast.error(err.message),
+  })
+
+  const elegirTarifario = (clave) => {
+    setActivo(clave)
+    setFiltros({})
+    setModo('cargadas')
+  }
+
+  const hayFiltro = Object.values(filtros).some(s => s?.size)
 
   return (
     <div className={styles.page}>
@@ -246,7 +237,7 @@ export default function Tarifario() {
           return (
             <button key={t.clave}
                     className={`${styles.tab} ${activo === t.clave ? styles.tabActivo : ''}`}
-                    onClick={() => setActivo(t.clave)}>
+                    onClick={() => elegirTarifario(t.clave)}>
               {t.titulo}
               <span className={styles.tabCuenta}>{comoEntero(r.cargadas)}</span>
               {r.heredadas > 0 && <span className={styles.tabPunto} title="Sin confirmar" />}
@@ -259,36 +250,98 @@ export default function Tarifario() {
 
       <div className={styles.content}>
         {!quincena && <div className={styles.vacio}>Elegí una quincena para cargar sus tarifas.</div>}
-        {quincena && isLoading && activo !== 'seguros' && <CargandoContenido />}
-        {/* Los seguros no se tipean: se eligen del padrón del sistema de campo,
-            porque son 382 bienes y personas y el nombre tiene que coincidir
-            exacto o el seguro no se le imputa a nadie. */}
-        {quincena && activo === 'seguros' && <Seguros quincena={quincena} />}
-        {quincena && !isLoading && activo !== 'seguros' && (
-          <table>
-            <thead>
-              <tr>
-                {tarifario.dimensiones.map(d => <th key={d.clave}>{d.label}</th>)}
-                {tarifario.valores.map(v => (
-                  <th key={v.clave} style={{ textAlign: v.tipo === 'pesos' ? 'right' : 'left' }}>
-                    {v.label}
-                  </th>
-                ))}
-                <th style={{ textAlign: 'center' }}>Estado</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              <Nueva tarifario={tarifario} quincena={quincena} />
-              {filas.map(f => <Fila key={f.id} tarifario={tarifario} fila={f} />)}
-            </tbody>
-          </table>
-        )}
-        {quincena && !isLoading && activo !== 'seguros' && filas.length === 0 && (
-          <div className={styles.vacio}>
-            Esta quincena todavía no tiene tarifas de {tarifario.titulo.toLowerCase()}.
-            Cargalas arriba, o copialas de otra quincena.
-          </div>
+        {quincena && propio && <Seguros quincena={quincena} />}
+
+        {quincena && !propio && (
+          <>
+            {/* Lo que falta no vive en un cuadro arriba de la tabla: se abre
+                cuando hace falta y se cierra cuando no. */}
+            <div className={styles.modos}>
+              <button className={`${styles.modo} ${modo === 'cargadas' ? styles.modoActivo : ''}`}
+                      onClick={() => setModo('cargadas')}>
+                Cargadas
+                <span className={styles.modoCuenta}>{comoEntero(filas.length)}</span>
+              </button>
+              <button className={`${styles.modo} ${modo === 'sin' ? styles.modoActivo : ''}`}
+                      onClick={() => setModo('sin')}>
+                Sin precio
+                {sinPrecio > 0 && <span className={styles.modoCuenta}>{comoEntero(sinPrecio)}</span>}
+              </button>
+            </div>
+
+            {modo === 'sin' && (
+              <SinPrecio tipo={activo} tarifario={tarifario} quincena={quincena}
+                         combinaciones={combinaciones} />
+            )}
+
+            {modo === 'cargadas' && (
+              <>
+                <NuevaTarifa tipo={activo} tarifario={tarifario} quincena={quincena}
+                             combinaciones={combinaciones} />
+
+                {Object.keys(opciones).length > 0 && (
+                  <div className={styles.filtros}>
+                    {tarifario.dimensiones.filter(d => opciones[d.clave]).map(d => (
+                      <FiltroMultiple
+                        key={d.clave} label={d.label} valores={opciones[d.clave]}
+                        seleccion={filtros[d.clave] ?? new Set()}
+                        onCambiar={sel => setFiltros(f => ({ ...f, [d.clave]: sel }))}
+                      />
+                    ))}
+                    {hayFiltro && (
+                      <button className={styles.limpiar} onClick={() => setFiltros({})}>
+                        Limpiar filtros
+                      </button>
+                    )}
+                    {heredadas.length > 0 && (
+                      <button className="btn btn-sm" disabled={confirmar.isPending}
+                              onClick={() => confirmar.mutate()}
+                              title="Les saca la marca de heredadas sin tocarles el precio">
+                        {confirmar.isPending
+                          ? 'Confirmando…'
+                          : `Confirmar (${comoEntero(heredadas.length)})`}
+                      </button>
+                    )}
+                    <span className={styles.cuentaFiltro}>
+                      {visibles.length === filas.length
+                        ? `${comoEntero(filas.length)} reglas`
+                        : `${comoEntero(visibles.length)} de ${comoEntero(filas.length)} reglas`}
+                    </span>
+                  </div>
+                )}
+
+                {isLoading && <CargandoContenido />}
+
+                {!isLoading && filas.length === 0 && (
+                  <div className={styles.vacio}>
+                    Esta quincena todavía no tiene tarifas de {tarifario.titulo.toLowerCase()}.
+                    Cargalas arriba, copialas de otra quincena, o mirá qué falta en «Sin precio».
+                  </div>
+                )}
+
+                {!isLoading && filas.length > 0 && (
+                  <table>
+                    <thead>
+                      <tr>
+                        {tarifario.dimensiones.map(d => <th key={d.clave}>{d.label}</th>)}
+                        {tarifario.valores.map(v => (
+                          <th key={v.clave}
+                              style={{ textAlign: v.tipo === 'pesos' ? 'right' : 'left' }}>
+                            {v.label}
+                          </th>
+                        ))}
+                        <th style={{ textAlign: 'center' }}>Estado</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibles.map(f => <Fila key={f.id} tarifario={tarifario} fila={f} />)}
+                    </tbody>
+                  </table>
+                )}
+              </>
+            )}
+          </>
         )}
       </div>
 

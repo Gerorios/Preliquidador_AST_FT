@@ -12,9 +12,21 @@ import styles from './FiltroMultiple.module.css'
 // filtro recién abierto, y evita el estado absurdo de una pantalla vacía
 // porque alguien destildó todo sin querer.
 //
+// `todosTilda` cambia qué hace el casillero "Todos", y la diferencia importa:
+//
+//   - Filtrando (por defecto): "Todos" vacía la selección. Si mañana aparece un
+//     cliente nuevo en la quincena, el filtro lo incluye solo.
+//   - Cargando una tarifa: "Todos" tilda los valores uno por uno, porque ahí
+//     "todos los capataces de hoy" y "cualquier capataz" NO son lo mismo. La
+//     regla con el capataz vacío también va a alcanzar al capataz que aparezca
+//     mañana, y ése puede tener otro precio.
+//
 // valores: array de strings. seleccion: Set. onCambiar: recibe el Set nuevo.
 
-export default function FiltroMultiple({ label, valores, seleccion, onCambiar, etiqueta }) {
+export default function FiltroMultiple({
+  label, valores, seleccion, onCambiar, etiqueta,
+  todosTilda = false, etiquetaVacio,
+}) {
   const [abierto, setAbierto] = useState(false)
   const [busqueda, setBusqueda] = useState('')
   const caja = useRef(null)
@@ -38,27 +50,31 @@ export default function FiltroMultiple({ label, valores, seleccion, onCambiar, e
     return q ? valores.filter(v => mostrar(v).toLowerCase().includes(q)) : valores
   }, [valores, busqueda])
 
-  const todos = seleccion.size === 0
+  // Con `todosTilda`, tener todo tildado es un estado distinto de no tener
+  // nada: uno dice "estos que son todos los de hoy" y el otro "cualquiera".
+  const todos = todosTilda
+    ? seleccion.size === valores.length && valores.length > 0
+    : seleccion.size === 0
   const alternar = (v) => {
     const nueva = new Set(seleccion)
     nueva.has(v) ? nueva.delete(v) : nueva.add(v)
     onCambiar(nueva)
   }
 
-  // "Todos" vacía la selección en vez de tildar los valores uno por uno: así,
-  // si mañana aparece un cliente nuevo en la quincena, el filtro lo incluye
-  // solo en vez de dejarlo afuera sin que nadie lo note.
-  const marcarTodos = () => onCambiar(new Set())
+  const marcarTodos = () => onCambiar(
+    todosTilda && !todos ? new Set(valores) : new Set())
 
-  const resumen = todos
-    ? `todos (${comoEntero(valores.length)})`
-    : seleccion.size === 1
-      ? mostrar([...seleccion][0])
-      : `${comoEntero(seleccion.size)} de ${comoEntero(valores.length)}`
+  const resumen = seleccion.size === 0
+    ? (etiquetaVacio ?? `todos (${comoEntero(valores.length)})`)
+    : seleccion.size === valores.length
+      ? `todos (${comoEntero(valores.length)})`
+      : seleccion.size === 1
+        ? mostrar([...seleccion][0])
+        : `${comoEntero(seleccion.size)} de ${comoEntero(valores.length)}`
 
   return (
     <div className={styles.caja} ref={caja}>
-      <button className={`${styles.boton} ${todos ? '' : styles.botonActivo}`}
+      <button className={`${styles.boton} ${seleccion.size ? styles.botonActivo : ''}`}
               onClick={() => setAbierto(a => !a)}>
         <span className={styles.label}>{label}</span>
         <span className={styles.resumen}>{resumen}</span>
@@ -92,9 +108,9 @@ export default function FiltroMultiple({ label, valores, seleccion, onCambiar, e
             )}
           </div>
 
-          {!todos && (
-            <button className={styles.limpiarUno} onClick={marcarTodos}>
-              Quitar este filtro
+          {seleccion.size > 0 && (
+            <button className={styles.limpiarUno} onClick={() => onCambiar(new Set())}>
+              {etiquetaVacio ? 'Dejar en «cualquiera»' : 'Quitar este filtro'}
             </button>
           )}
         </div>

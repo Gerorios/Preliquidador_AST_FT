@@ -107,3 +107,28 @@ export const listarTotales = (quincena) =>
 
 export const listarPendientes = (quincena) =>
   api.get(`/terceros/liquidaciones/pendientes?quincena=${quincena}`).then(r => r.data)
+
+// Las combinaciones que la quincena tiene, con o sin precio. De acá salen dos
+// cosas: la lista de lo que falta pactar, y los valores que los desplegables
+// ofrecen al cargar una regla — para no tipear un nombre que tiene que
+// coincidir exacto con el del sistema de campo.
+export const listarCombinaciones = (tipo, quincena) =>
+  api.get(`/terceros/tarifario/${tipo}/combinaciones?quincena=${quincena}`).then(r => r.data)
+
+// Sacarle la marca de heredada a varias reglas de una. Copiar una quincena
+// trae doscientas sin confirmar, y confirmarlas de a una es el trabajo que
+// copiar vino a evitar.
+export const confirmarTarifasEnLote = (tipo, ids) =>
+  api.post(`/terceros/tarifario/${tipo}/confirmar-lote`, { ids }).then(r => r.data)
+
+// El mismo valor para varias reglas, con un solo recálculo. Es lo que se usa
+// cuando sube un precio y hay que tocarlo en cuarenta reglas iguales.
+export const actualizarTarifasEnLote = (tipo, ids, datos) =>
+  api.patch(`/terceros/tarifario/${tipo}/lote`, { ids, datos }).then(r => r.data)
+
+// Varias reglas del mismo tarifario de una. De a una, pactar las 44
+// combinaciones de horas de servicio de una quincena son 44 requests y 44
+// recálculos de lo mismo.
+export const crearTarifasEnLote = (tipo, quincena, tarifas) =>
+  api.post(`/terceros/tarifario/${tipo}/lote?quincena=${quincena}`, { tarifas })
+     .then(r => r.data)

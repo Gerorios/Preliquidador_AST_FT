@@ -39,7 +39,7 @@ export const TARIFARIOS = [
       {
         clave: 'unidad_base', label: 'Unidad base', tipo: 'opciones',
         opciones: ['hsmaquina', 'unidades'],
-        etiquetas: { hsmaquina: 'Hora de máquina', unidades: 'Cantidad' },
+        etiquetas: { hsmaquina: 'Hora máquina', unidades: 'Cantidad' },
         requerida: true,
       },
     ],
@@ -73,7 +73,7 @@ export const TARIFARIOS = [
       { clave: 'sujeto', label: 'Máquina o chofer', obligatoria: true },
     ],
     valores: [
-      { clave: 'importe', label: 'Importe de la cuota', tipo: 'pesos' },
+      { clave: 'importe', label: 'Importe', tipo: 'pesos' },
       { clave: 'referencia', label: 'Patente o CUIL', tipo: 'texto' },
     ],
   },

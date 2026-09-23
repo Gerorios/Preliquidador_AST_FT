@@ -13,6 +13,14 @@ export const comoNumero = (v) => vacio(v) ? '' : numero.format(Number(v))
 export const comoEntero = (v) => vacio(v) ? '' : entero.format(Number(v))
 export const comoPesos = (v) => vacio(v) ? '' : pesos.format(Number(v))
 
+// Los totales van sin centavos. Una columna de seis cifras de ocho dígitos con
+// ",00" al final es ruido: nadie decide nada con los centavos de un total de
+// cien millones, y se leen peor. El detalle de cada línea sí los conserva.
+const pesosEnteros = new Intl.NumberFormat('es-AR', {
+  style: 'currency', currency: 'ARS', maximumFractionDigits: 0,
+})
+export const comoPesosEnteros = (v) => vacio(v) ? '' : pesosEnteros.format(Number(v))
+
 // Las horas se escriben con los decimales que tengan: media hora es 0,5 y
 // mostrarla como "1" sería mentir sobre lo que se cobra.
 export const comoHoras = (v) => vacio(v) ? '' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 2 })

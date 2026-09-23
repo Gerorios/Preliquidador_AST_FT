@@ -7,8 +7,9 @@ import SelectorQuincena from '../components/SelectorQuincena'
 import useQuincenaStore from '../quincenaStore'
 import { listarLineas } from '../services/terceros'
 import { ORDEN_CONCEPTOS, columnasDe, filtrosDe, valorDe } from '../columnasGrilla'
+import { opcionesCascada, pasaFiltros } from '../filtrar'
 import { bajarCsv, comoNumeroCsv } from '../exportar'
-import { comoEntero, comoPesos } from '../formato'
+import { comoEntero, comoPesos, comoPesosEnteros } from '../formato'
 import styles from './Grilla.module.css'
 
 // La quincena entera en una sola pantalla, con los seis conceptos mezclados.
@@ -32,8 +33,12 @@ import styles from './Grilla.module.css'
 // números viejos hasta que alguien se acuerde de apretarlo.
 //
 // Los filtros son en memoria: la quincena más grande son 1.160 líneas, ya están
-// todas en el navegador, y pedirlas de nuevo en cada tecla agregaría segundos
-// contra una base que está en otro servidor.
+// todas en el navegador, y pedirlas de nuevo agregaría segundos contra una base
+// que está en otro servidor.
+//
+// Hubo un buscador de texto libre y se sacó: desde que cada concepto tiene sus
+// filtros con casillas, lo único que agregaba era otra forma de hacer lo mismo.
+// Dos caminos para la misma pregunta obligan a elegir uno antes de empezar.
 
 // Un hecho sin importe no vale cero: dice por qué no lo tiene, y cada motivo lo
 // resuelve alguien distinto. Por eso el estado se muestra y se puede filtrar.
@@ -69,7 +74,6 @@ export default function Grilla() {
   const [terceros, setTerceros] = useState(new Set())
   const [concepto, setConcepto] = useState('')
   const [filtros, setFiltros] = useState({})
-  const [busqueda, setBusqueda] = useState('')
   const [orden, setOrden] = useState({ clave: null, asc: true })
 
   const { data: lineas = [], isLoading } = useQuery({
@@ -83,18 +87,15 @@ export default function Grilla() {
 
   const todosLosTerceros = useMemo(() => unicos(lineas, 'tercero'), [lineas])
 
+  const claves = useMemo(() => declarados.map(([c]) => c), [declarados])
+
   const pasaTercero = (f) => terceros.size === 0 || terceros.has(f.tercero)
 
   // `salvo` deja un filtro afuera, que es lo que hace falta para armar sus
   // propias opciones: si se aplicara a sí mismo, lo único que quedaría para
   // elegir sería lo que ya está elegido.
   const pasa = (fila, salvo) =>
-    pasaTercero(fila) &&
-    declarados.every(([clave]) => {
-      if (clave === salvo) return true
-      const elegidos = filtros[clave]
-      return !elegidos?.size || elegidos.has(fila[clave])
-    })
+    pasaTercero(fila) && pasaFiltros(fila, claves, filtros, salvo)
 
   // Cambiar de concepto cambia las columnas y los filtros, así que lo que había
   // puesto ya no significa lo mismo: un capataz elegido no tiene sentido en
@@ -115,22 +116,12 @@ export default function Grilla() {
   // elegido un cliente, el de finca ofrece las fincas de ese cliente y no las
   // de la quincena entera. Un filtro sin nada que ofrecer no se muestra: un
   // desplegable vacío es una promesa que la pantalla no puede cumplir.
-  const opciones = useMemo(() => {
-    const salida = {}
-    for (const [clave] of declarados) {
-      const valores = unicos(delConcepto.filter(f => pasa(f, clave)), clave)
-      if (valores.length > 1 || filtros[clave]?.size) salida[clave] = valores
-    }
-    return salida
-  }, [delConcepto, declarados, filtros, terceros])
+  const opciones = useMemo(
+    () => opcionesCascada(delConcepto.filter(pasaTercero), claves, filtros),
+    [delConcepto, claves, filtros, terceros])
 
   const visibles = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
-    let filas = delConcepto.filter(f => pasa(f, null))
-    if (q) {
-      filas = filas.filter(f => columnas.some(
-        c => String(valorDe(c, f) ?? '').toLowerCase().includes(q)))
-    }
+    const filas = delConcepto.filter(f => pasa(f, null))
     if (!orden.clave) return filas
     const columna = columnas.find(c => c.clave === orden.clave)
     const copia = [...filas]
@@ -145,7 +136,7 @@ export default function Grilla() {
       return orden.asc ? cmp : -cmp
     })
     return copia
-  }, [delConcepto, declarados, filtros, terceros, busqueda, orden, columnas])
+  }, [delConcepto, declarados, filtros, terceros, orden, columnas])
 
   // Los totales son de lo que se está viendo, no de la quincena: si filtrás un
   // tercero querés su número, y un total que no se mueve con el filtro es un
@@ -207,16 +198,13 @@ export default function Grilla() {
   const ordenarPor = (clave) =>
     setOrden(o => (o.clave === clave ? { clave, asc: !o.asc } : { clave, asc: true }))
 
-  const puestos = Object.values(filtros).filter(s => s?.size).length
-  const hayFiltro = puestos > 0 || busqueda
+  const hayFiltro = Object.values(filtros).some(s => s?.size)
 
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
         <div className={styles.titulo}>Quincena</div>
         <SelectorQuincena />
-        <input className="input" style={{ width: 240 }} placeholder="Buscar en todo…"
-               value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         <div className={styles.acciones}>
           <button className="btn btn-sm" disabled={!visibles.length} onClick={exportar}>
             Exportar
@@ -262,8 +250,7 @@ export default function Grilla() {
               />
             ))}
             {hayFiltro && (
-              <button className={styles.limpiar}
-                      onClick={() => { setBusqueda(''); setFiltros({}) }}>
+              <button className={styles.limpiar} onClick={() => setFiltros({})}>
                 Limpiar filtros
               </button>
             )}
@@ -275,23 +262,23 @@ export default function Grilla() {
           <div className={styles.resumen}>
             <div className={styles.dato}>
               <span className={styles.datoLabel}>Se le paga</span>
-              <span className={styles.datoValor}>{comoPesos(totales.paga)}</span>
+              <span className={styles.datoValor}>{comoPesosEnteros(totales.paga)}</span>
             </div>
             <div className={styles.dato}>
               <span className={styles.datoLabel}>Se le descuenta</span>
-              <span className={styles.datoValor}>{comoPesos(totales.descuenta)}</span>
+              <span className={styles.datoValor}>{comoPesosEnteros(totales.descuenta)}</span>
             </div>
             <div className={`${styles.dato} ${styles.datoFuerte}`}>
               <span className={styles.datoLabel}>Total a facturar</span>
-              <span className={styles.datoValor}>{comoPesos(totales.aFacturar)}</span>
+              <span className={styles.datoValor}>{comoPesosEnteros(totales.aFacturar)}</span>
             </div>
             <div className={styles.dato}>
               <span className={styles.datoLabel}>Seguros</span>
-              <span className={styles.datoValor}>{comoPesos(totales.seguros)}</span>
+              <span className={styles.datoValor}>{comoPesosEnteros(totales.seguros)}</span>
             </div>
             <div className={`${styles.dato} ${styles.datoFuerte}`}>
               <span className={styles.datoLabel}>Total a pagar</span>
-              <span className={styles.datoValor}>{comoPesos(totales.aPagar)}</span>
+              <span className={styles.datoValor}>{comoPesosEnteros(totales.aPagar)}</span>
             </div>
             {totales.sinCalcular > 0 && (
               <div className={`${styles.dato} ${styles.datoAviso}`}>

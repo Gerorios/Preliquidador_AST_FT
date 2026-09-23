@@ -8,7 +8,7 @@ import SelectorQuincena from '../components/SelectorQuincena'
 import useQuincenaStore from '../quincenaStore'
 import { listarLiquidaciones, generarLiquidacion } from '../services/terceros'
 import { CONJUNTOS } from '../conjuntos'
-import { comoEntero } from '../formato'
+import { comoEntero, comoPesosEnteros } from '../formato'
 import { PREFIJO } from '../rutas'
 import styles from './Inicio.module.css'
 
@@ -35,6 +35,19 @@ const comoFechaQuincena = (iso) => {
 
 // El backend agrupa por nombre con guión bajo; las claves del front usan guión.
 const claveConteo = (clave) => clave.replace('-', '_')
+
+// Los rubros de la portada, en el orden del recibo: primero lo que se le paga
+// al tercero, después lo que se le descuenta. Es plata y no cantidad de filas:
+// "756 viajes" no dice si la quincena fue cara o barata, y es lo único que uno
+// quiere saber mirando una lista de quincenas.
+const RUBROS = [
+  { clave: 'viajes', titulo: 'Viajes', signo: 1 },
+  { clave: 'servicio', titulo: 'Horas de servicio', signo: 1 },
+  { clave: 'combustible', titulo: 'Combustible', signo: -1 },
+  { clave: 'repuestos', titulo: 'Repuestos', signo: -1 },
+  { clave: 'reparacion', titulo: 'Horas de reparación', signo: -1 },
+  { clave: 'seguros', titulo: 'Seguros', signo: -1 },
+]
 
 export default function Inicio() {
   const qc = useQueryClient()
@@ -145,12 +158,13 @@ export default function Inicio() {
             <thead>
               <tr>
                 <th>Quincena</th>
-                {CONJUNTOS.map(c => (
-                  <th key={c.clave} style={{ textAlign: 'right' }}>{c.titulo}</th>
+                {RUBROS.map(r => (
+                  <th key={r.clave} style={{ textAlign: 'right' }}>{r.titulo}</th>
                 ))}
                 <th style={{ textAlign: 'right' }}>Total</th>
                 <th>Generada</th>
                 <th>Actualizada</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -160,16 +174,23 @@ export default function Inicio() {
                     onClick={() => abrir(l.quincena)}
                     title="Abrir esta quincena">
                   <td className={styles.enlace}>{comoFechaQuincena(l.quincena)}</td>
-                  {CONJUNTOS.map(c => (
-                    <td key={c.clave} style={{ textAlign: 'right' }}>
-                      {comoEntero(l.filas[claveConteo(c.clave)] ?? 0)}
+                  {RUBROS.map(r => (
+                    <td key={r.clave} style={{ textAlign: 'right' }}
+                        className={r.signo > 0 ? undefined : styles.resta}>
+                      {comoPesosEnteros(l.importes?.[r.clave])}
                     </td>
                   ))}
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {comoEntero(l.total_filas)}
+                    {comoPesosEnteros(l.importes?.total)}
                   </td>
                   <td>{fechaHora(l.generada_en)}</td>
                   <td>{fechaHora(l.actualizada_en)}</td>
+                  <td>
+                    <button className="btn btn-sm"
+                            onClick={e => { e.stopPropagation(); abrir(l.quincena) }}>
+                      Abrir
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -178,8 +199,8 @@ export default function Inicio() {
       </div>
 
       <p className={styles.nota}>
-        Hacé clic en una quincena para abrirla. Lo que vas a ver ahí es lo guardado acá con las
-        tarifas aplicadas, no una lectura en vivo de los orígenes.
+        Los importes son de lo que ya tiene precio. Lo que quedó sin tarifa no suma —ni siquiera
+        como cero—, así que una quincena a medio pactar se ve más barata de lo que va a ser.
       </p>
     </div>
   )

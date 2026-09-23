@@ -130,3 +130,10 @@
 .fila:hover td {
   background: var(--bg-hover, rgba(127, 127, 127, 0.06));
 }
+
+/* Lo que se le descuenta al tercero, más apagado: mirando una fila de seis
+   cifras, el color dice de qué lado cae cada una sin tener que leer el título
+   de la columna. */
+.resta {
+  color: var(--text-tertiary);
+}
