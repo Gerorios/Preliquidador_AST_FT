@@ -25,12 +25,19 @@ function Nueva({ tarifario, quincena, onListo }) {
   const [datos, setDatos] = useState({})
   const qc = useQueryClient()
 
+  // Tocar un precio recalcula esa parte de la quincena del lado del servidor,
+  // así que lo que la grilla tenga en caché quedó viejo.
+  const invalidarTodo = () => {
+    qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+    qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
+  }
+
   const crear = useMutation({
     mutationFn: () => crearTarifa(tarifario.clave, quincena, datos),
     onSuccess: () => {
       toast.success('Tarifa cargada')
       setDatos({})
-      qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+      invalidarTodo()
       onListo?.()
     },
     onError: err => toast.error(err.message),
@@ -82,7 +89,10 @@ function Nueva({ tarifario, quincena, onListo }) {
 function Fila({ tarifario, fila }) {
   const qc = useQueryClient()
   const [editando, setEditando] = useState(null)
-  const invalidar = () => qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+    qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
+  }
 
   const guardar = useMutation({
     mutationFn: (datos) => actualizarTarifa(tarifario.clave, fila.id, datos),
@@ -172,6 +182,7 @@ function Copiar({ quincena }) {
             (estaban ? `, y ${comoEntero(estaban)} ya estaban` : '')
       )
       qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+      qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
     },
     onError: err => toast.error(err.message),
   })

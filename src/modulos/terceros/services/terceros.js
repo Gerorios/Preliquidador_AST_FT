@@ -88,3 +88,22 @@ export const copiarTarifario = (desde, hasta, tipos) =>
 // campo, no un movimiento.
 export const listarBienes = () =>
   api.get('/terceros/bienes').then(r => r.data)
+
+// ─── El cálculo y la grilla (etapas 7 y 8) ──────────────────────────────────
+
+// No hay una llamada para recalcular: cargar un precio ya lo aplica. El backend
+// recalcula el concepto de ese tarifario en el mismo request, igual que hace
+// Preliquidación con sus conceptos. Lo único que queda de este lado es avisarle
+// a la caché de la grilla que lo que tenía quedó viejo.
+
+// Los seis conceptos de la quincena en una sola lista, ya con su importe.
+// Vienen también las líneas sin precio: son las que hay que resolver.
+export const listarLineas = (quincena) =>
+  api.get(`/terceros/liquidaciones/lineas?quincena=${quincena}`).then(r => r.data)
+
+// Por tercero: Total a facturar (sin seguros) y Total a pagar (con).
+export const listarTotales = (quincena) =>
+  api.get(`/terceros/liquidaciones/totales?quincena=${quincena}`).then(r => r.data)
+
+export const listarPendientes = (quincena) =>
+  api.get(`/terceros/liquidaciones/pendientes?quincena=${quincena}`).then(r => r.data)

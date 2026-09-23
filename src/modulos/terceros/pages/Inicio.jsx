@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
@@ -38,8 +38,18 @@ const claveConteo = (clave) => clave.replace('-', '_')
 
 export default function Inicio() {
   const qc = useQueryClient()
+  const navegar = useNavigate()
   const quincena = useQuincenaStore(s => s.quincena)
+  const setQuincena = useQuincenaStore(s => s.setQuincena)
   const [detalle, setDetalle] = useState(null)
+
+  // Hacer clic en una quincena la abre: la deja elegida en todo el módulo y
+  // lleva a la grilla. Es lo que uno espera de una fila que representa una
+  // quincena, y ahorra el paso de volver a elegirla en el selector de allá.
+  const abrir = (q) => {
+    setQuincena(q)
+    navegar(`${PREFIJO}/quincena`)
+  }
 
   const { data: liquidaciones = [], isLoading } = useQuery({
     queryKey: ['terceros', 'liquidaciones'],
@@ -145,12 +155,11 @@ export default function Inicio() {
             </thead>
             <tbody>
               {liquidaciones.map(l => (
-                <tr key={l.id} className={l.quincena === quincena ? styles.actual : undefined}>
-                  <td>
-                    <Link to={`${PREFIJO}/viajes`} className={styles.enlace}>
-                      {comoFechaQuincena(l.quincena)}
-                    </Link>
-                  </td>
+                <tr key={l.id}
+                    className={`${styles.fila} ${l.quincena === quincena ? styles.actual : ''}`}
+                    onClick={() => abrir(l.quincena)}
+                    title="Abrir esta quincena">
+                  <td className={styles.enlace}>{comoFechaQuincena(l.quincena)}</td>
                   {CONJUNTOS.map(c => (
                     <td key={c.clave} style={{ textAlign: 'right' }}>
                       {comoEntero(l.filas[claveConteo(c.clave)] ?? 0)}
@@ -169,9 +178,8 @@ export default function Inicio() {
       </div>
 
       <p className={styles.nota}>
-        Las pantallas de cada conjunto todavía leen los orígenes en vivo, así que pueden mostrar
-        algo distinto de lo guardado acá. Se unifican en la etapa 8, cuando las reemplace una sola
-        grilla que lee lo guardado y le aplica las tarifas.
+        Hacé clic en una quincena para abrirla. Lo que vas a ver ahí es lo guardado acá con las
+        tarifas aplicadas, no una lectura en vivo de los orígenes.
       </p>
     </div>
   )

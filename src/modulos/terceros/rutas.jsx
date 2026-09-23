@@ -5,17 +5,16 @@ import { tienePermiso } from '../../core/permisos'
 // las consume sin conocer las pantallas.
 //
 // Activo desde la etapa 2 (2026-09-14): dejó de ser un molde cuando tuvo sus
-// primeras pantallas reales. Todas de solo lectura — muestran lo que llega de
-// los sistemas de origen, sin tarifas ni neto, que empiezan en la etapa 4.
-// La de Alertas (etapa 3) no muestra datos sino lo que NO se encuentra entre
-// los tres sistemas; por eso es la única sin selector de quincena.
+// primeras pantallas reales.
+//
+// En la etapa 8 las cinco pantallas de conjunto —Viajes, Combustible,
+// Repuestos, Horas de servicio y Horas de reparación— se reemplazaron por una
+// sola, "La quincena": leían los orígenes en vivo, no tenían precios y obligaban
+// a mirar cada fuente por separado, que es justo lo que el módulo vino a sacar.
+// Las de Verificaciones y Tarifario siguen aparte porque no muestran hechos.
 // Ver, en el repo backend, docs/modulos/terceros/plan-terceros.md.
 const Inicio = lazy(() => import('./pages/Inicio'))
-const Viajes = lazy(() => import('./pages/Viajes'))
-const Combustible = lazy(() => import('./pages/Combustible'))
-const Repuestos = lazy(() => import('./pages/Repuestos'))
-const HorasReparacion = lazy(() => import('./pages/HorasReparacion'))
-const HorasServicio = lazy(() => import('./pages/HorasServicio'))
+const Grilla = lazy(() => import('./pages/Grilla'))
 const Tarifario = lazy(() => import('./pages/Tarifario'))
 const Verificaciones = lazy(() => import('./pages/Verificaciones'))
 
@@ -28,11 +27,7 @@ export const MODULO = 'terceros'
 // GUIA-MODULOS: fuera de la carpeta del módulo no se toca nada).
 export const rutas = [
   { path: `${PREFIJO}/inicio`,       element: <Inicio />,      modulo: MODULO, roles: ['operador'], label: 'Inicio',          icono: 'inicio',        menu: true },
-  { path: `${PREFIJO}/viajes`,       element: <Viajes />,      modulo: MODULO, roles: ['operador'], label: 'Viajes',          icono: 'terceros',      menu: true },
-  { path: `${PREFIJO}/combustible`,  element: <Combustible />, modulo: MODULO, roles: ['operador'], label: 'Combustible',     icono: 'conceptos',     menu: true },
-  { path: `${PREFIJO}/repuestos`,    element: <Repuestos />,   modulo: MODULO, roles: ['operador'], label: 'Repuestos',       icono: 'modulos',       menu: true },
-  { path: `${PREFIJO}/horas-servicio`,   element: <HorasServicio />,   modulo: MODULO, roles: ['operador'], label: 'Horas de servicio',   icono: 'gerencial',     menu: true },
-  { path: `${PREFIJO}/horas-reparacion`, element: <HorasReparacion />, modulo: MODULO, roles: ['operador'], label: 'Horas de reparación', icono: 'mantenimiento', menu: true },
+  { path: `${PREFIJO}/quincena`,     element: <Grilla />,      modulo: MODULO, roles: ['operador'], label: 'Quincena',         icono: 'gerencial',     menu: true },
   { path: `${PREFIJO}/tarifario`,      element: <Tarifario />,      modulo: MODULO, roles: ['operador'], label: 'Tarifario',          icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/verificaciones`, element: <Verificaciones />, modulo: MODULO, roles: ['operador'], label: 'Verificaciones',     icono: 'verificacion',  menu: true },
 ]
@@ -49,11 +44,7 @@ export const redirecciones = []
 // Pantallas para el asistente de ayuda (src/core/asistente/AsistenteChat.jsx).
 export const pantallas = {
   '/terceros/inicio': 'Liquidación Terceros (resumen de la quincena)',
-  '/terceros/viajes': 'Viajes de la quincena',
-  '/terceros/combustible': 'Cargas de combustible de la quincena',
-  '/terceros/repuestos': 'Repuestos aplicados a máquinas de terceros',
-  '/terceros/horas-servicio': 'Horas de la maquinaria del tercero trabajando en las fincas (se le pagan)',
-  '/terceros/horas-reparacion': 'Horas del taller sobre máquinas de terceros (se le descuentan)',
+  '/terceros/quincena': 'La quincena entera: los seis conceptos en una lista filtrable, ya con sus precios',
   '/terceros/tarifario': 'Tarifario: los precios pactados con cada tercero, por quincena',
   '/terceros/verificaciones': 'Verificaciones: lo que hay que mirar antes de liquidar',
 }

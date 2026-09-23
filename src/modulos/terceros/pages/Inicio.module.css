@@ -119,3 +119,14 @@
 .detalleIgual {
   color: var(--text-muted);
 }
+
+/* Toda la fila abre la quincena, no sólo el nombre: el blanco de una celda es
+   parte de la fila para quien la mira, y hacer clic ahí y que no pase nada se
+   lee como que la pantalla no anda. */
+.fila {
+  cursor: pointer;
+}
+
+.fila:hover td {
+  background: var(--bg-hover, rgba(127, 127, 127, 0.06));
+}

@@ -32,7 +32,10 @@ const ETIQUETA_ORIGEN = {
 function Importe({ fila, quincena }) {
   const qc = useQueryClient()
   const [valor, setValor] = useState(null)
-  const invalidar = () => qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+    qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
+  }
 
   const guardar = useMutation({
     mutationFn: async (importe) => {

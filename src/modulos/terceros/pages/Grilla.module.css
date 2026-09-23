@@ -1,0 +1,267 @@
+/* La quincena entera en una pantalla. El alto es fijo y lo que scrollea es la
+   tabla: los filtros y los totales tienen que quedar a la vista mientras se
+   recorren mil líneas, que es justo cuando hacen falta. */
+
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.acciones {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── El filtro maestro ───────────────────────────────────────────────── */
+/* El tercero va arriba de los conceptos porque cruza las seis fuentes: elegido
+   un dueño, todo lo que sigue es de él. Va con más peso visual que los filtros
+   de abajo justamente para que se lea como lo que manda. */
+
+.maestro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary, transparent);
+}
+
+.maestroLabel {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+/* ─── Los conceptos ───────────────────────────────────────────────────── */
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.chip:hover { color: var(--text-primary); }
+
+.chipActivo {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.chipCuenta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Filtros ─────────────────────────────────────────────────────────── */
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.filtros select {
+  max-width: 230px;
+  font-size: 12px;
+}
+
+.limpiar {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+/* ─── Los totales de lo que se está viendo ────────────────────────────── */
+
+.resumen {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  min-width: 128px;
+}
+
+.datoLabel {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.datoValor {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.datoDe {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.datoFuerte {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.datoAviso {
+  background: var(--warn-dim);
+  border-color: var(--warn);
+}
+
+.nota {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* ─── La tabla ────────────────────────────────────────────────────────── */
+
+.tabla {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated, var(--bg-secondary));
+  border-bottom: 1px solid var(--border);
+}
+
+.th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  padding: 8px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-tertiary);
+}
+
+.th:hover { color: var(--text-primary); }
+
+.flecha {
+  margin-left: 4px;
+  font-size: 9px;
+}
+
+.tabla tbody td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle, var(--border));
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.tabla tbody tr:hover td { background: var(--bg-hover, rgba(127, 127, 127, 0.06)); }
+
+/* El signo se ve en el color además de en el guion: mirando una columna de mil
+   importes, el color dice de qué lado del recibo cae cada uno sin leerlos. */
+.paga {
+  color: var(--ok, var(--text-primary));
+  font-variant-numeric: tabular-nums;
+}
+
+.descuenta {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Los estados ─────────────────────────────────────────────────────── */
+
+.estado {
+  display: inline-block;
+  font-size: 10.5px;
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  cursor: help;
+}
+
+.ok      { color: var(--ok); }
+.aviso   { color: var(--warn);  background: var(--warn-dim);  border-color: var(--warn); }
+.alerta  { color: var(--error, var(--warn)); background: var(--error-dim, var(--warn-dim)); border-color: var(--error, var(--warn)); }
+.neutro  { color: var(--text-tertiary); border-color: var(--border); }
+
+.vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.maestroNota {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}

@@ -1,0 +1,133 @@
+/* El filtro de varios valores. El panel se abre sobre la tabla y no la empuja:
+   si empujara, elegir un valor movería las filas que se están mirando. */
+
+.caja {
+  position: relative;
+}
+
+.boton {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-input, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  max-width: 260px;
+}
+
+.boton:hover { border-color: var(--text-tertiary); }
+
+/* Un filtro puesto se ve sin tener que leerlo: mirando la fila de filtros, lo
+   que está acotando la tabla tiene que saltar. */
+.botonActivo {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+.label {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.resumen {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flecha {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 260px;
+  max-width: 340px;
+  background: var(--bg-elevated, var(--bg-secondary));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.buscar {
+  font-size: 12px;
+  width: 100%;
+}
+
+.lista {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.opcion:hover { background: var(--bg-hover, rgba(127, 127, 127, 0.08)); }
+
+.opcion input { cursor: pointer; margin: 0; }
+
+.opcion span:nth-of-type(1) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opcionTodos {
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding-bottom: 7px;
+  margin-bottom: 2px;
+}
+
+.cuenta {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sinNada {
+  padding: 12px 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.limpiarUno {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 7px 6px 3px;
+  text-align: left;
+}
