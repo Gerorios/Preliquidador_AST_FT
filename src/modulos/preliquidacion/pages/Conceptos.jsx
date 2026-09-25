@@ -741,7 +741,7 @@ export default function Conceptos() {
   const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
   const [filtrosPanel, setFiltrosPanel] = useState({})
   // Vista del panel: 'regla' (tabla plana, con selección y precio masivo) o
-  // 'concepto' (una fila por alcance, una columna por código — CONTEXT.md:
+  // 'concepto' (una fila por alcance, una columna por código — CONTEXT-preliquidacion.md:
   // Concepto completo). Se recuerda la última elegida.
   const [vistaPanel, setVistaPanel] = useState(() => {
     try { return localStorage.getItem(LS_KEY_VISTA_PANEL) === 'concepto' ? 'concepto' : 'regla' } catch { return 'regla' }

@@ -1,4 +1,4 @@
-// Lógica pura de la vista "Por concepto" del Panel de precios (CONTEXT.md:
+// Lógica pura de la vista "Por concepto" del Panel de precios (CONTEXT-preliquidacion.md:
 // Concepto completo). Sin React: recibe las reglas planas del endpoint del
 // panel y devuelve bloques por tarea con una fila por alcance y una columna
 // por código. Se mantiene aparte para poder razonarla y verificarla sola.
