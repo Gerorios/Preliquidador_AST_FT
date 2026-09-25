@@ -1,0 +1,13 @@
+#!/bin/sh
+# Frena los commits en main: todo cambio va por rama y PR.
+# En este repo no hay excepción: la bitácora vive en el repo del backend.
+# Instalar con: sh scripts/hooks/instalar.sh
+
+rama=$(git symbolic-ref --short -q HEAD) || exit 0
+[ "$rama" = "main" ] || exit 0
+
+echo "" >&2
+echo "  Commit frenado: estás en main." >&2
+echo "  Creá una rama (git switch -c <tipo>/<tema>) y commiteá ahí." >&2
+echo "" >&2
+exit 1
