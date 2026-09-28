@@ -179,8 +179,10 @@ export default function Tarifario() {
     enabled: !!quincena && !propio,
   })
 
+  // Se cuentan líneas y no combinaciones: es lo que queda afuera del recibo.
   const sinPrecio = useMemo(
-    () => combinaciones.filter(c => c.sin_precio > 0).length, [combinaciones])
+    () => combinaciones.reduce((n, c) => n + (c.sin_precio > 0 ? c.sin_precio : 0), 0),
+    [combinaciones])
 
   const sinConfirmar = useMemo(
     () => Object.values(resumen).reduce((n, r) => n + (r.heredadas ?? 0), 0),
@@ -244,9 +246,25 @@ export default function Tarifario() {
             </button>
           )
         })}
-      </div>
 
-      <p className={styles.ayuda}>{tarifario.ayuda}</p>
+        {/* Un solo botón, al costado: abre lo que falta pactar y, apretado de
+            nuevo, vuelve a las cargadas. Dos solapas para lo mismo obligaban a
+            leer cuál estaba puesta. */}
+        {quincena && !propio && (
+          <button
+            className={`${styles.botonSin} ${modo === 'sin' ? styles.botonSinActivo : ''} ${
+              sinPrecio === 0 ? styles.botonSinCero : ''}`}
+            onClick={() => setModo(m => (m === 'sin' ? 'cargadas' : 'sin'))}
+            title={modo === 'sin' ? 'Volver a las tarifas cargadas' : 'Ver lo que falta pactar'}
+          >
+            {sinPrecio === 0 ? 'Todo tiene precio' : 'Sin precio'}
+            {sinPrecio > 0 && (
+              <span className={styles.botonSinCuenta}>{comoEntero(sinPrecio)} líneas</span>
+            )}
+            {modo === 'sin' && <span aria-hidden="true">✕</span>}
+          </button>
+        )}
+      </div>
 
       <div className={styles.content}>
         {!quincena && <div className={styles.vacio}>Elegí una quincena para cargar sus tarifas.</div>}
@@ -254,61 +272,16 @@ export default function Tarifario() {
 
         {quincena && !propio && (
           <>
-            {/* Lo que falta no vive en un cuadro arriba de la tabla: se abre
-                cuando hace falta y se cierra cuando no. */}
-            <div className={styles.modos}>
-              <button className={`${styles.modo} ${modo === 'cargadas' ? styles.modoActivo : ''}`}
-                      onClick={() => setModo('cargadas')}>
-                Cargadas
-                <span className={styles.modoCuenta}>{comoEntero(filas.length)}</span>
-              </button>
-              <button className={`${styles.modo} ${modo === 'sin' ? styles.modoActivo : ''}`}
-                      onClick={() => setModo('sin')}>
-                Sin precio
-                {sinPrecio > 0 && <span className={styles.modoCuenta}>{comoEntero(sinPrecio)}</span>}
-              </button>
-            </div>
-
             {modo === 'sin' && (
               <SinPrecio tipo={activo} tarifario={tarifario} quincena={quincena}
-                         combinaciones={combinaciones} />
+                         combinaciones={combinaciones}
+                         onVolver={() => setModo('cargadas')} />
             )}
 
             {modo === 'cargadas' && (
               <>
                 <NuevaTarifa tipo={activo} tarifario={tarifario} quincena={quincena}
                              combinaciones={combinaciones} />
-
-                {Object.keys(opciones).length > 0 && (
-                  <div className={styles.filtros}>
-                    {tarifario.dimensiones.filter(d => opciones[d.clave]).map(d => (
-                      <FiltroMultiple
-                        key={d.clave} label={d.label} valores={opciones[d.clave]}
-                        seleccion={filtros[d.clave] ?? new Set()}
-                        onCambiar={sel => setFiltros(f => ({ ...f, [d.clave]: sel }))}
-                      />
-                    ))}
-                    {hayFiltro && (
-                      <button className={styles.limpiar} onClick={() => setFiltros({})}>
-                        Limpiar filtros
-                      </button>
-                    )}
-                    {heredadas.length > 0 && (
-                      <button className="btn btn-sm" disabled={confirmar.isPending}
-                              onClick={() => confirmar.mutate()}
-                              title="Les saca la marca de heredadas sin tocarles el precio">
-                        {confirmar.isPending
-                          ? 'Confirmando…'
-                          : `Confirmar (${comoEntero(heredadas.length)})`}
-                      </button>
-                    )}
-                    <span className={styles.cuentaFiltro}>
-                      {visibles.length === filas.length
-                        ? `${comoEntero(filas.length)} reglas`
-                        : `${comoEntero(visibles.length)} de ${comoEntero(filas.length)} reglas`}
-                    </span>
-                  </div>
-                )}
 
                 {isLoading && <CargandoContenido />}
 
@@ -320,6 +293,37 @@ export default function Tarifario() {
                 )}
 
                 {!isLoading && filas.length > 0 && (
+                  <div className={styles.tabla}>
+                    <div className={styles.barraFiltros}>
+                      <span className={styles.barraTitulo}>Filtrar esta tabla</span>
+                      {tarifario.dimensiones.filter(d => opciones[d.clave]).map(d => (
+                        <FiltroMultiple
+                          key={d.clave} label={d.label} valores={opciones[d.clave]}
+                          seleccion={filtros[d.clave] ?? new Set()}
+                          onCambiar={sel => setFiltros(f => ({ ...f, [d.clave]: sel }))}
+                        />
+                      ))}
+                      {hayFiltro && (
+                        <button className={styles.limpiar} onClick={() => setFiltros({})}>
+                          Limpiar filtros
+                        </button>
+                      )}
+                      {heredadas.length > 0 && (
+                        <button className="btn btn-sm" disabled={confirmar.isPending}
+                                onClick={() => confirmar.mutate()}
+                                title="Les saca la marca de heredadas sin tocarles el precio">
+                          {confirmar.isPending
+                            ? 'Confirmando…'
+                            : `Confirmar (${comoEntero(heredadas.length)})`}
+                        </button>
+                      )}
+                      <span className={styles.cuentaFiltro}>
+                        {visibles.length === filas.length
+                          ? `${comoEntero(filas.length)} reglas`
+                          : `${comoEntero(visibles.length)} de ${comoEntero(filas.length)} reglas`}
+                      </span>
+                    </div>
+
                   <table>
                     <thead>
                       <tr>
@@ -330,7 +334,10 @@ export default function Tarifario() {
                             {v.label}
                           </th>
                         ))}
-                        <th style={{ textAlign: 'center' }}>Estado</th>
+                        {/* No es el estado de la grilla: acá dice si la regla
+                            está confirmada o vino copiada de otra quincena. Se
+                            llamaban las dos "Estado" y no tienen que ver. */}
+                        <th style={{ textAlign: 'center' }}>Confirmada</th>
                         <th />
                       </tr>
                     </thead>
@@ -338,6 +345,10 @@ export default function Tarifario() {
                       {visibles.map(f => <Fila key={f.id} tarifario={tarifario} fila={f} />)}
                     </tbody>
                   </table>
+                  {visibles.length === 0 && (
+                    <div className={styles.vacio}>Ninguna tarifa coincide con esos filtros.</div>
+                  )}
+                  </div>
                 )}
               </>
             )}

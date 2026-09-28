@@ -1,10 +1,11 @@
 .page {
-  padding: 24px 32px;
+  padding: 28px 36px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   height: 100vh;
   overflow: hidden;
+  background: #ffffff;
 }
 
 .topbar {
@@ -16,9 +17,11 @@
 }
 
 .titulo {
-  font-size: 15px;
+  font-size: 22px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
+  margin-right: 8px;
 }
 
 .aviso {
@@ -26,9 +29,8 @@
   font-size: 12px;
   color: var(--warn);
   background: var(--warn-dim);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
+  border-radius: 999px;
+  padding: 4px 12px;
   white-space: nowrap;
 }
 
@@ -47,41 +49,100 @@
 
 .tabs {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
 }
 
 .tab {
   display: flex;
   align-items: center;
-  gap: 7px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 14px;
-  font-size: 13px;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e4dfd6;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12.5px;
   font-family: inherit;
   color: var(--text-secondary);
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
-.tab:hover { color: var(--text-primary); }
+.tab:hover { color: var(--text-primary); border-color: var(--accent); }
 
 .tabActivo {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
   font-weight: 600;
 }
 
+.tabActivo:hover { color: #ffffff; }
+
 .tabCuenta {
-  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
-  background: var(--bg-elevated);
-  border-radius: var(--radius-sm);
-  padding: 1px 6px;
+  background: #f4f1ec;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabActivo .tabCuenta {
+  color: var(--accent);
+  background: #ffffff;
+}
+
+/* ─── El botón de lo que falta pactar, al costado de las solapas ──────── */
+
+.botonSin {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--warn-dim);
+  border: 1px solid rgba(150, 96, 15, 0.35);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--warn);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.botonSin:hover { border-color: var(--warn); }
+
+.botonSinActivo {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #ffffff;
+}
+
+.botonSinCuenta {
+  font-size: 11px;
+  font-weight: 500;
+  background: #ffffff;
+  color: var(--warn);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sin nada pendiente sigue abriendo la vista, pero no llama la atención. */
+.botonSinCero {
+  background: var(--accent-dim);
+  border-color: rgba(85, 112, 50, 0.35);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.botonSinCero.botonSinActivo {
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .tabPunto {
@@ -92,26 +153,69 @@
 }
 
 .ayuda {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-  max-width: 92ch;
+  line-height: 1.55;
   flex-shrink: 0;
 }
 
 .nota {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
-  max-width: 92ch;
   flex-shrink: 0;
 }
 
 .content {
   flex: 1;
   overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
 }
+
+.tabla {
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+  flex-shrink: 0;
+}
+
+.tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #faf9f6;
+  border-bottom: 1px solid #ece8e1;
+  padding: 9px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--text-muted);
+}
+
+/* Mismas medidas que la tabla de la quincena: las dos pantallas se leen igual. */
+.tabla tbody td {
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid #f1eee8;
+}
+
+.tabla tbody tr { border-bottom: none; }
+
+/* Los botones de la fila no tienen que hacerla más alta que una de la quincena. */
+.tabla .btn-sm {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.tabla tbody tr:hover td { background: #f7faf2; }
 
 .vacio {
   padding: 40px;
@@ -124,11 +228,11 @@
 
 /* La fila de carga no es un dato: no se comporta como las demás. */
 .nueva td {
-  background: var(--bg-elevated);
+  background: #faf9f6;
   padding: 8px 10px;
 }
 
-.nueva:hover td { background: var(--bg-elevated); }
+.nueva:hover td { background: #faf9f6; }
 
 /* Heredada = vino copiada y nadie la confirmó. Paga igual; se marca para que
    nadie arrastre un precio viejo sin mirarlo. */
@@ -143,7 +247,7 @@
 }
 
 .precio {
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   border-bottom: 1px dashed var(--border-strong);
 }
@@ -172,8 +276,8 @@
    reglas que ya están no piden nada, éstas sí. */
 
 .faltantes {
-  border: 1px solid var(--warn);
-  border-radius: var(--radius-sm);
+  border: 1px solid rgba(150, 96, 15, 0.35);
+  border-radius: 10px;
   background: var(--warn-dim);
   margin-bottom: 14px;
   overflow: hidden;
@@ -205,7 +309,7 @@
 .faltantesFlecha {
   margin-left: auto;
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .faltantes table {
@@ -228,18 +332,32 @@
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: 10px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+}
+
+.limpiar {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
 }
 
 .cuentaFiltro {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   margin-left: auto;
 }
 
 /* Una regla que no paga nada: suele venir de copiar otra quincena y arrastrar
    precios de quien este período no trabajó. */
 .sinUso {
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   cursor: help;
 }
 
@@ -251,9 +369,9 @@
   gap: 10px;
   flex-wrap: wrap;
   padding: 9px 14px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-elevated, var(--bg-secondary));
+  border-top: 1px solid #ece8e1;
+  border-bottom: 1px solid #ece8e1;
+  background: var(--accent-dim);
 }
 
 .loteTexto {
@@ -296,7 +414,7 @@
 
 .modoCuenta {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -309,11 +427,12 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary, transparent);
-  margin-bottom: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+  margin-bottom: 10px;
 }
 
 .nuevaTitulo {
@@ -325,7 +444,7 @@
 
 .nuevaNota {
   font-size: 11.5px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   margin-left: auto;
 }
 
@@ -346,7 +465,7 @@
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -354,3 +473,72 @@
 .campo select {
   font-size: 12px;
 }
+
+/* ─── Los filtros como cabecera de su tabla ──────────────────────────── */
+/* Van dentro de la misma tarjeta, pegados al encabezado: así se lee que
+   filtran esa tabla y no otra cosa de la pantalla. */
+
+.barraFiltros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 10px 14px;
+  background: #faf9f6;
+  border-bottom: 1px solid #ece8e1;
+  border-radius: 10px 10px 0 0;
+}
+
+.barraTitulo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.barraTitulo::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  background: var(--text-muted);
+  clip-path: polygon(0 0, 100% 0, 62% 48%, 62% 100%, 38% 85%, 38% 48%);
+}
+
+/* Con la barra arriba, el encabezado de la tabla ya no es el borde superior. */
+.barraFiltros + table thead th { background: #ffffff; }
+
+/* ─── La vista de lo que falta pactar ────────────────────────────────── */
+
+.bannerSin {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  background: var(--warn-dim);
+  border: 1px solid rgba(150, 96, 15, 0.35);
+  border-left: 4px solid var(--warn);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.bannerSin > div { flex: 1; }
+
+.bannerTitulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--warn);
+}
+
+.bannerTexto {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.tablaSin { border-color: rgba(150, 96, 15, 0.35); }
+.tablaSin .barraFiltros { background: #fdf8ef; }

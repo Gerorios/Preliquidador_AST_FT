@@ -132,3 +132,9 @@ export const actualizarTarifasEnLote = (tipo, ids, datos) =>
 export const crearTarifasEnLote = (tipo, quincena, tarifas) =>
   api.post(`/terceros/tarifario/${tipo}/lote?quincena=${quincena}`, { tarifas })
      .then(r => r.data)
+
+// Lo que hay que mirar antes de liquidar, agrupado por la fuente que lo
+// origina. A diferencia de las alertas de cruce, esto es POR QUINCENA: un
+// duplicado de agosto es plata cobrada dos veces en agosto.
+export const obtenerVerificaciones = (quincena) =>
+  api.get(`/terceros/verificaciones?quincena=${quincena}`).then(r => r.data)

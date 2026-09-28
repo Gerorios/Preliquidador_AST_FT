@@ -22,7 +22,7 @@ import styles from '../pages/Tarifario.module.css'
 // Van de la que más líneas alcanza a la que menos, que es el orden en que
 // conviene pactarlas: la primera mueve el recibo mucho más que la última.
 
-export default function SinPrecio({ tipo, tarifario, quincena, combinaciones }) {
+export default function SinPrecio({ tipo, tarifario, quincena, combinaciones, onVolver }) {
   const [filtros, setFiltros] = useState({})
   const [valores, setValores] = useState({})
   const qc = useQueryClient()
@@ -69,12 +69,43 @@ export default function SinPrecio({ tipo, tarifario, quincena, combinaciones }) 
 
   const listo = visibles.length > 0 && completo(tarifario, valores)
   const lineas = visibles.reduce((n, c) => n + c.sin_precio, 0)
+  const lineasTotal = faltan.reduce((n, c) => n + c.sin_precio, 0)
   const hayFiltro = Object.values(filtros).some(s => s?.size)
 
   return (
     <>
+      {/* La vista tiene que decir en qué está: sin esto se parece tanto a la de
+          cargadas que tocar el botón parecía no hacer nada. */}
+      <div className={styles.bannerSin}>
+        <div>
+          <div className={styles.bannerTitulo}>
+            Faltan pactar {comoEntero(lineasTotal)} línea(s), en {comoEntero(faltan.length)} combinación(es)
+          </div>
+          <div className={styles.bannerTexto}>
+            Estas líneas no entran al recibo hasta tener precio. Filtrá las que van con el mismo
+            precio, cargalo abajo y se aplica a todas las que se ven.
+          </div>
+        </div>
+        {onVolver && (
+          <button className="btn btn-sm" onClick={onVolver}>Volver a las cargadas</button>
+        )}
+      </div>
+
+      <div className={styles.nuevaCaja}>
+        <span className={styles.nuevaTitulo}>Poner precio a las {comoEntero(visibles.length)} de abajo</span>
+        <CamposDeValor tarifario={tarifario} valores={valores}
+                       onCambiar={setValores}
+                       onEnter={() => { if (listo) cargar.mutate() }} />
+        <button className="btn btn-primary btn-sm" disabled={!listo || cargar.isPending}
+                onClick={() => cargar.mutate()}>
+          {cargar.isPending ? 'Cargando…' : `Aplicar (${comoEntero(visibles.length)})`}
+        </button>
+      </div>
+
+      <div className={`${styles.tabla} ${styles.tablaSin}`}>
       {Object.keys(opciones).length > 0 && (
-        <div className={styles.filtros}>
+        <div className={styles.barraFiltros}>
+          <span className={styles.barraTitulo}>Filtrar esta tabla</span>
           {tarifario.dimensiones.filter(d => opciones[d.clave]).map(d => (
             <FiltroMultiple
               key={d.clave} label={d.label} valores={opciones[d.clave]}
@@ -88,27 +119,16 @@ export default function SinPrecio({ tipo, tarifario, quincena, combinaciones }) 
             </button>
           )}
           <span className={styles.cuentaFiltro}>
-            {comoEntero(visibles.length)} de {comoEntero(faltan.length)} sin precio,
+            {comoEntero(visibles.length)} de {comoEntero(faltan.length)},
             {' '}{comoEntero(lineas)} línea(s)
           </span>
         </div>
       )}
-
-      <div className={styles.nuevaCaja}>
-        <span className={styles.nuevaTitulo}>Cargar tarifa</span>
-        <CamposDeValor tarifario={tarifario} valores={valores}
-                       onCambiar={setValores}
-                       onEnter={() => { if (listo) cargar.mutate() }} />
-        <button className="btn btn-primary btn-sm" disabled={!listo || cargar.isPending}
-                onClick={() => cargar.mutate()}>
-          {cargar.isPending ? 'Cargando…' : `Aplicar (${comoEntero(visibles.length)})`}
-        </button>
-      </div>
-
       <table>
         <thead>
           <tr>
             {tarifario.dimensiones.map(d => <th key={d.clave}>{d.label}</th>)}
+            <th style={{ textAlign: 'right' }}>Líneas</th>
             <th style={{ textAlign: 'right' }}>Cantidad</th>
           </tr>
         </thead>
@@ -120,15 +140,16 @@ export default function SinPrecio({ tipo, tarifario, quincena, combinaciones }) 
                   {c[d.clave] ?? <span className={styles.cualquiera}>—</span>}
                 </td>
               ))}
+              <td style={{ textAlign: 'right' }}>{comoEntero(c.sin_precio)}</td>
               <td style={{ textAlign: 'right' }}>{comoNumero(c.cantidad)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-
       {visibles.length === 0 && (
         <div className={styles.vacio}>Ninguna coincide con esos filtros.</div>
       )}
+      </div>
     </>
   )
 }

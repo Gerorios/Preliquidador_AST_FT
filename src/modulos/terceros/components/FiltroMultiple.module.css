@@ -9,17 +9,17 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  background: var(--bg-input, transparent);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #e4dfd6;
+  border-radius: 8px;
+  padding: 6px 12px;
   font-size: 12px;
   cursor: pointer;
   color: var(--text-secondary);
   max-width: 260px;
 }
 
-.boton:hover { border-color: var(--text-tertiary); }
+.boton:hover { border-color: var(--accent); }
 
 /* Un filtro puesto se ve sin tener que leerlo: mirando la fila de filtros, lo
    que está acotando la tabla tiene que saltar. */
@@ -30,7 +30,7 @@
 }
 
 .label {
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   text-transform: uppercase;
   font-size: 10.5px;
   letter-spacing: 0.03em;
@@ -46,7 +46,7 @@
 .flecha {
   margin-left: auto;
   font-size: 9px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .panel {
@@ -56,10 +56,10 @@
   z-index: 20;
   min-width: 260px;
   max-width: 340px;
-  background: var(--bg-elevated, var(--bg-secondary));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(34, 31, 28, 0.12);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -111,14 +111,14 @@
 .cuenta {
   margin-left: auto;
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .sinNada {
   padding: 12px 6px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .limpiarUno {

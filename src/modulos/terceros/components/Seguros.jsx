@@ -235,6 +235,7 @@ export default function Seguros({ quincena }) {
         </span>
       </div>
 
+      <div className={styles.tabla}>
       <table>
         <thead>
           <tr>
@@ -261,6 +262,7 @@ export default function Seguros({ quincena }) {
           ))}
         </tbody>
       </table>
+      </div>
 
       {visibles.length === 0 && (
         <div className={styles.vacio}>

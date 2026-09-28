@@ -110,9 +110,9 @@ export default function Inicio() {
       </div>
 
       <p className={styles.texto}>
-        Generar trae lo que las cinco fuentes tienen de esa quincena y lo guarda. Tarda: son dos
-        bases y un Google Sheet. Se puede volver a actualizar las veces que haga falta — no rehace
-        la quincena, la reconcilia, y no pisa lo que hayas cargado a mano.
+        Elegí una quincena y apretá <strong>{yaGenerada ? 'Actualizar quincena' : 'Generar quincena'}</strong>{' '}
+        para traer lo que cargaron los sistemas de campo, compras y taller. Tarda unos segundos.
+        Actualizar se puede hacer las veces que haga falta y no borra lo que cargaste a mano.
       </p>
 
       {detalle && (
@@ -144,63 +144,51 @@ export default function Inicio() {
         </div>
       )}
 
-      <div className={styles.content}>
-        {isLoading && <CargandoContenido texto="Buscando las quincenas generadas…" />}
+      {isLoading && <CargandoContenido texto="Buscando las quincenas generadas…" />}
 
-        {!isLoading && liquidaciones.length === 0 && (
-          <div className={styles.vacio}>
-            Todavía no se generó ninguna quincena. Elegí una arriba y generala.
-          </div>
-        )}
+      {!isLoading && liquidaciones.length === 0 && (
+        <div className={styles.vacio}>
+          Todavía no se generó ninguna quincena. Elegí una arriba y generala.
+        </div>
+      )}
 
-        {!isLoading && liquidaciones.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Quincena</th>
-                {RUBROS.map(r => (
-                  <th key={r.clave} style={{ textAlign: 'right' }}>{r.titulo}</th>
-                ))}
-                <th style={{ textAlign: 'right' }}>Total</th>
-                <th>Generada</th>
-                <th>Actualizada</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {liquidaciones.map(l => (
-                <tr key={l.id}
-                    className={`${styles.fila} ${l.quincena === quincena ? styles.actual : ''}`}
-                    onClick={() => abrir(l.quincena)}
-                    title="Abrir esta quincena">
-                  <td className={styles.enlace}>{comoFechaQuincena(l.quincena)}</td>
-                  {RUBROS.map(r => (
-                    <td key={r.clave} style={{ textAlign: 'right' }}
-                        className={r.signo > 0 ? undefined : styles.resta}>
-                      {comoPesosEnteros(l.importes?.[r.clave])}
-                    </td>
-                  ))}
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {comoPesosEnteros(l.importes?.total)}
-                  </td>
-                  <td>{fechaHora(l.generada_en)}</td>
-                  <td>{fechaHora(l.actualizada_en)}</td>
-                  <td>
-                    <button className="btn btn-sm"
-                            onClick={e => { e.stopPropagation(); abrir(l.quincena) }}>
-                      Abrir
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {!isLoading && liquidaciones.length > 0 && (
+        <div className={styles.lista}>
+          {liquidaciones.map(l => {
+            const esActual = l.quincena === quincena
+            return (
+              <button key={l.id} type="button"
+                      className={`${styles.tarjeta} ${esActual ? styles.actual : ''}`}
+                      onClick={() => abrir(l.quincena)}
+                      title={`Abrir esta quincena. Generada ${fechaHora(l.generada_en)}`}>
+                <div className={styles.quincena}>
+                  <span className={styles.nombre}>{comoFechaQuincena(l.quincena)}</span>
+                  <span className={styles.fechas}>Actualizada {fechaHora(l.actualizada_en)}</span>
+                </div>
+                {RUBROS.map(r => {
+                  const valor = l.importes?.[r.clave]
+                  const clases = [styles.rubro,
+                    !Number(valor) ? styles.cero : r.signo < 0 ? styles.resta : '']
+                  return (
+                    <div key={r.clave} className={clases.join(' ')}>
+                      <span className={styles.rubroTitulo}>{r.titulo}</span>
+                      <span className={styles.rubroValor}>{comoPesosEnteros(valor)}</span>
+                    </div>
+                  )
+                })}
+                <div className={styles.total}>
+                  <span className={styles.totalLabel}>Total</span>
+                  <span className={styles.totalValor}>{comoPesosEnteros(l.importes?.total)}</span>
+                </div>
+                <span className={styles.flecha} aria-hidden="true">→</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <p className={styles.nota}>
-        Los importes son de lo que ya tiene precio. Lo que quedó sin tarifa no suma —ni siquiera
-        como cero—, así que una quincena a medio pactar se ve más barata de lo que va a ser.
+        Los importes son de lo que ya tiene precio. Lo que quedó sin tarifa no suma.
       </p>
     </div>
   )

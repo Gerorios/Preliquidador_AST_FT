@@ -72,6 +72,9 @@ export const COLUMNAS = {
     { clave: 'estacion', label: 'Estación', ancho: 160 },
     { clave: 'vale', label: 'Vale', ancho: 80 },
     cantidad('Litros'),
+    // El campo libre del sistema de campo. Va acá porque es lo que explica una
+    // carga rara sin tener que ir a preguntarle a quien la cargó.
+    { clave: 'observacion', label: 'Comentario' },
     { ...PRECIO, label: 'Precio por litro' },
     IMPORTE, ESTADO,
   ],
@@ -123,7 +126,7 @@ export const COLUMNAS = {
 // orden en que uno la reconocería de un vistazo.
 const PARTES = {
   viajes: f => [f.patente, f.chofer, f.tipo_viaje],
-  combustible: f => [f.patente, f.estacion, f.vale && `vale ${f.vale}`],
+  combustible: f => [f.patente, f.estacion, f.vale && `vale ${f.vale}`, f.observacion],
   servicio: f => [f.maquina, f.planilla],
   repuestos: f => [f.maquina, f.repuesto, f.rubro],
   reparacion: f => [f.maquina, f.sub_rubro, f.estado_taller],

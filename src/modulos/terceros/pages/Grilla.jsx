@@ -27,6 +27,10 @@ import styles from './Grilla.module.css'
 //   3. Los filtros PROPIOS de ese concepto, que recién ahí tienen sentido:
 //      capataz es una pregunta de viajes, y vale una de combustible.
 //
+// En pantalla los filtros van justo debajo del tercero, en el mismo panel, y
+// los conceptos después: así todo lo que filtra queda junto (lo pidió el
+// usuario, 2026-09-28).
+//
 // **No hay botón de recalcular.** Cargar un precio en el Tarifario ya lo
 // aplica: el backend recalcula ese concepto en el mismo request, igual que hace
 // Preliquidación con sus conceptos. Un botón aparte deja la pantalla mostrando
@@ -75,6 +79,9 @@ export default function Grilla() {
   const [concepto, setConcepto] = useState('')
   const [filtros, setFiltros] = useState({})
   const [orden, setOrden] = useState({ clave: null, asc: true })
+  // Ver solo lo que no tiene precio. Va aparte de los filtros porque cruza
+  // todos los conceptos y es la pregunta de siempre antes de liquidar.
+  const [soloSinPrecio, setSoloSinPrecio] = useState(false)
 
   const { data: lineas = [], isLoading } = useQuery({
     queryKey: ['terceros', 'lineas', quincena],
@@ -121,7 +128,8 @@ export default function Grilla() {
     [delConcepto, claves, filtros, terceros])
 
   const visibles = useMemo(() => {
-    const filas = delConcepto.filter(f => pasa(f, null))
+    const filas = delConcepto.filter(f => pasa(f, null)
+      && (!soloSinPrecio || f.estado !== 'CALCULADO'))
     if (!orden.clave) return filas
     const columna = columnas.find(c => c.clave === orden.clave)
     const copia = [...filas]
@@ -136,7 +144,7 @@ export default function Grilla() {
       return orden.asc ? cmp : -cmp
     })
     return copia
-  }, [delConcepto, declarados, filtros, terceros, orden, columnas])
+  }, [delConcepto, declarados, filtros, terceros, orden, columnas, soloSinPrecio])
 
   // Los totales son de lo que se está viendo, no de la quincena: si filtrás un
   // tercero querés su número, y un total que no se mueve con el filtro es un
@@ -171,6 +179,10 @@ export default function Grilla() {
       .filter(c => etiqueta[c])
       .map(c => ({ clave: c, label: etiqueta[c], cuenta: cuenta[c] ?? 0 }))
   }, [lineas, terceros])
+
+  const sinPrecio = useMemo(
+    () => delConcepto.filter(f => pasa(f, null) && f.estado !== 'CALCULADO').length,
+    [delConcepto, declarados, filtros, terceros])
 
   const totalDelTercero = useMemo(
     () => conceptos.reduce((n, c) => n + c.cuenta, 0), [conceptos])
@@ -217,15 +229,34 @@ export default function Grilla() {
 
       {quincena && !isLoading && (
         <>
-          {/* El maestro: cruza las seis fuentes, así que va arriba de todo. */}
-          <div className={styles.maestro}>
-            <FiltroMultiple label="Tercero" valores={todosLosTerceros}
-                            seleccion={terceros} onCambiar={setTerceros} />
-            <span className={styles.maestroNota}>
-              {terceros.size === 0
-                ? 'Todos los dueños de la quincena'
-                : `${comoEntero(totalDelTercero)} líneas`}
-            </span>
+          {/* El tercero manda y va primero; debajo, los filtros del concepto
+              elegido. Recién después los conceptos y los totales. */}
+          <div className={styles.panelFiltros}>
+            <div className={styles.maestro}>
+              <FiltroMultiple label="Tercero" valores={todosLosTerceros}
+                              seleccion={terceros} onCambiar={setTerceros} />
+              <span className={styles.maestroNota}>
+                {terceros.size === 0
+                  ? 'Todos los dueños de la quincena'
+                  : `${comoEntero(totalDelTercero)} líneas`}
+              </span>
+            </div>
+
+            <div className={styles.filtros}>
+              {declarados.filter(([clave]) => opciones[clave]).map(([clave, label]) => (
+                <FiltroMultiple
+                  key={clave} label={label} valores={opciones[clave]}
+                  seleccion={filtros[clave] ?? new Set()}
+                  etiqueta={v => etiquetaDe(clave, v)}
+                  onCambiar={sel => setFiltros(f => ({ ...f, [clave]: sel }))}
+                />
+              ))}
+              {hayFiltro && (
+                <button className={styles.limpiar} onClick={() => setFiltros({})}>
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
           </div>
 
           <div className={styles.chips}>
@@ -238,20 +269,18 @@ export default function Grilla() {
                 {c.label}
               </Chip>
             ))}
-          </div>
 
-          <div className={styles.filtros}>
-            {declarados.filter(([clave]) => opciones[clave]).map(([clave, label]) => (
-              <FiltroMultiple
-                key={clave} label={label} valores={opciones[clave]}
-                seleccion={filtros[clave] ?? new Set()}
-                etiqueta={v => etiquetaDe(clave, v)}
-                onCambiar={sel => setFiltros(f => ({ ...f, [clave]: sel }))}
-              />
-            ))}
-            {hayFiltro && (
-              <button className={styles.limpiar} onClick={() => setFiltros({})}>
-                Limpiar filtros
+            {/* Al costado y chico, como en el Tarifario: no es parte de la cuenta,
+                es lo que todavía no entra en ella. */}
+            {(sinPrecio > 0 || soloSinPrecio) && (
+              <button
+                className={`${styles.botonSin} ${soloSinPrecio ? styles.botonSinActivo : ''}`}
+                onClick={() => setSoloSinPrecio(v => !v)}
+                title={soloSinPrecio ? 'Volver a ver todas las líneas' : 'Ver solo las líneas sin precio'}
+              >
+                Sin precio
+                <span className={styles.botonSinCuenta}>{comoEntero(sinPrecio)} líneas</span>
+                {soloSinPrecio && <span aria-hidden="true">✕</span>}
               </button>
             )}
           </div>
@@ -266,7 +295,7 @@ export default function Grilla() {
             </div>
             <div className={styles.dato}>
               <span className={styles.datoLabel}>Se le descuenta</span>
-              <span className={styles.datoValor}>{comoPesosEnteros(totales.descuenta)}</span>
+              <span className={`${styles.datoValor} ${styles.datoResta}`}>{comoPesosEnteros(totales.descuenta)}</span>
             </div>
             <div className={`${styles.dato} ${styles.datoFuerte}`}>
               <span className={styles.datoLabel}>Total a facturar</span>
@@ -274,25 +303,13 @@ export default function Grilla() {
             </div>
             <div className={styles.dato}>
               <span className={styles.datoLabel}>Seguros</span>
-              <span className={styles.datoValor}>{comoPesosEnteros(totales.seguros)}</span>
+              <span className={`${styles.datoValor} ${styles.datoResta}`}>{comoPesosEnteros(totales.seguros)}</span>
             </div>
             <div className={`${styles.dato} ${styles.datoFuerte}`}>
               <span className={styles.datoLabel}>Total a pagar</span>
               <span className={styles.datoValor}>{comoPesosEnteros(totales.aPagar)}</span>
             </div>
-            {totales.sinCalcular > 0 && (
-              <div className={`${styles.dato} ${styles.datoAviso}`}>
-                <span className={styles.datoLabel}>Sin precio</span>
-                <span className={styles.datoValor}>{comoEntero(totales.sinCalcular)} líneas</span>
-              </div>
-            )}
           </div>
-
-          <p className={styles.nota}>
-            Los totales son de lo que estás viendo. Las líneas sin precio no suman: no valen
-            cero, están esperando que alguien las resuelva. Los precios se aplican solos al
-            cargarlos en el Tarifario.
-          </p>
 
           <div className={styles.tabla}>
             <table>

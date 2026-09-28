@@ -1,10 +1,16 @@
+/* El Inicio de Terceros usa un fondo blanco y tarjetas, más luminoso que el
+   resto de la app. Los colores son los mismos tokens de marca (verde y
+   terracota del logo); lo que cambia es la superficie. No se tocan los tokens
+   globales porque los comparte Preliquidación. */
+
 .page {
-  padding: 24px 32px;
+  padding: 28px 36px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   height: 100vh;
-  overflow: hidden;
+  overflow: auto;
+  background: #ffffff;
 }
 
 .topbar {
@@ -16,57 +22,155 @@
 }
 
 .titulo {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
+  margin-right: 8px;
 }
 
 .texto {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-  max-width: 92ch;
+  line-height: 1.55;
   flex-shrink: 0;
 }
 
 .nota {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
-  max-width: 92ch;
   flex-shrink: 0;
 }
 
 .vacio {
-  padding: 50px;
+  padding: 48px;
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
 }
 
-.content {
-  flex: 1;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-surface);
+/* ─── La lista de quincenas ──────────────────────────────────────────── */
+
+/* Una quincena es una fila baja: se tienen que ver varias sin hacer scroll. */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
-.enlace {
+.tarjeta {
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+  display: grid;
+  grid-template-columns: 150px repeat(6, minmax(0, 1fr)) 150px 20px;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.tarjeta:hover {
+  border-color: var(--accent);
+  box-shadow: 0 3px 12px rgba(85, 112, 50, 0.12);
+}
+
+.tarjeta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* La quincena elegida en el selector: una franja verde a la izquierda. */
+.actual {
+  border-left: 4px solid var(--accent);
+  padding-left: 13px;
+  background: #fbfdf8;
+}
+
+.quincena {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nombre {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--accent);
-  text-decoration: none;
-  font-weight: 500;
 }
 
-.enlace:hover { text-decoration: underline; }
+.fechas {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 
-.actual td { background: var(--accent-glow); }
+.rubro,
+.total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.rubroTitulo,
+.totalLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.rubroValor {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.totalValor {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Lo que se le descuenta al tercero, en el terracota de la marca: el color
+   dice de qué lado cae cada cifra sin tener que leer el título. */
+.resta .rubroValor { color: var(--brand); }
+
+.cero .rubroValor { color: var(--text-muted); }
+
+.flecha {
+  font-size: 15px;
+  color: var(--text-muted);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.tarjeta:hover .flecha {
+  color: var(--accent);
+  transform: translateX(3px);
+}
 
 /* ─── El detalle de lo que hizo el último generar ─────────────────────── */
 
 .panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 18px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(85, 112, 50, 0.25);
+  border-radius: 12px;
+  padding: 14px 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -118,22 +222,4 @@
 
 .detalleIgual {
   color: var(--text-muted);
-}
-
-/* Toda la fila abre la quincena, no sólo el nombre: el blanco de una celda es
-   parte de la fila para quien la mira, y hacer clic ahí y que no pase nada se
-   lee como que la pantalla no anda. */
-.fila {
-  cursor: pointer;
-}
-
-.fila:hover td {
-  background: var(--bg-hover, rgba(127, 127, 127, 0.06));
-}
-
-/* Lo que se le descuenta al tercero, más apagado: mirando una fila de seis
-   cifras, el color dice de qué lado cae cada una sin tener que leer el título
-   de la columna. */
-.resta {
-  color: var(--text-tertiary);
 }

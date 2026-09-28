@@ -1,42 +1,67 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
-import { obtenerAlertas } from '../services/terceros'
+import SelectorQuincena from '../components/SelectorQuincena'
+import useQuincenaStore from '../quincenaStore'
+import { obtenerAlertas, obtenerVerificaciones } from '../services/terceros'
 import { comoEntero } from '../formato'
 import styles from './Verificaciones.module.css'
 
 // Esta pantalla no arregla nada: es la herramienta con la que se hace la
-// limpieza de los sistemas de origen. Por eso cada aviso se presenta por DÓNDE
-// SE CORRIGE y no por dónde se detectó — lo que el liquidador necesita saber es
-// a quién avisarle.
+// limpieza. Por eso cada aviso dice DÓNDE SE CORRIGE y no dónde se detectó —
+// lo que el liquidador necesita saber es a quién avisarle.
 //
-// Hoy contiene una sola familia de verificaciones, las Alertas de cruce entre
-// sistemas. La etapa 9 suma los duplicados dentro de cada fuente y las reagrupa
-// por origen, que es como el usuario las pidió.
+// Se recorre en tres pasos, y cada uno es una fila de chips o una tabla, igual
+// que la Quincena y el Tarifario:
+//
+//   1. El **tipo de problema**: duplicados, vales repetidos. Es la pregunta con
+//      la que uno llega: "¿hay algo cargado dos veces?".
+//   2. El **sistema**, porque cada uno lo corrige alguien distinto y son tres
+//      conversaciones con tres personas.
+//   3. La tabla con las filas concretas para ir a buscar.
+//
+// Agrupar al revés —por sistema primero— obliga a recorrer los cinco para
+// contestar una sola pregunta.
+
+// Cómo se llama cada tipo. Lo que el backend agregue y no esté acá se muestra
+// igual, con el título que él manda: sumar una verificación nueva no tiene que
+// obligar a tocar esta pantalla.
+const TIPOS = {
+  duplicado: 'Duplicados',
+  vale_repetido: 'Vales repetidos',
+  carga_sin_vale: 'Cargas sin vale',
+  viaje_en_cero: 'Viajes en cero',
+}
+
+const ORDEN = ['duplicado', 'vale_repetido', 'carga_sin_vale', 'viaje_en_cero']
+
+const CLASE = { alta: styles.alta, media: styles.media, baja: styles.baja }
 
 const SEVERIDADES = [
-  {
-    clave: 'alta',
-    titulo: 'Hay plata mal imputada hoy',
-    ayuda: 'Estas ya están afectando lo que se cobra o se descuenta. Van primero.',
-  },
-  {
-    clave: 'media',
-    titulo: 'Todavía no rompió, pero va a romper',
-    ayuda: 'No hay plata mal imputada por ahora, pero el dato está mal y en algún momento se paga.',
-  },
-  {
-    clave: 'baja',
-    titulo: 'Conviene mirarlo',
-    ayuda: 'Puede ser legítimo. Se avisa para que alguien decida, no para corregir a ciegas.',
-  },
+  { clave: 'alta', titulo: 'Hay plata mal imputada hoy',
+    ayuda: 'Estas ya están afectando lo que se cobra o se descuenta. Van primero.' },
+  { clave: 'media', titulo: 'Todavía no rompió, pero va a romper',
+    ayuda: 'No hay plata mal imputada por ahora, pero el dato está mal y en algún momento se paga.' },
+  { clave: 'baja', titulo: 'Conviene mirarlo',
+    ayuda: 'Puede ser legítimo. Se avisa para que alguien decida, no para corregir a ciegas.' },
 ]
 
-const CLASE_SEVERIDAD = { alta: styles.alta, media: styles.media, baja: styles.baja }
+function Chip({ activo, onClick, children, cuenta, tono }) {
+  return (
+    <button className={`${styles.chip} ${activo ? styles.chipActivo : ''}`} onClick={onClick}>
+      {children}
+      {cuenta !== undefined && (
+        <span className={`${styles.chipCuenta} ${tono ? CLASE[tono] : ''}`}>
+          {comoEntero(cuenta)}
+        </span>
+      )}
+    </button>
+  )
+}
 
 function Alerta({ alerta }) {
   return (
-    <div className={`${styles.alerta} ${CLASE_SEVERIDAD[alerta.severidad]}`}>
+    <div className={`${styles.alerta} ${CLASE[alerta.severidad]}`}>
       <div className={styles.alertaCabecera}>
         <div className={styles.alertaTitulo}>{alerta.titulo}</div>
         <div className={styles.alertaSistema}>Se corrige en: {alerta.sistema}</div>
@@ -86,91 +111,192 @@ function ResumenMaquinaria({ m }) {
 }
 
 export default function Verificaciones() {
+  const quincena = useQuincenaStore(s => s.quincena)
+  const [tipo, setTipo] = useState(null)       // null = el primero que tenga algo
+  const [fuente, setFuente] = useState(null)   // null = la primera del tipo
   const [anio, setAnio] = useState(new Date().getFullYear())
-  const [sistema, setSistema] = useState('')
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data: fuentes = [], isLoading } = useQuery({
+    queryKey: ['terceros', 'verificaciones', quincena],
+    queryFn: () => obtenerVerificaciones(quincena),
+    enabled: !!quincena,
+  })
+
+  const { data: cruce, isLoading: cargandoCruce, isError, error } = useQuery({
     queryKey: ['terceros', 'alertas', anio],
     queryFn: () => obtenerAlertas(anio),
     retry: false,
   })
 
-  const sistemas = useMemo(
-    () => [...new Set((data?.alertas ?? []).map(a => a.sistema))].sort(),
-    [data]
-  )
-  const visibles = useMemo(
-    () => (data?.alertas ?? []).filter(a => !sistema || a.sistema === sistema),
-    [data, sistema]
-  )
+  // Se da vuelta el agrupamiento que manda el backend: él responde por fuente
+  // —que es como se corrige— y la pantalla pregunta por tipo, que es como uno
+  // llega.
+  const secciones = useMemo(() => {
+    const porTipo = new Map()
+    for (const f of fuentes) {
+      for (const v of f.verificaciones) {
+        if (!porTipo.has(v.tipo)) porTipo.set(v.tipo, [])
+        porTipo.get(v.tipo).push({ fuente: f, v })
+      }
+    }
+    const conocidos = ORDEN.filter(t => porTipo.has(t))
+    const nuevos = [...porTipo.keys()].filter(t => !ORDEN.includes(t))
+    return [...conocidos, ...nuevos].map(clave => ({
+      clave,
+      label: TIPOS[clave] ?? porTipo.get(clave)[0].v.titulo,
+      entradas: porTipo.get(clave),
+      total: porTipo.get(clave).reduce((n, x) => n + x.v.total, 0),
+      severidad: porTipo.get(clave)[0].v.severidad,
+    }))
+  }, [fuentes])
 
+  const activo = tipo ?? secciones[0]?.clave ?? 'cruce'
+  const seccion = secciones.find(s => s.clave === activo)
+  const entrada = seccion?.entradas.find(e => e.fuente.fuente === fuente)
+    ?? seccion?.entradas[0]
+
+  const alertas = cruce?.alertas ?? []
   const anios = [0, 1, 2].map(n => new Date().getFullYear() - n)
+
+  const elegirTipo = (clave) => { setTipo(clave); setFuente(null) }
 
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
         <div className={styles.titulo}>Verificaciones</div>
-        <select className="input" style={{ width: 150 }} value={anio}
-                onChange={e => setAnio(Number(e.target.value))} aria-label="Año">
-          {anios.map(a => <option key={a} value={a}>Movimiento de {a}</option>)}
-        </select>
-        <select className="input" style={{ width: 230 }} value={sistema}
-                onChange={e => setSistema(e.target.value)} aria-label="Sistema donde se corrige">
-          <option value="">Todos los sistemas</option>
-          {sistemas.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <div className={styles.count}>
-          {visibles.length === (data?.alertas?.length ?? 0)
-            ? `${visibles.length} alertas`
-            : `${visibles.length} de ${data.alertas.length} alertas`}
-        </div>
+        <SelectorQuincena />
+        {activo === 'cruce' && (
+          <select className="input" style={{ width: 160 }} value={anio}
+                  onChange={e => setAnio(Number(e.target.value))} aria-label="Año">
+            {anios.map(a => <option key={a} value={a}>Movimiento de {a}</option>)}
+          </select>
+        )}
       </div>
 
-      <p className={styles.texto}>
-        Lo que hay que mirar antes de liquidar. Por ahora son los cruces entre sistemas: lo que
-        uno dice y otro no encuentra. Nada se resuelve solo ni se adivina por parecido — cada
-        aviso dice en qué sistema hay que corregirlo. No lleva quincena porque un problema de
-        cruce es del maestro, no de un período.
-      </p>
+      <div className={styles.panelFiltros}>
+        <div className={styles.chips}>
+          {secciones.map(s => (
+            <Chip key={s.clave} activo={activo === s.clave} cuenta={s.total}
+                  tono={s.severidad} onClick={() => elegirTipo(s.clave)}>
+              {s.label}
+            </Chip>
+          ))}
+          {/* Los cruces no dependen de una quincena: son del maestro. */}
+          <Chip activo={activo === 'cruce'} cuenta={alertas.length || undefined}
+                onClick={() => elegirTipo('cruce')}>
+            Entre sistemas
+          </Chip>
+        </div>
 
-      <div className={styles.content}>
-        {isLoading && <CargandoContenido texto="Comparando los tres sistemas…" />}
-        {isError && (
-          <div className={styles.error}>
-            <div className={styles.errorTitulo}>No se pudieron comparar los sistemas</div>
-            <div>{error.message}</div>
-            <div className={styles.errorNota}>
-              Sin el maestro de la app del taller, la mitad de las alertas serían falsas, así que
-              no se muestra ninguna.
-            </div>
+        {/* Un chip por sistema, porque cada uno lo corrige alguien distinto. */}
+        {seccion && seccion.entradas.length > 0 && (
+          <div className={styles.filtros}>
+            {seccion.entradas.map(e => (
+              <Chip key={e.fuente.fuente} activo={entrada?.fuente.fuente === e.fuente.fuente}
+                    cuenta={e.v.total} onClick={() => setFuente(e.fuente.fuente)}>
+                {e.fuente.titulo}
+              </Chip>
+            ))}
           </div>
         )}
-        {data && (
+      </div>
+
+      {activo !== 'cruce' && entrada && (
+        <div className={styles.aviso}>
+          <strong>{entrada.v.impacto}</strong> {entrada.v.detalle}{' '}
+          Se corrige en: <strong>{entrada.v.sistema}</strong>.
+        </div>
+      )}
+
+      <div className={styles.content}>
+        {activo !== 'cruce' && (
           <>
-            <ResumenMaquinaria m={data.maquinaria_campo} />
-            {visibles.length === 0 && (
+            {!quincena && <div className={styles.vacio}>Elegí una quincena para verificarla.</div>}
+            {quincena && isLoading && <CargandoContenido texto="Revisando la quincena…" />}
+            {quincena && !isLoading && fuentes.length === 0 && (
               <div className={styles.vacio}>
-                No hay alertas con este filtro. Los tres sistemas se encuentran.
+                Esta quincena no está generada. Generala desde Inicio y volvé.
               </div>
             )}
-            {SEVERIDADES.map(s => {
-              const lista = visibles.filter(a => a.severidad === s.clave)
-              if (!lista.length) return null
-              return (
-                <section key={s.clave} className={styles.grupo}>
-                  <div className={styles.grupoCabecera}>
-                    <span className={`${styles.pastilla} ${CLASE_SEVERIDAD[s.clave]}`}>
-                      {lista.length}
-                    </span>
-                    <div>
-                      <div className={styles.grupoTitulo}>{s.titulo}</div>
-                      <div className={styles.grupoAyuda}>{s.ayuda}</div>
-                    </div>
+            {quincena && !isLoading && fuentes.length > 0 && secciones.length === 0 && (
+              <div className={styles.vacio}>
+                Las cinco fuentes están limpias en esta quincena.
+              </div>
+            )}
+            {entrada && (
+              <div className={styles.tabla}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 200 }}>Tercero</th>
+                      <th>Qué mirar</th>
+                      <th style={{ width: 70, textAlign: 'right' }}>Veces</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entrada.v.casos.map((c, i) => (
+                      <tr key={i}>
+                        <td className={styles.casoTercero}>{c.tercero ?? '— sin dueño —'}</td>
+                        <td>{c.datos.filter(Boolean).join('  ·  ')}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          {c.veces > 1 ? `×${c.veces}` : ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {entrada.v.total > entrada.v.casos.length && (
+                  <div className={styles.nota}>
+                    Se muestran {comoEntero(entrada.v.casos.length)} de{' '}
+                    {comoEntero(entrada.v.total)}.
                   </div>
-                  {lista.map((a, i) => <Alerta key={`${a.tipo}-${i}`} alerta={a} />)}
-                </section>
-              )
-            })}
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {activo === 'cruce' && (
+          <>
+            {cargandoCruce && <CargandoContenido texto="Comparando los tres sistemas…" />}
+            {isError && (
+              <div className={styles.error}>
+                <div className={styles.errorTitulo}>No se pudieron comparar los sistemas</div>
+                <div>{error.message}</div>
+                <div className={styles.errorNota}>
+                  Sin el maestro de la app del taller, la mitad de las alertas serían falsas,
+                  así que no se muestra ninguna.
+                </div>
+              </div>
+            )}
+            {cruce && (
+              <>
+                <ResumenMaquinaria m={cruce.maquinaria_campo} />
+                {alertas.length === 0 && (
+                  <div className={styles.vacio}>
+                    No hay alertas. Los tres sistemas se encuentran.
+                  </div>
+                )}
+                {SEVERIDADES.map(s => {
+                  const lista = alertas.filter(a => a.severidad === s.clave)
+                  if (!lista.length) return null
+                  return (
+                    <section key={s.clave} className={styles.grupo}>
+                      <div className={styles.grupoCabecera}>
+                        <span className={`${styles.pastilla} ${CLASE[s.clave]}`}>
+                          {lista.length}
+                        </span>
+                        <div>
+                          <div className={styles.grupoTitulo}>{s.titulo}</div>
+                          <div className={styles.grupoAyuda}>{s.ayuda}</div>
+                        </div>
+                      </div>
+                      {lista.map((a, i) => <Alerta key={`${a.tipo}-${i}`} alerta={a} />)}
+                    </section>
+                  )
+                })}
+              </>
+            )}
           </>
         )}
       </div>
