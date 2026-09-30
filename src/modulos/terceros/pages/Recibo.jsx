@@ -25,7 +25,10 @@ const BLOQUES = [
   ['ajustes', 'Ajustes de otras quincenas'],
 ]
 
-const signado = (signo, v) => `${signo < 0 ? '−' : ''}${comoPesos(v)}`
+// Un solo signo menos en toda la hoja. `comoPesos` de un negativo pone el guion
+// corto, y al lado del «−» de los subtotales se leía como dos cosas distintas.
+const pesos = (v) => (Number(v) < 0 ? `−${comoPesos(-Number(v))}` : comoPesos(v))
+const signado = (signo, v) => pesos(signo * Number(v))
 
 function Grupo({ grupo }) {
   return (
@@ -35,11 +38,20 @@ function Grupo({ grupo }) {
         <span>{signado(grupo.signo, grupo.subtotal)}</span>
       </div>
       <table className={styles.lineas}>
+        {/* Anchos fijos: el detalle se lleva lo que sobra y baja de renglón si
+            no entra, y los importes quedan alineados con los subtotales. */}
+        <colgroup>
+          <col className={styles.colFecha} />
+          <col />
+          <col className={styles.colCantidad} />
+          <col className={styles.colPrecio} />
+          <col className={styles.colImporte} />
+        </colgroup>
         <tbody>
           {grupo.lineas.map((l, i) => (
             <tr key={i}>
               <td className={styles.fecha}>{comoFecha(l.fecha)}</td>
-              <td>
+              <td className={styles.detalle}>
                 {resumen(l) || l.concepto_label}
                 {l.cuota && <span className={styles.nota}> · cuota {l.cuota}</span>}
                 {l.viene_de && (
@@ -63,7 +75,7 @@ function Total({ label, valor, fuerte }) {
   return (
     <div className={`${styles.total} ${fuerte ? styles.totalFuerte : ''}`}>
       <span>{label}</span>
-      <span>{comoPesos(valor)}</span>
+      <span>{pesos(valor)}</span>
     </div>
   )
 }
@@ -128,7 +140,7 @@ function Hoja({ r, layout }) {
 
       {!deEmpresa && r.empresa && (
         <div className={styles.pie}>
-          Facturar a {r.empresa} por {comoPesos(r.total_a_facturar)}.
+          Facturar a {r.empresa} por {pesos(r.total_a_facturar)}.
         </div>
       )}
     </div>
@@ -153,14 +165,12 @@ export default function Recibo() {
     <div className={styles.page}>
       <div className={styles.barra}>
         <div className={styles.modos}>
-          <button className={`btn btn-sm ${layout === 'tercero' ? 'btn-primary' : ''}`}
-                  onClick={() => setLayout('tercero')}>
-            Del tercero
-          </button>
-          <button className={`btn btn-sm ${layout === 'empresa' ? 'btn-primary' : ''}`}
-                  onClick={() => setLayout('empresa')}>
-            De la empresa
-          </button>
+          {[['tercero', 'Del tercero'], ['empresa', 'De la empresa']].map(([clave, label]) => (
+            <button key={clave} onClick={() => setLayout(clave)}
+                    className={`${styles.chip} ${layout === clave ? styles.chipActivo : ''}`}>
+              {label}
+            </button>
+          ))}
         </div>
         <button className="btn btn-primary btn-sm" disabled={cargando}
                 onClick={() => window.print()}>
