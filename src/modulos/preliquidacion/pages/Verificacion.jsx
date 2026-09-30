@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Fragment } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
@@ -9,14 +9,6 @@ import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import InputBusqueda from '../components/InputBusqueda'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Verificacion.module.css'
-
-// Personas mensualizadas (no jornalizadas): se excluyen de todas las
-// secciones de Verificación porque estos controles miden razonabilidad del
-// pago jornalizado y no aplican a un sueldo mensual fijo. Revisión (misma
-// fuente de líneas, otra página) no filtra por esto — ahí sí hay que
-// verlas/editarlas para liquidar su sueldo. Hardcodeado a pedido del
-// usuario (2026-08-21).
-const EMPLEADOS_MENSUALIZADOS = ['ARAOZ, GUILLERMO HORACIO', 'TORANZO, JOSE PIO']
 
 const SECCIONES = [
   { key: 'horas',          label: '⏱ Horas excedidas',      umbral: '> 13 hs/día' },
@@ -106,8 +98,16 @@ export default function Verificacion() {
     queryFn: () => listarLineas(preliqId, {}),
     enabled: !!preliqId,
   })
+  // Personas mensualizadas (no jornalizadas): se excluyen de todas las
+  // secciones de Verificación porque estos controles miden razonabilidad del
+  // pago jornalizado y no aplican a un sueldo mensual fijo. Revisión (misma
+  // fuente de líneas, otra página) no filtra por esto: ahí sí hay que
+  // verlas/editarlas para liquidar su sueldo. Quién es mensualizado lo decide
+  // el servidor (configuración por CUIL, fuera del código) y lo marca en cada
+  // línea con `mensualizado`; el front no guarda datos de personas. Contra un
+  // backend que no manda el campo no se filtra nada.
   const lineas = useMemo(
-    () => lineasCrudas.filter(l => !EMPLEADOS_MENSUALIZADOS.includes(l.nombre_empleado)),
+    () => lineasCrudas.filter(l => !l.mensualizado),
     [lineasCrudas]
   )
 
