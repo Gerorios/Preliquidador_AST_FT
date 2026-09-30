@@ -39,6 +39,8 @@ const ESTADO   = { clave: 'estado', label: 'Estado', tipo: 'estado', ancho: 120 
 const UNIDADES = { hsmaquina: 'Hora máquina', unidades: 'Cantidad' }
 const comoUnidad = (v) => UNIDADES[v] ?? v ?? ''
 
+const comoFacturada = (v) => (v === null || v === undefined ? '' : v ? 'sí' : 'no')
+
 const cantidad = (label, ancho = 88) =>
   ({ clave: 'cantidad', label, align: 'right', formato: comoNumero, ancho })
 
@@ -71,6 +73,9 @@ export const COLUMNAS = {
     FECHA, TERCERO, PATENTE,
     { clave: 'estacion', label: 'Estación', ancho: 160 },
     { clave: 'vale', label: 'Vale', ancho: 80 },
+    // Si la estación la facturó. Vacío mientras no se haya subido su archivo:
+    // decir "no" sin haberlo mirado haría reclamar de gusto.
+    { clave: 'facturada', label: 'Facturada', formato: comoFacturada, ancho: 92 },
     cantidad('Litros'),
     // El campo libre del sistema de campo. Va acá porque es lo que explica una
     // carga rara sin tener que ir a preguntarle a quien la cargó.

@@ -15,6 +15,7 @@ import { tienePermiso } from '../../core/permisos'
 // Ver, en el repo backend, docs/modulos/terceros/plan-terceros.md.
 const Inicio = lazy(() => import('./pages/Inicio'))
 const Grilla = lazy(() => import('./pages/Grilla'))
+const Estaciones = lazy(() => import('./pages/Estaciones'))
 const Tarifario = lazy(() => import('./pages/Tarifario'))
 const Verificaciones = lazy(() => import('./pages/Verificaciones'))
 
@@ -29,6 +30,7 @@ export const rutas = [
   { path: `${PREFIJO}/inicio`,       element: <Inicio />,      modulo: MODULO, roles: ['operador'], label: 'Inicio',          icono: 'inicio',        menu: true },
   { path: `${PREFIJO}/quincena`,     element: <Grilla />,      modulo: MODULO, roles: ['operador'], label: 'Quincena',         icono: 'gerencial',     menu: true },
   { path: `${PREFIJO}/tarifario`,      element: <Tarifario />,      modulo: MODULO, roles: ['operador'], label: 'Tarifario',          icono: 'conceptos',     menu: true },
+  { path: `${PREFIJO}/estaciones`,     element: <Estaciones />,     modulo: MODULO, roles: ['operador'], label: 'Estaciones',         icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/verificaciones`, element: <Verificaciones />, modulo: MODULO, roles: ['operador'], label: 'Verificaciones',     icono: 'verificacion',  menu: true },
 ]
 
@@ -46,6 +48,7 @@ export const pantallas = {
   '/terceros/inicio': 'Liquidación Terceros (resumen de la quincena)',
   '/terceros/quincena': 'La quincena entera: los seis conceptos en una lista filtrable, ya con sus precios',
   '/terceros/tarifario': 'Tarifario: los precios pactados con cada tercero, por quincena',
+  '/terceros/estaciones': 'Estaciones de servicio: lo que cada una facturó, contra lo que se cargó',
   '/terceros/verificaciones': 'Verificaciones: lo que hay que mirar antes de liquidar',
 }
 

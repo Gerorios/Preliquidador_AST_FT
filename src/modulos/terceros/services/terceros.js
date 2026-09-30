@@ -138,3 +138,41 @@ export const crearTarifasEnLote = (tipo, quincena, tarifas) =>
 // duplicado de agosto es plata cobrada dos veces en agosto.
 export const obtenerVerificaciones = (quincena) =>
   api.get(`/terceros/verificaciones?quincena=${quincena}`).then(r => r.data)
+
+// ─── Estaciones de servicio (etapa 10) ──────────────────────────────────────
+// El otro lado del combustible: lo que la estación facturó, contra lo que el
+// sistema de campo dice que se cargó.
+
+export const listarEstaciones = (quincena) =>
+  api.get(`/terceros/estaciones?quincena=${quincena}`).then(r => r.data)
+
+// Cada línea del archivo va a la quincena de SU fecha; la que se manda es el
+// respaldo para las que vengan sin fecha.
+export const subirArchivoEstacion = (estacionId, quincena, archivo) => {
+  const cuerpo = new FormData()
+  cuerpo.append('quincena', quincena)
+  cuerpo.append('archivo', archivo)
+  return api.post(`/terceros/estaciones/${estacionId}/subir`, cuerpo)
+            .then(r => r.data)
+}
+
+export const obtenerCruceEstaciones = (quincena) =>
+  api.get(`/terceros/estaciones/cruce?quincena=${quincena}`).then(r => r.data)
+
+export const listarLineasEstacion = (estacionId, quincena) =>
+  api.get(`/terceros/estaciones/${estacionId}/lineas?quincena=${quincena}`)
+     .then(r => r.data)
+
+// Los remitos que llegan por foto. Suman, no reemplazan: van llegando de a
+// poco y borrar lo anterior sería perder lo recién tipeado.
+export const cargarLineasAMano = (estacionId, lineas) =>
+  api.post(`/terceros/estaciones/${estacionId}/lineas`, { lineas }).then(r => r.data)
+
+export const borrarLineaFacturada = (id) =>
+  api.delete(`/terceros/estaciones/lineas/${id}`).then(r => r.data)
+
+// Con qué nombre se registran sus cargas en el sistema de campo. Sin esto no
+// hay nada que cruzar, y no se puede adivinar.
+export const definirOrigenEstacion = (estacionId, origen) =>
+  api.patch(`/terceros/estaciones/${estacionId}`, { origen_campo: origen })
+     .then(r => r.data)
