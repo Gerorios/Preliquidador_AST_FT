@@ -12,8 +12,8 @@ import api from '../../../core/api'
 // serie. Pidiéndolos por separado el navegador los hace en paralelo y cada
 // tarjeta de la portada aparece cuando llega la suya.
 
-export const listarQuincenas = (cantidad = 24) =>
-  api.get(`/terceros/quincenas?cantidad=${cantidad}`).then(r => r.data)
+export const listarQuincenas = (cantidad = 24, adelante = 0) =>
+  api.get(`/terceros/quincenas?cantidad=${cantidad}&adelante=${adelante}`).then(r => r.data)
 
 export const listarViajes = (quincena) =>
   api.get(`/terceros/viajes?quincena=${quincena}`).then(r => r.data)
@@ -98,6 +98,25 @@ export const listarBienes = () =>
 
 // Los seis conceptos de la quincena en una sola lista, ya con su importe.
 // Vienen también las líneas sin precio: son las que hay que resolver.
+// ─── En qué quincena se liquida cada línea ──────────────────────────────────
+
+// Mandarla a la quincena en la que se trajo deshace el movimiento; a cualquier
+// otra pide el motivo, porque el recibo lo va a mostrar como un ajuste.
+export const moverDeQuincena = (concepto, id, quincena, motivo) =>
+  api.patch(`/terceros/hechos/${concepto}/${id}/quincena`, { quincena, motivo })
+    .then(r => r.data)
+
+export const listarCuotas = (repuestoId) =>
+  api.get(`/terceros/repuestos/${repuestoId}/cuotas`).then(r => r.data)
+
+// Reemplaza el plan que tuviera: un repuesto tiene uno solo.
+export const repartirEnCuotas = (repuestoId, desde, cuotas, motivo) =>
+  api.put(`/terceros/repuestos/${repuestoId}/cuotas`, { desde, cuotas, motivo })
+    .then(r => r.data)
+
+export const quitarCuotas = (repuestoId) =>
+  api.delete(`/terceros/repuestos/${repuestoId}/cuotas`).then(r => r.data)
+
 export const listarLineas = (quincena) =>
   api.get(`/terceros/liquidaciones/lineas?quincena=${quincena}`).then(r => r.data)
 

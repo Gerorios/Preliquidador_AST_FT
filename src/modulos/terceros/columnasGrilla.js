@@ -41,6 +41,23 @@ const comoUnidad = (v) => UNIDADES[v] ?? v ?? ''
 
 const comoFacturada = (v) => (v === null || v === undefined ? '' : v ? 'sí' : 'no')
 
+// '2026-08-16' → '08-2Q', la notación con la que se lee una quincena.
+const comoQuincena = (iso) => {
+  if (!iso) return ''
+  const [, mes, dia] = iso.split('-')
+  return `${mes}-${Number(dia) <= 15 ? 1 : 2}Q`
+}
+
+// En qué quincena se liquida la línea, cuando no es la que se está mirando.
+// Vacío en casi todas: lo normal es liquidarse en la suya, y no hace falta
+// decirlo mil veces.
+export const destinoDe = (f) =>
+  f.cuota ? `Cuota ${f.cuota}` : f.viene_de ? `Viene de ${comoQuincena(f.viene_de)}` : ''
+
+// Va al final, al lado del estado: es lo último que se decide de una línea.
+const DESTINO = { clave: 'destino', label: 'Se liquida', tipo: 'destino',
+                  calculado: destinoDe, ancho: 120 }
+
 const cantidad = (label, ancho = 88) =>
   ({ clave: 'cantidad', label, align: 'right', formato: comoNumero, ancho })
 
@@ -55,7 +72,7 @@ export const COLUMNAS = {
     { clave: 'resumen', label: 'Detalle', calculado: resumen },
     cantidad('Cantidad'),
     { clave: 'unidad', label: 'Unidad', formato: comoUnidad, ancho: 70 },
-    PRECIO, IMPORTE, ESTADO,
+    PRECIO, IMPORTE, ESTADO, DESTINO,
   ],
 
   viajes: [
@@ -66,7 +83,7 @@ export const COLUMNAS = {
     // viaje no es corto ni largo. Por eso va al lado del precio.
     { clave: 'tipo_viaje', label: 'Tipo', ancho: 72 },
     cantidad('Viajes', 72),
-    PRECIO, IMPORTE, ESTADO,
+    PRECIO, IMPORTE, ESTADO, DESTINO,
   ],
 
   combustible: [
@@ -81,7 +98,7 @@ export const COLUMNAS = {
     // carga rara sin tener que ir a preguntarle a quien la cargó.
     { clave: 'observacion', label: 'Comentario' },
     { ...PRECIO, label: 'Precio por litro' },
-    IMPORTE, ESTADO,
+    IMPORTE, ESTADO, DESTINO,
   ],
 
   servicio: [
@@ -93,7 +110,7 @@ export const COLUMNAS = {
     // Acá sí: la tarifa elige entre hora de máquina y cantidad, y cuál eligió
     // es lo que explica el importe.
     { clave: 'unidad', label: 'Se paga por', formato: comoUnidad, ancho: 110 },
-    PRECIO, IMPORTE, ESTADO,
+    PRECIO, IMPORTE, ESTADO, DESTINO,
   ],
 
   repuestos: [
@@ -103,7 +120,7 @@ export const COLUMNAS = {
     cantidad('Cantidad'),
     // Sin columna de precio: el importe viene calculado del sistema de compras
     // y no hay un precio pactado con el tercero que mostrar.
-    IMPORTE, ESTADO,
+    IMPORTE, ESTADO, DESTINO,
   ],
 
   reparacion: [
@@ -115,7 +132,7 @@ export const COLUMNAS = {
     // que va en su columna y no escondido en el estado del cálculo.
     { clave: 'estado_taller', label: 'Taller', ancho: 92 },
     cantidad('Horas', 72),
-    PRECIO, IMPORTE, ESTADO,
+    PRECIO, IMPORTE, ESTADO, DESTINO,
   ],
 
   seguros: [

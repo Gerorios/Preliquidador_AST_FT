@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import EditorDestino from '../components/EditorDestino'
 import FiltroMultiple from '../components/FiltroMultiple'
 import SelectorQuincena from '../components/SelectorQuincena'
 import useQuincenaStore from '../quincenaStore'
@@ -82,6 +83,8 @@ export default function Grilla() {
   // Ver solo lo que no tiene precio. Va aparte de los filtros porque cruza
   // todos los conceptos y es la pregunta de siempre antes de liquidar.
   const [soloSinPrecio, setSoloSinPrecio] = useState(false)
+  // La línea cuya quincena se está cambiando, en un diálogo aparte.
+  const [editando, setEditando] = useState(null)
 
   const { data: lineas = [], isLoading } = useQuery({
     queryKey: ['terceros', 'lineas', quincena],
@@ -326,6 +329,19 @@ export default function Grilla() {
                 {visibles.map(f => (
                   <tr key={`${f.concepto}-${f.id}`}>
                     {columnas.map(c => {
+                      if (c.tipo === 'destino') {
+                        const texto = valorDe(c, f)
+                        return (
+                          <td key={c.clave}>
+                            <button
+                              className={`${styles.destino} ${texto ? styles.destinoMovido : ''}`}
+                              title={f.motivo ?? 'Liquidarla en otra quincena'}
+                              onClick={() => setEditando(f)}>
+                              {texto || 'Mover'}
+                            </button>
+                          </td>
+                        )
+                      }
                       if (c.tipo === 'importe') {
                         return (
                           <td key={c.clave} style={{ textAlign: 'right' }}
@@ -365,6 +381,11 @@ export default function Grilla() {
               </div>
             )}
           </div>
+
+          {editando && (
+            <EditorDestino fila={editando} quincena={quincena}
+                           onCerrar={() => setEditando(null)} />
+          )}
         </>
       )}
     </div>

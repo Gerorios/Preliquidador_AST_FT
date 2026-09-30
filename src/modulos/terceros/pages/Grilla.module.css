@@ -336,3 +336,134 @@
   padding: 0 8px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── En qué quincena se liquida una línea ───────────────────────────── */
+/* «Mover» aparece al pasar por la fila y no en las mil: una palabra repetida en
+   cada renglón deja de leerse. Lo movido y las cuotas se ven siempre, porque
+   eso sí es algo que decir. */
+
+.destino {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tabla tbody tr:hover .destino,
+.destino:focus-visible { opacity: 1; }
+
+.destinoMovido {
+  opacity: 1;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+/* El diálogo: mismo armado que el de reglas de Preliquidación, sin el borde
+   ámbar, que allá es un aviso y acá no. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.dialogo {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dialogoTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* La línea que se está moviendo, repetida: es lo que faltaba al abrirse
+   debajo de una fila que quedaba fuera de la vista. */
+.dialogoDatos {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 5px 12px;
+  font-size: 12.5px;
+  padding: 10px 12px;
+  background: #faf9f6;
+  border-radius: 8px;
+}
+
+.dialogoDatos > span { color: var(--text-muted); }
+
+.dialogoDatos > b {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dialogoBotones {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.editor {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modos {
+  display: flex;
+  gap: 6px;
+}
+
+.campoAncho { flex: 1; }
+
+.campoAncho .input { width: 100%; }
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.campoLabel {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.campo .input,
+.campo select { font-size: 12px; }
+
+.campoValor {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  padding: 6px 0;
+  white-space: nowrap;
+}
+
+.campoDe {
+  font-weight: 400;
+  color: var(--text-muted);
+}
