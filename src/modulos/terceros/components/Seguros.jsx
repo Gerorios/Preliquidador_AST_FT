@@ -92,7 +92,7 @@ function Importe({ fila, quincena, onListo }) {
   }
   return (
     <span className={fila.tarifa ? styles.precio : styles.cualquiera}
-          title="Clic para cargar el importe"
+          title="Clic para cargar el importe. Vaciarlo borra la póliza: cero es que no se le cobra"
           onClick={e => {
             e.stopPropagation()
             setValor(fila.tarifa ? String(fila.tarifa.importe) : '')
@@ -230,9 +230,6 @@ export default function Seguros({ quincena }) {
                 onClick={() => aplicar.mutate()}>
           {aplicar.isPending ? 'Cargando…' : `Aplicar (${comoEntero(visibles.length)})`}
         </button>
-        <span className={styles.nuevaNota}>
-          Vaciar el importe de una fila borra la póliza: cero significa que no se le cobra
-        </span>
       </div>
 
       <div className={styles.tabla}>

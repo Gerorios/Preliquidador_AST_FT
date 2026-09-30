@@ -356,12 +356,6 @@ export default function Tarifario() {
         )}
       </div>
 
-      <p className={styles.nota}>
-        Las reglas van de la más general a la más específica. Entre dos que alcanzan al mismo
-        hecho gana la que tiene más campos cargados; si empatan, el hecho queda ambiguo y lo
-        resolvés vos. Un hecho sin tarifa no entra al recibo: se lista aparte, nunca paga cero
-        en silencio.
-      </p>
     </div>
   )
 }

@@ -81,10 +81,6 @@ export default function SinPrecio({ tipo, tarifario, quincena, combinaciones, on
           <div className={styles.bannerTitulo}>
             Faltan pactar {comoEntero(lineasTotal)} línea(s), en {comoEntero(faltan.length)} combinación(es)
           </div>
-          <div className={styles.bannerTexto}>
-            Estas líneas no entran al recibo hasta tener precio. Filtrá las que van con el mismo
-            precio, cargalo abajo y se aplica a todas las que se ven.
-          </div>
         </div>
         {onVolver && (
           <button className="btn btn-sm" onClick={onVolver}>Volver a las cargadas</button>

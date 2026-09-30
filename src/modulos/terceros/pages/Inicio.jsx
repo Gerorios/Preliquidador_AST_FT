@@ -109,12 +109,6 @@ export default function Inicio() {
         </button>
       </div>
 
-      <p className={styles.texto}>
-        Elegí una quincena y apretá <strong>{yaGenerada ? 'Actualizar quincena' : 'Generar quincena'}</strong>{' '}
-        para traer lo que cargaron los sistemas de campo, compras y taller. Tarda unos segundos.
-        Actualizar se puede hacer las veces que haga falta y no borra lo que cargaste a mano.
-      </p>
-
       {detalle && (
         <div className={styles.panel}>
           <div className={styles.panelTitulo}>
@@ -187,9 +181,6 @@ export default function Inicio() {
         </div>
       )}
 
-      <p className={styles.nota}>
-        Los importes son de lo que ya tiene precio. Lo que quedó sin tarifa no suma.
-      </p>
     </div>
   )
 }

@@ -235,11 +235,6 @@ export default function Grilla() {
             <div className={styles.maestro}>
               <FiltroMultiple label="Tercero" valores={todosLosTerceros}
                               seleccion={terceros} onCambiar={setTerceros} />
-              <span className={styles.maestroNota}>
-                {terceros.size === 0
-                  ? 'Todos los dueños de la quincena'
-                  : `${comoEntero(totalDelTercero)} líneas`}
-              </span>
             </div>
 
             <div className={styles.filtros}>

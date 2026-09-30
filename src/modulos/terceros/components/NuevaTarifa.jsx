@@ -97,18 +97,17 @@ export default function NuevaTarifa({ tipo, tarifario, quincena, combinaciones }
                      onEnter={() => { if (listo) crear.mutate() }} />
 
       <button className="btn btn-primary btn-sm" disabled={!listo || crear.isPending}
-              onClick={() => crear.mutate()}>
+              onClick={() => crear.mutate()}
+              // Antes era una nota fija al lado del botón; se pasó a la ayuda del
+              // botón para limpiar la pantalla sin perder el aviso.
+              title={faltanObligatorias
+                ? 'Elegí lo marcado con *'
+                : reglas.length > 1
+                  ? `Se van a crear ${comoEntero(reglas.length)} reglas, una por combinación`
+                  : 'Lo que dejes sin elegir alcanza a todos'}>
         {crear.isPending ? 'Cargando…'
           : reglas.length > 1 ? `Cargar ${comoEntero(reglas.length)} reglas` : 'Cargar'}
       </button>
-
-      <span className={styles.nuevaNota}>
-        {faltanObligatorias
-          ? 'Elegí lo marcado con *'
-          : reglas.length > 1
-            ? `Se van a crear ${comoEntero(reglas.length)} reglas, una por combinación`
-            : 'Lo que dejes sin elegir alcanza a todos'}
-      </span>
     </div>
   )
 }
