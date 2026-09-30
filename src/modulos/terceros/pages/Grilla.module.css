@@ -1,0 +1,469 @@
+/* La quincena entera en una pantalla. El alto es fijo y lo que scrollea es la
+   tabla: los filtros y los totales tienen que quedar a la vista mientras se
+   recorren mil líneas, que es justo cuando hacen falta. */
+
+.page {
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100vh;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.titulo {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin-right: 8px;
+}
+
+.acciones {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── El filtro maestro ───────────────────────────────────────────────── */
+/* El tercero va arriba de los conceptos porque cruza las seis fuentes: elegido
+   un dueño, todo lo que sigue es de él. Va con más peso visual que los filtros
+   de abajo justamente para que se lea como lo que manda. */
+
+.panelFiltros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+}
+
+.maestro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.maestroLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+/* ─── Los conceptos ───────────────────────────────────────────────────── */
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e4dfd6;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.chip:hover { color: var(--text-primary); border-color: var(--accent); }
+
+.chipActivo {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.chipActivo:hover { color: #ffffff; }
+
+.chipCuenta {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: #f4f1ec;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chipActivo .chipCuenta {
+  color: var(--accent);
+  background: #ffffff;
+}
+
+/* ─── Filtros ─────────────────────────────────────────────────────────── */
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid #f1eee8;
+}
+
+/* Sin concepto elegido puede no haber filtros propios: no se deja la raya. */
+.filtros:empty { display: none; }
+
+.filtros select {
+  max-width: 230px;
+  font-size: 12px;
+}
+
+.limpiar {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+/* ─── Los totales de lo que se está viendo ────────────────────────────── */
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+}
+
+.datoLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.datoValor {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Lo que se descuenta, en el terracota de la marca, igual que en el Inicio. */
+.datoResta { color: var(--brand); }
+
+.datoDe {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.datoFuerte {
+  background: var(--accent-dim);
+  border-color: rgba(85, 112, 50, 0.35);
+}
+
+.datoFuerte .datoValor { color: var(--accent); }
+
+.datoAviso {
+  background: var(--warn-dim);
+  border-color: rgba(150, 96, 15, 0.35);
+}
+
+.datoAviso .datoValor { color: var(--warn); }
+
+.nota {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* ─── La tabla ────────────────────────────────────────────────────────── */
+
+.tabla {
+  flex: 1;
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+}
+
+.tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #faf9f6;
+  border-bottom: 1px solid #ece8e1;
+}
+
+.th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  padding: 9px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.th:hover { color: var(--text-primary); }
+
+.flecha {
+  margin-left: 4px;
+  font-size: 9px;
+}
+
+.tabla tbody td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1eee8;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.tabla tbody tr:hover td { background: #f7faf2; }
+
+/* El signo se ve en el color además de en el guion: mirando una columna de mil
+   importes, el color dice de qué lado del recibo cae cada uno sin leerlos. */
+.paga {
+  color: var(--ok, var(--text-primary));
+  font-variant-numeric: tabular-nums;
+}
+
+.descuenta {
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Los estados ─────────────────────────────────────────────────────── */
+
+.estado {
+  display: inline-block;
+  font-size: 10.5px;
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  cursor: help;
+}
+
+.ok      { color: var(--ok); }
+.aviso   { color: var(--warn);  background: var(--warn-dim);  border-color: var(--warn); }
+.alerta  { color: var(--error, var(--warn)); background: var(--error-dim, var(--warn-dim)); border-color: var(--error, var(--warn)); }
+.neutro  { color: var(--text-muted); border-color: var(--border); }
+
+.vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.maestroNota {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Ver solo lo que no tiene precio ────────────────────────────────── */
+/* El mismo botón que en el Tarifario: ámbar, chico y al costado. */
+
+.botonSin {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--warn-dim);
+  border: 1px solid rgba(150, 96, 15, 0.35);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--warn);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.botonSin:hover { border-color: var(--warn); }
+
+.botonSinActivo {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #ffffff;
+}
+
+.botonSinCuenta {
+  font-size: 11px;
+  font-weight: 500;
+  background: #ffffff;
+  color: var(--warn);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── En qué quincena se liquida una línea ───────────────────────────── */
+/* «Mover» aparece al pasar por la fila y no en las mil: una palabra repetida en
+   cada renglón deja de leerse. Lo movido y las cuotas se ven siempre, porque
+   eso sí es algo que decir. */
+
+.destino {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tabla tbody tr:hover .destino,
+.destino:focus-visible { opacity: 1; }
+
+.destinoMovido {
+  opacity: 1;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+/* El diálogo: mismo armado que el de reglas de Preliquidación, sin el borde
+   ámbar, que allá es un aviso y acá no. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.dialogo {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dialogoTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* La línea que se está moviendo, repetida: es lo que faltaba al abrirse
+   debajo de una fila que quedaba fuera de la vista. */
+.dialogoDatos {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 5px 12px;
+  font-size: 12.5px;
+  padding: 10px 12px;
+  background: #faf9f6;
+  border-radius: 8px;
+}
+
+.dialogoDatos > span { color: var(--text-muted); }
+
+.dialogoDatos > b {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dialogoBotones {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.editor {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modos {
+  display: flex;
+  gap: 6px;
+}
+
+.campoAncho { flex: 1; }
+
+.campoAncho .input { width: 100%; }
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.campoLabel {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.campo .input,
+.campo select { font-size: 12px; }
+
+.campoValor {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  padding: 6px 0;
+  white-space: nowrap;
+}
+
+.campoDe {
+  font-weight: 400;
+  color: var(--text-muted);
+}

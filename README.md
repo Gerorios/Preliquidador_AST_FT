@@ -36,7 +36,7 @@ src/
 └── modulos/
     ├── registro.js   # registro de módulos
     ├── preliquidacion/  # módulo Preliquidación: rutas.jsx, pages/, components/, services/
-    └── terceros/        # módulo Liquidación Terceros (en construcción, inactivo)
+    └── terceros/        # módulo Liquidación Terceros (en construcción)
 ```
 
 Cada módulo exporta desde su `rutas.jsx` un descriptor `modulo` (rutas, menú, tarjeta del

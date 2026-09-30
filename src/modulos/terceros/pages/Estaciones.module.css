@@ -1,0 +1,402 @@
+/* Mismo armado que la Quincena, y por la misma razón: el alto es fijo y lo que
+   scrollea es la tabla, así los filtros, los chips y las tarjetas quedan a la
+   vista mientras se recorren las líneas, que es justo cuando hacen falta. */
+
+.page {
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100vh;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.titulo {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin-right: 8px;
+}
+
+.acciones {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Los filtros ─────────────────────────────────────────────────────── */
+/* Filtran la única tabla. Los chips y las tarjetas de abajo son atajos a este
+   mismo filtro, no otra cosa. */
+
+.panelFiltros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+}
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filtros select { max-width: 230px; font-size: 12px; }
+
+.limpiar {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+/* ─── Una estación por chip ───────────────────────────────────────────── */
+/* Una estación es un dato de una línea —se leyó o no, y cuántas trajo—, no una
+   tarjeta: lo que se mira de verdad son las alertas y la tabla. */
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: flex;
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #e4dfd6;
+  border-radius: 999px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.chip:hover { border-color: var(--accent); }
+
+.chipCuerpo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 6px 6px 6px 14px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chipActivo {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.chipActivo .chipCuerpo { color: #ffffff; font-weight: 600; }
+
+.chipCuenta {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: #f4f1ec;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chipActivo .chipCuenta { color: var(--accent); background: #ffffff; }
+
+/* Subir otro archivo sin salir del chip. Va pegado y no como botón aparte
+   porque reemplaza lo de ESA estación, y de lejos eso no se ve. */
+.chipSubir {
+  background: none;
+  border: none;
+  border-left: 1px solid #efebe4;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chipSubir:hover { background: #f7f4ef; color: var(--text-primary); }
+
+.chipActivo .chipSubir { color: #ffffff; border-left-color: rgba(255, 255, 255, 0.3); }
+
+.chipActivo .chipSubir:hover { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+
+.chipNota {
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chipActivo .chipNota { color: rgba(255, 255, 255, 0.8); }
+
+/* Sin el nombre que tiene en el sistema de campo no cruza nada, y eso hay que
+   verlo antes de subir el archivo, no después. */
+.chipFalta {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.chipActivo .chipFalta { color: #ffffff; }
+
+/* ─── Las tarjetas ────────────────────────────────────────────────────── */
+/* Cada una es un estado de la tabla. Se tocan y filtran por él. */
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Una tarjeta en cero no esconde nada, así que no invita a tocarla. */
+.dato:disabled { cursor: default; opacity: 0.7; }
+
+.dato:not(:disabled):hover { border-color: #ddd6cb; }
+
+.datoLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.datoValor {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.datoAviso {
+  background: var(--warn-dim);
+  border-color: rgba(150, 96, 15, 0.35);
+}
+
+.datoAviso .datoValor { color: var(--warn); }
+
+.datoActivo {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+/* ─── La tabla ────────────────────────────────────────────────────────── */
+
+.tabla {
+  flex: 1;
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
+}
+
+.tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tabla thead th {
+  position: sticky;
+  background: #faf9f6;
+  z-index: 1;
+}
+
+/* El primer piso: de qué lado viene cada bloque de columnas. «Vale» solo no
+   dice de cuál de los dos, y la pregunta de la pantalla es exactamente ésa. */
+.grupo,
+.grupoVacio {
+  top: 0;
+  padding: 7px 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #f1eee8;
+}
+
+.grupo {
+  text-align: center;
+  color: var(--text-secondary);
+  border-left: 1px solid #ece8e1;
+  border-right: 1px solid #ece8e1;
+}
+
+.grupoVacio { border: none; }
+
+.th {
+  top: 27px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  padding: 9px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid #ece8e1;
+}
+
+.th:hover { color: var(--text-primary); }
+
+.flecha {
+  margin-left: 4px;
+  font-size: 9px;
+}
+
+.tabla tbody td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f4f1ec;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.tabla tbody tr:last-child td { border-bottom: none; }
+
+.tabla tbody tr:hover td { background: #fbfaf7; }
+
+/* Cruzó o no cruzó, que es lo único que se mira de un vistazo. */
+.ok { color: var(--text-muted); }
+
+.pendiente { color: var(--warn); font-weight: 600; }
+
+.vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ─── Lo que se tipea ─────────────────────────────────────────────────── */
+/* La estación que manda los remitos por foto. Va debajo de la lista y no en
+   otra pantalla: es la misma pregunta —qué facturó cada una— con otra forma
+   de contestarla. */
+
+.aMano {
+  border: 1px solid #ece8e1;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.aManoTitulo {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.aManoAyuda {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.aManoForm {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 16px 12px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.campoLabel {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.campo .input { font-size: 12px; }
+
+.aManoVacio {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid #f4f1ec;
+}
+
+.aManoPie {
+  padding: 8px 16px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  border-top: 1px solid #f4f1ec;
+}
+
+.aMano table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.aMano thead th {
+  background: #faf8f5;
+  border-top: 1px solid #ece8e1;
+  border-bottom: 1px solid #ece8e1;
+  padding: 8px 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.aMano tbody td {
+  padding: 6px 14px;
+  border-bottom: 1px solid #f4f1ec;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Lo que falta en una fila tipeada, dicho y no dejado en blanco. */
+.gris { color: var(--text-muted); }
