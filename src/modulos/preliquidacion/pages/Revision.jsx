@@ -11,6 +11,7 @@ import {
   legajosPorCuil, reasignarEmpresaMasivo,
   exportarQuincenaExcel,
 } from '../services/preliquidacion'
+import { claves } from '../services/claves'
 import PanelLinea from '../components/PanelLinea'
 import FiltrosBar from '../components/FiltrosBar'
 import AlertasBanner from '../components/AlertasBanner'
@@ -332,14 +333,16 @@ export default function Revision() {
   const [exportando, setExportando] = useState(false)
 
   const { data: preliqData } = useQuery({
-    queryKey: ['preliq', id],
-    queryFn: () => listarPreliquidaciones().then(list =>
-      list.find(p => String(p.id) === String(id))
-    ),
+    // Comparte el caché de la lista con Dashboard y el resto: `select` elige
+    // esta preliquidación sin otro request ni otra clave que invalidar.
+    // String() en ambos lados: `id` viene de useParams (string) y p.id es número.
+    queryKey: claves.preliquidaciones,
+    queryFn: listarPreliquidaciones,
+    select: list => list.find(p => String(p.id) === String(id)),
   })
 
   const { data: stats } = useQuery({
-    queryKey: ['stats', id],
+    queryKey: claves.stats(id),
     queryFn: () => obtenerEstadisticas(id),
     // Sin polling agresivo: se invalida explícitamente tras cada mutación
     // (ver refrescarYSincronizarPanel y `guardar`). Este intervalo es solo
@@ -352,8 +355,11 @@ export default function Revision() {
   // (ver lineasFiltradas) para no re-pegarle al server ni perder el caché
   // cada vez que cambia un filtro. `placeholderData: keepPreviousData`
   // evita el parpadeo a "cargando" entre refetchs.
+  // La clave es compartida con Verificación (mismo endpoint, sin filtros):
+  // `placeholderData` es opción de este observer, no del caché, así que no
+  // afecta a lo que ve Verificación.
   const { data: lineas = [], isLoading } = useQuery({
-    queryKey: ['lineas', id],
+    queryKey: claves.lineas(id),
     queryFn: () => listarLineas(id),
     placeholderData: keepPreviousData,
   })
@@ -419,13 +425,13 @@ export default function Revision() {
   // importe_total/conceptos, ver services/preliquidacion_service.py
   // agregar_concepto / agregar_concepto_por_codigo / eliminar_concepto).
   const refrescarYSincronizarPanel = async () => {
-    await qc.refetchQueries({ queryKey: ['lineas', id] })
-    const lineasFrescas = qc.getQueryData(['lineas', id])
+    await qc.refetchQueries({ queryKey: claves.lineas(id) })
+    const lineasFrescas = qc.getQueryData(claves.lineas(id))
     if (lineasFrescas && lineaSeleccionada) {
       const lineFresca = lineasFrescas.find(l => l.id === lineaSeleccionada.id)
       if (lineFresca) setLineaSeleccionada(lineFresca)
     }
-    qc.invalidateQueries({ queryKey: ['stats', id] })
+    qc.invalidateQueries({ queryKey: claves.stats(id) })
   }
 
   const { mutate: guardar, isPending: guardando } = useMutation({
@@ -435,8 +441,8 @@ export default function Revision() {
     onSuccess: (data) => {
       toast.success('Línea actualizada')
       setLineaSeleccionada(data)
-      qc.setQueryData(['lineas', id], (old) => old ? old.map(l => l.id === data.id ? data : l) : old)
-      qc.invalidateQueries({ queryKey: ['stats', id] })
+      qc.setQueryData(claves.lineas(id), (old) => old ? old.map(l => l.id === data.id ? data : l) : old)
+      qc.invalidateQueries({ queryKey: claves.stats(id) })
     },
     onError: (err) => toast.error(err.message),
   })

@@ -9,6 +9,7 @@ import {
   obtenerPanelPrecios, aplicarPrecioMasivo, listarSupervisores,
 } from '../services/preliquidacion'
 import { listarQuincenasGerencial } from '../services/gerencial'
+import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import FiltrosBar from '../components/FiltrosBar'
 import PanelPorConcepto from './PanelPorConcepto'
@@ -458,7 +459,14 @@ function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
 
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
+// Clave estable de una faltante: la tupla tarea/cliente/finca es única (sale
+// de un SELECT DISTINCT en el backend). Con la posición como key, al crear la
+// regla la fila desaparece y la siguiente hereda su estado (abierta, alcance,
+// formulario). JSON.stringify distingue null de '' (null vs "" en el texto),
+// que el DISTINCT devuelve como filas distintas.
+const claveFaltante = (f) => JSON.stringify([f.tarea_nombre, f.cliente_nombre, f.finca_nombre])
+
+function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -548,22 +556,22 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrearSinFaltantes, 
               <>
               <div className={styles.scopeChoice}>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'finca'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'finca'}
                     onChange={() => cambiarAlcance('finca')} />
                   Por finca — {f.cliente_nombre}{f.finca_nombre ? ` / ${f.finca_nombre}` : ''}
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'cliente'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'cliente'}
                     onChange={() => cambiarAlcance('cliente')} />
                   Por cliente — {f.cliente_nombre} (todas las fincas)
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'supervisor'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'supervisor'}
                     onChange={() => cambiarAlcance('supervisor')} />
                   Por supervisor
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'comun'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'comun'}
                     onChange={() => cambiarAlcance('comun')} />
                   Común
                   {cantidadConMismaTarea > 1 && (
@@ -790,7 +798,9 @@ export default function Conceptos() {
   }, [tab])
 
   const { data: preliquidaciones = [] } = useQuery({
-    queryKey: ['preliquidaciones-generadas'],
+    // Misma clave que Dashboard/Verificación: con una clave propia, generar una
+    // quincena en el Dashboard no llegaba a este selector hasta el F5.
+    queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
     // El endpoint de preliquidaciones le da 403 al gerente: para ese rol el
     // selector sale de /gerencial/quincenas (ver query de abajo).
@@ -884,8 +894,10 @@ export default function Conceptos() {
     qc.invalidateQueries({ queryKey: ['solapamientos'] })
     // Impacto reactivo (WS2): un cambio de concepto recalcula líneas en el
     // backend, así que refrescamos también Revisión y sus estadísticas.
-    qc.invalidateQueries({ queryKey: ['lineas'] })
-    qc.invalidateQueries({ queryKey: ['stats'] })
+    // Prefijos de claves.js: alcanzan a las líneas de todas las quincenas,
+    // incluidas las que lee Verificación (comparte la clave con Revisión).
+    qc.invalidateQueries({ queryKey: claves.todasLasLineas })
+    qc.invalidateQueries({ queryKey: claves.todasLasStats })
   }
 
   // onError compartido por las 3 superficies de alta. Un 409 de solapamiento
@@ -954,8 +966,8 @@ export default function Conceptos() {
       qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
       qc.invalidateQueries({ queryKey: ['panel-precios'] })
       qc.invalidateQueries({ queryKey: ['solapamientos'] })
-      qc.invalidateQueries({ queryKey: ['lineas'] })
-      qc.invalidateQueries({ queryKey: ['stats'] })
+      qc.invalidateQueries({ queryKey: claves.todasLasLineas })
+      qc.invalidateQueries({ queryKey: claves.todasLasStats })
       ctx.onSuccess?.()
     },
     onError: (err, ctx) => manejarErrorCrear(err, { ...ctx, mutate: mutCrearSinFaltantes }),
@@ -1224,10 +1236,10 @@ export default function Conceptos() {
                   </tr>
                 </thead>
                 <tbody>
-                  {faltantes.map((f, i) => (
+                  {faltantes.map(f => (
                     <FilaFaltante
-                      key={i}
-                      idx={i}
+                      key={claveFaltante(f)}
+                      clave={claveFaltante(f)}
                       f={f}
                       quincena={quincena}
                       todasFaltantes={faltantes}
