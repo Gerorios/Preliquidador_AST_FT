@@ -81,6 +81,16 @@ function calcularResumenEmpleados(lineas) {
   }).sort((a,b) => b.importe_total - a.importe_total)
 }
 
+// Fuera del componente y con `busqueda` como argumento: así no se recrea en
+// cada render y los useMemo que la usan dependen sólo de sus datos y de
+// `busqueda`. Adentro del componente, agregarla a las deps haría que los
+// memos se recalcularan en cada render.
+function filtrarBusqueda(lista, busqueda) {
+  if (!busqueda) return lista
+  const q = busqueda.toLowerCase()
+  return lista.filter(item => item.nombre_empleado?.toLowerCase().includes(q) || item.legajo?.toLowerCase().includes(q))
+}
+
 export default function Verificacion() {
   const [preliqId, setPreliqId] = useState(null)
   const [seccion, setSeccion] = useState('horas')
@@ -150,16 +160,10 @@ export default function Verificacion() {
 
   // `busqueda` llega ya debounceada desde InputBusqueda (dueño del input):
   // tipear no re-renderiza esta página hasta que el valor se asienta.
-  const filtrarBusqueda = (lista) => {
-    if (!busqueda) return lista
-    const q = busqueda.toLowerCase()
-    return lista.filter(item => item.nombre_empleado?.toLowerCase().includes(q) || item.legajo?.toLowerCase().includes(q))
-  }
-
-  const excesoHorasF    = useMemo(() => filtrarBusqueda(excesoHoras),            [excesoHoras, busqueda])
-  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas),         [excesoTancadas, busqueda])
-  const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas),          [excesoPlantas, busqueda])
-  const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto), [resumenEmpleadosCompleto, busqueda])
+  const excesoHorasF    = useMemo(() => filtrarBusqueda(excesoHoras, busqueda),            [excesoHoras, busqueda])
+  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas, busqueda),         [excesoTancadas, busqueda])
+  const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas, busqueda),          [excesoPlantas, busqueda])
+  const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto, busqueda), [resumenEmpleadosCompleto, busqueda])
 
   return (
     <div className={styles.page}>

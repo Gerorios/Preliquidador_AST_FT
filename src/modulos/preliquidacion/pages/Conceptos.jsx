@@ -458,7 +458,7 @@ function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
 
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
+function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -1231,7 +1231,6 @@ export default function Conceptos() {
                       f={f}
                       quincena={quincena}
                       todasFaltantes={faltantes}
-                      mutCrear={mutCrear}
                       mutCrearSinFaltantes={mutCrearSinFaltantes}
                       onFinEncadenado={() => qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })}
                       supervisores={supervisores}
