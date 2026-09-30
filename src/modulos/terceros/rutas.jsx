@@ -18,6 +18,8 @@ const Grilla = lazy(() => import('./pages/Grilla'))
 const Estaciones = lazy(() => import('./pages/Estaciones'))
 const Tarifario = lazy(() => import('./pages/Tarifario'))
 const Verificaciones = lazy(() => import('./pages/Verificaciones'))
+const Recibos = lazy(() => import('./pages/Recibos'))
+const Recibo = lazy(() => import('./pages/Recibo'))
 
 export const PREFIJO = '/terceros'
 export const MODULO = 'terceros'
@@ -32,6 +34,9 @@ export const rutas = [
   { path: `${PREFIJO}/tarifario`,      element: <Tarifario />,      modulo: MODULO, roles: ['operador'], label: 'Tarifario',          icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/estaciones`,     element: <Estaciones />,     modulo: MODULO, roles: ['operador'], label: 'Estaciones',         icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/verificaciones`, element: <Verificaciones />, modulo: MODULO, roles: ['operador'], label: 'Verificaciones',     icono: 'verificacion',  menu: true },
+  { path: `${PREFIJO}/recibos`,        element: <Recibos />,        modulo: MODULO, roles: ['operador'], label: 'Recibos',            icono: 'gerencial',     menu: true },
+  // La hoja del recibo, para imprimir. No va en el menú: se abre desde Recibos.
+  { path: `${PREFIJO}/recibo`,         element: <Recibo />,         modulo: MODULO, roles: ['operador'], label: 'Recibo',             icono: 'gerencial',     menu: false },
 ]
 
 // El menú se deriva de rutas para que nav, modulo y roles no puedan divergir.
@@ -50,6 +55,8 @@ export const pantallas = {
   '/terceros/tarifario': 'Tarifario: los precios pactados con cada tercero, por quincena',
   '/terceros/estaciones': 'Estaciones de servicio: lo que cada una facturó, contra lo que se cargó',
   '/terceros/verificaciones': 'Verificaciones: lo que hay que mirar antes de liquidar',
+  '/terceros/recibos': 'Recibos: emitir, registrar la factura del tercero, aprobarla y marcar el pago',
+  '/terceros/recibo': 'El recibo de un tercero como hoja, para imprimir o guardar como PDF',
 }
 
 export const modulo = {

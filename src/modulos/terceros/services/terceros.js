@@ -195,3 +195,49 @@ export const borrarLineaFacturada = (id) =>
 export const definirOrigenEstacion = (estacionId, origen) =>
   api.patch(`/terceros/estaciones/${estacionId}`, { origen_campo: origen })
      .then(r => r.data)
+
+// ─── El recibo (etapa 11) ───────────────────────────────────────────────────
+//
+// El tercero va en la query o en el cuerpo y no en la ruta: son nombres como
+// «APELLIDO, NOMBRE», con coma y espacios.
+
+export const listarRecibos = (quincena) =>
+  api.get('/terceros/recibos', { params: { quincena } }).then(r => r.data)
+
+export const detalleRecibo = (quincena, tercero) =>
+  api.get('/terceros/recibos/detalle', { params: { quincena, tercero } }).then(r => r.data)
+
+// [{ tercero, empresa }]. Uno que no se puede emitir no frena al resto: vuelve
+// en `rechazados` con el porqué.
+export const emitirRecibos = (quincena, recibos) =>
+  api.post('/terceros/recibos/emitir', { quincena, recibos }).then(r => r.data)
+
+export const reabrirRecibo = (quincena, tercero, motivo) =>
+  api.post('/terceros/recibos/reabrir', { quincena, tercero, motivo }).then(r => r.data)
+
+export const registrarFactura = (quincena, tercero, numero, fecha, importe) =>
+  api.put('/terceros/recibos/factura', { quincena, tercero, numero, fecha, importe })
+    .then(r => r.data)
+
+export const aprobarFactura = (quincena, tercero) =>
+  api.post('/terceros/recibos/factura/aprobar', { quincena, tercero }).then(r => r.data)
+
+export const rechazarFactura = (quincena, tercero, motivo) =>
+  api.post('/terceros/recibos/factura/rechazar', { quincena, tercero, motivo })
+    .then(r => r.data)
+
+// tipo 'TOTAL', 'PARCIAL' o null para sacar el pago.
+export const registrarPago = (quincena, tercero, tipo, importe, fecha) =>
+  api.put('/terceros/recibos/pago', { quincena, tercero, tipo, importe, fecha })
+    .then(r => r.data)
+
+export const marcarRevision = (quincena, tercero, en_revision, motivo) =>
+  api.put('/terceros/recibos/revision', { quincena, tercero, en_revision, motivo })
+    .then(r => r.data)
+
+export const listarSaldosIniciales = () =>
+  api.get('/terceros/saldos-iniciales').then(r => r.data)
+
+export const cargarSaldoInicial = (tercero, quincena, importe, motivo) =>
+  api.put('/terceros/saldos-iniciales', { tercero, quincena, importe, motivo })
+    .then(r => r.data)
