@@ -1,5 +1,6 @@
 import axios from 'axios'
 import useAuthStore from './authStore'
+import { mensajeDeError } from './mensajeError'
 
 const api = axios.create({
   baseURL: '/api',
@@ -28,8 +29,7 @@ api.interceptors.response.use(
       window.location.href = '/login'
     }
     const detail = err.response?.data?.detail
-    const msg = (detail && typeof detail === 'object' ? detail.mensaje : detail)
-      || err.message || 'Error desconocido'
+    const msg = mensajeDeError(detail) || err.message || 'Error desconocido'
     const error = new Error(msg)
     error.status = err.response?.status
     error.detail = detail

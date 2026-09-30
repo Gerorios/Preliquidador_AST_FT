@@ -37,3 +37,8 @@ Thumbs.db
 .turbo/
 .pnp.*
 .yarn/cache/
+
+# Preferencias de cada máquina (rutas locales, permisos acumulados):
+# nunca al repo público.
+CLAUDE.local.md
+.claude/settings.local.json
