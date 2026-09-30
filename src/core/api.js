@@ -17,14 +17,18 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Si el servidor devuelve 401, cerrar sesión automáticamente.
+// Si el servidor devuelve 401, cerrar sesión automáticamente. Sólo si todavía
+// hay token: cuando varias consultas vuelven con 401 a la vez (Revisión pide
+// preliquidaciones, stats y líneas juntas), la primera cierra la sesión y las
+// demás ya no redirigen otra vez; tampoco rebota un pedido que salió sin token
+// justo después del logout.
 // El Error que se propaga conserva `status` y `detail` (crudo) para que la UI
 // pueda reaccionar a respuestas estructuradas — hoy el 409 de solapamiento
 // por cliente, cuyo detail es un objeto {tipo, mensaje, solapamiento}.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && useAuthStore.getState().token) {
       useAuthStore.getState().logout()
       window.location.href = '/login'
     }

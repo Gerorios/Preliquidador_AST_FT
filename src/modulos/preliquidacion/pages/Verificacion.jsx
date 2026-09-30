@@ -4,6 +4,7 @@ import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
   obtenerControlTancadasJornal, setValorHoraPulv, setValorHoraTractorista,
 } from '../services/preliquidacion'
+import { claves } from '../services/claves'
 import FiltrosBar from '../components/FiltrosBar'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import InputBusqueda from '../components/InputBusqueda'
@@ -99,12 +100,17 @@ export default function Verificacion() {
   const [filtros, setFiltros] = useState({})
 
   const { data: preliquidaciones = [] } = useQuery({
-    queryKey: ['preliquidaciones'],
+    queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
   })
 
+  // Misma clave que Revisión: las dos piden exactamente lo mismo (todas las
+  // líneas de la quincena, sin filtros de servidor) y así una invalidación
+  // desde Conceptos, Dashboard o una edición en Revisión también llega acá.
+  // El filtro de mensualizados es de esta pantalla y se hace abajo, en cliente,
+  // sobre la data cruda: por eso no va en un `select` ni cambia la clave.
   const { data: lineasCrudas = [], isLoading } = useQuery({
-    queryKey: ['lineas-verif', preliqId],
+    queryKey: claves.lineas(preliqId),
     queryFn: () => listarLineas(preliqId, {}),
     enabled: !!preliqId,
   })
