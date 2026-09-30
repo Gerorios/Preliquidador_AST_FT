@@ -116,5 +116,6 @@ del backend, fuera de git.
 ```bash
 npm run dev                       # desarrollo
 npm run build                     # bundle de producción
+npm run lint                      # ESLint; antes de un PR, sin errores
 sh scripts/hooks/instalar.sh      # una vez por clon: instala post-merge y pre-commit
 ```

@@ -4,7 +4,6 @@ import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obt
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados
-const TIPOS_CONCEPTO = ['REMUNERATIVO', 'NO_REMUNERATIVO', 'JORNAL', 'EXCENTO', 'OTRO']
 
 export default function PanelLinea({
   linea, onGuardar, onEliminarConcepto, onCerrar, onConceptoAgregado, guardando
@@ -49,16 +48,28 @@ export default function PanelLinea({
     setCodigoConcepto('')
     setErrorConcepto('')
     setConceptosOptimistas([])
+    // Sólo al cambiar de línea (`linea.id`), no con cada refetch de la misma
+    // línea: si corriera al llegar datos nuevos, pisaría lo que la persona
+    // está editando en el formulario.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linea.id])
 
   // Apenas `linea.conceptos` (que viene del padre, actualizado por refetch)
   // ya trae un concepto que habíamos agregado de forma optimista, lo
   // sacamos del estado local para no mostrarlo duplicado.
+  // `conceptosOptimistas` está en las deps, así que el efecto también corre
+  // después de su propio set. Por eso, si el filtro no saca nada, se devuelve
+  // la MISMA referencia: React no re-renderiza con un estado igual
+  // (Object.is) y el efecto no se vuelve a disparar. Sin ese guard, el filter
+  // devolvería siempre un array nuevo y quedaría en bucle infinito.
   useEffect(() => {
     if (conceptosOptimistas.length === 0) return
     const idsReales = new Set((linea.conceptos || []).map(c => c.id))
-    setConceptosOptimistas(prev => prev.filter(c => !idsReales.has(c.id)))
-  }, [linea.conceptos])
+    setConceptosOptimistas(prev => {
+      const nuevos = prev.filter(c => !idsReales.has(c.id))
+      return nuevos.length === prev.length ? prev : nuevos
+    })
+  }, [linea.conceptos, conceptosOptimistas])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 

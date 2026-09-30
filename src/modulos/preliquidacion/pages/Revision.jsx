@@ -126,7 +126,10 @@ function LiquidacionPersona({ lineas, onCambio }) {
       }
     }
     return Object.values(mapa)
-  }, [persona, seleccionadas, lineas])
+    // Sin `lineas`: `persona` sale de `empleados`, que se reconstruye (objetos
+    // nuevos) cada vez que cambia `lineas`, así que `persona` ya cambia de
+    // referencia en ese caso y el memo se recalcula igual.
+  }, [persona, seleccionadas])
 
   const toggleLinea = (id) => setSeleccionadas(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
