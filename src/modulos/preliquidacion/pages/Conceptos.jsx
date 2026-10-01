@@ -16,7 +16,7 @@ import PanelPorConcepto from './PanelPorConcepto'
 import useAuthStore from '../../../core/authStore'
 import { tienePermiso } from '../../../core/permisos'
 import styles from './Conceptos.module.css'
-import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
+import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
 
 // Descriptores de filtro para el Panel de precios y la tab Específicos
 // (FiltrosBar generalizado — ambos filtran por los mismos tres campos).
@@ -102,10 +102,15 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
   })
 
   const guardar = () => {
+    // La regla siempre queda con código y precio > 0 (ADR-0016): nunca se
+    // mandan en null. La categoría sí puede vaciarse.
+    if (form.codigo === '') { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(form.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     onActualizar({
-      codigo:      form.codigo !== '' ? parseInt(form.codigo) : null,
+      codigo:      parseInt(form.codigo),
       unidad_base: form.unidad_base,
-      precio:      form.precio !== '' ? parseFloat(form.precio) : null,
+      precio,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       ...(esComun ? {} : { reemplaza_comun: form.reemplaza_comun }),
@@ -206,6 +211,8 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 
   const handleAgregar = () => {
     if (!nuevaRegla.codigo) { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(nuevaRegla.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     const codigo = parseInt(nuevaRegla.codigo)
     const datos = {
       quincena,
@@ -215,7 +222,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       supervisor_nombre: esComun ? null : (primera.supervisor_nombre ?? null),
       codigo,
       unidad_base: nuevaRegla.unidad_base,
-      precio:      nuevaRegla.precio !== '' ? parseFloat(nuevaRegla.precio) : null,
+      precio,
       tipo:        nuevaRegla.tipo,
       categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
       reemplaza_comun: esComun ? false : nuevaRegla.reemplaza_comun,
@@ -491,6 +498,8 @@ function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes
 
   const handleGuardar = () => {
     if (!form.codigo) { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(form.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     if (alcance === 'supervisor' && !supervisorSel) { toast.error('Seleccioná un supervisor'); return }
     const codigo = parseInt(form.codigo)
     const datos = {
@@ -501,7 +510,7 @@ function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes
       supervisor_nombre: alcance === 'supervisor' ? supervisorSel : null,
       codigo,
       unidad_base: form.unidad_base,
-      precio:      form.precio !== '' ? parseFloat(form.precio) : null,
+      precio,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       reemplaza_comun: alcance === 'comun' ? false : form.reemplaza_comun,
@@ -657,8 +666,8 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
   }, [fila.precio, editando])
 
   const confirmar = () => {
-    const valor = precio !== '' ? parseFloat(precio) : null
-    if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
+    const valor = precioPositivo(precio)
+    if (valor == null) { toast.error(MSG_PRECIO); return }
     onGuardarPrecio(fila.id, valor)
     setEditando(false)
   }
@@ -1118,8 +1127,8 @@ export default function Conceptos() {
   const restaurarAnchoPanel = (clave) => setAnchosPanel(prev => ({ ...prev, [clave]: ANCHOS_PANEL_DEFAULT[clave] }))
 
   const handleAplicarPrecioMasivo = () => {
-    const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
-    if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
+    const valor = precioPositivo(precioMasivo)
+    if (valor == null) { toast.error(MSG_PRECIO); return }
     if (panelSeleccionado.length === 0) { toast.error('No hay filas seleccionadas'); return }
     const excluidas = panelFiltrado.length - panelSeleccionado.length
     const detalle = excluidas > 0 ? ` (${excluidas} destildada${excluidas > 1 ? 's' : ''} conserva${excluidas > 1 ? 'n' : ''} su precio)` : ''
@@ -1132,6 +1141,8 @@ export default function Conceptos() {
     if ((alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') && !formNuevo.cliente_nombre) { toast.error('Completá el cliente'); return }
     if (alcanceNuevo === 'supervisor' && !formNuevo.supervisor_nombre) { toast.error('Seleccioná un supervisor'); return }
     if (!formNuevo.codigo) { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(formNuevo.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     const codigo = parseInt(formNuevo.codigo)
     const datos = {
       quincena,
@@ -1141,7 +1152,7 @@ export default function Conceptos() {
       supervisor_nombre: alcanceNuevo === 'supervisor' ? formNuevo.supervisor_nombre : null,
       codigo,
       unidad_base: formNuevo.unidad_base,
-      precio:      formNuevo.precio !== '' ? parseFloat(formNuevo.precio) : null,
+      precio,
       tipo:        formNuevo.tipo,
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
       reemplaza_comun: alcanceNuevo === 'comun' ? false : formNuevo.reemplaza_comun,
