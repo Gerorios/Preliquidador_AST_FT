@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obtenerLegajosDisponibles } from '../services/preliquidacion'
+import { claves } from '../services/claves'
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados
 
 export default function PanelLinea({
-  linea, onGuardar, onEliminarConcepto, onCerrar, onConceptoAgregado, guardando
+  linea, quincena, onGuardar, onEliminarConcepto, onCerrar, onConceptoAgregado, guardando
 }) {
   const [form, setForm] = useState({})
   const [codigoConcepto, setCodigoConcepto] = useState('')
@@ -84,9 +85,9 @@ export default function PanelLinea({
   const conceptosLinea = [...(linea.conceptos || []), ...conceptosOptimistas]
 
   const { data: conceptosDisponibles = [] } = useQuery({
-    queryKey: ['conceptos-combo'],
-    queryFn: () => buscarConceptosParaCombo(''),
-    enabled: mostrarConcepto,
+    queryKey: claves.conceptosCombo(quincena),
+    queryFn: () => buscarConceptosParaCombo('', quincena),
+    enabled: mostrarConcepto && !!quincena,
   })
 
   const handleAgregarPorCodigo = async (codigoForzado) => {
