@@ -13,6 +13,7 @@ import {
 } from '../services/preliquidacion'
 import { claves } from '../services/claves'
 import PanelLinea from '../components/PanelLinea'
+import DialogoOpcionExtra from '../components/DialogoOpcionExtra'
 import FiltrosBar from '../components/FiltrosBar'
 import AlertasBanner from '../components/AlertasBanner'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
@@ -33,6 +34,10 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
   const [mostrarCombo, setMostrarCombo] = useState(false)
   const [gruposCuil, setGruposCuil] = useState(null)
   const [empresaPorGrupo, setEmpresaPorGrupo] = useState({})
+  // Concepto extra masivo frenado por un 409 (ADR-0015): `detalle` es el
+  // detail del 409 que abre el diálogo, y `opcion` la ya elegida, que viaja
+  // en el reintento de "codigo_repetido".
+  const [pedidoMasivo, setPedidoMasivo] = useState(null)
 
   const { data: conceptosDisponibles = [] } = useQuery({
     queryKey: claves.conceptosCombo(quincena),
@@ -41,20 +46,47 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
   })
 
   const { mutate: agregar, isPending: agregando } = useMutation({
-    mutationFn: () => {
+    mutationFn: ({ opcion, siRepetido = 'frenar' } = {}) => {
       const codigo = parseInt(codigoConcepto)
       if (!codigo || isNaN(codigo)) throw new Error('Seleccioná un concepto')
-      return agregarConceptoMasivo([...seleccionadas], codigo)
+      return agregarConceptoMasivo([...seleccionadas], codigo, { opcion, siRepetido })
     },
-    onSuccess: () => {
-      toast.success('Concepto agregado a las líneas seleccionadas')
+    onSuccess: (data) => {
+      // El backend dice cuántas líneas actualizó y cuántas salteó.
+      toast.success(data?.detalle || 'Concepto agregado a las líneas seleccionadas')
+      setPedidoMasivo(null)
       setCodigoConcepto('')
       setMostrarCombo(false)
       setSeleccionadas(new Set())
       onCambio()
     },
-    onError: err => toast.error(err.message),
+    onError: (err, variables) => {
+      const tipo = err.status === 409 ? err.detail?.tipo : null
+      if (tipo === 'elegir_opcion' || tipo === 'codigo_repetido') {
+        // Si la selección ya se limpió (se cambió de persona con el pedido en
+        // vuelo), el diálogo no tiene a qué líneas aplicarse.
+        if (seleccionadas.size > 0) setPedidoMasivo({ opcion: variables?.opcion, detalle: err.detail })
+        return
+      }
+      setPedidoMasivo(null)
+      toast.error(err.message)
+    },
   })
+
+  // Handlers del diálogo. Mientras hay un pedido en vuelo no hacen nada, así
+  // un doble clic no manda dos altas.
+  const elegirOpcionMasivo = (opcion) => {
+    if (agregando) return
+    agregar({ opcion })
+  }
+  const confirmarRepetidoMasivo = (siRepetido) => {
+    if (agregando) return
+    agregar({ opcion: pedidoMasivo.opcion, siRepetido })
+  }
+  const cancelarPedidoMasivo = () => {
+    if (agregando) return
+    setPedidoMasivo(null)
+  }
 
   const { mutate: eliminar, isPending: eliminando } = useMutation({
     mutationFn: (codigo) => eliminarConceptoMasivo([...seleccionadas], codigo),
@@ -152,6 +184,7 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
     setSeleccionadas(new Set())
     setMostrarCombo(false)
     setCodigoConcepto('')
+    setPedidoMasivo(null)
     setGruposCuil(null)
     setEmpresaPorGrupo({})
   }
@@ -317,6 +350,16 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
           </tbody>
         </table>
       </div>
+
+      {pedidoMasivo && (
+        <DialogoOpcionExtra
+          detalle={pedidoMasivo.detalle}
+          modo="masivo"
+          onElegir={elegirOpcionMasivo}
+          onConfirmarRepetido={confirmarRepetidoMasivo}
+          onCancelar={cancelarPedidoMasivo}
+        />
+      )}
     </div>
   )
 }

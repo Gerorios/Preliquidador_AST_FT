@@ -266,7 +266,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
               regla={r}
               esComun={esComun}
               onActualizar={(datos) => mutActualizar({ id: r.id, datos })}
-              onEliminar={() => mutEliminar(r.id)}
+              onEliminar={() => mutEliminar({ id: r.id })}
             />
           ))}
 
@@ -439,6 +439,39 @@ function DialogoSolapamiento({ solapamiento, candidato, fincaNueva, onCrearSoloF
             {esPorClienteSobreEsp ? `Sumar igual a las ${s.especificos.length}` : 'Sumar igual'}
           </button>
           {onCrearSoloFinca && <button className="btn" onClick={onCancelar}>Cancelar</button>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── DialogoBorraExtras: confirmación ante un 409 borra_extras (ADR-0015)
+//
+// Editar o borrar la regla deja sin opción a conceptos extra que se agregaron
+// por código en Revisión, y el backend no cambió nada todavía. El mensaje del
+// 409 dice cuántos extras y en cuántas líneas. "Cancelar" es el default; el
+// botón que borra nunca lo es.
+function DialogoBorraExtras({ mensaje, onConfirmar, onCancelar }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCancelar() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancelar])
+
+  return (
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="titulo-borra-extras">
+      <div className={styles.dialogo}>
+        <div id="titulo-borra-extras" className={styles.dialogoTitulo}>
+          ⚠ Se van a borrar conceptos extra
+        </div>
+
+        <div className={`${styles.dialogoImpacto} ${styles.dialogoImpactoGrave}`}>
+          {mensaje}
+        </div>
+
+        <div className={styles.dialogoBotones}>
+          <button className="btn" autoFocus onClick={onCancelar}>Cancelar</button>
+          <button className="btn btn-danger" onClick={onConfirmar}>Borrar extras y continuar</button>
         </div>
       </div>
     </div>
@@ -748,6 +781,9 @@ export default function Conceptos() {
   // Solapamiento por cliente pendiente de decisión: el POST respondió 409 y
   // guardamos lo necesario para reintentar (confirmando o como específica).
   const [pendienteSolap, setPendienteSolap] = useState(null)
+  // Edición o borrado de regla pendiente de confirmar: el backend respondió
+  // 409 borra_extras. { mensaje, vars, mutate } para reintentar con el flag.
+  const [pendienteBorraExtras, setPendienteBorraExtras] = useState(null)
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
@@ -982,16 +1018,39 @@ export default function Conceptos() {
     onError: (err, ctx) => manejarErrorCrear(err, { ...ctx, mutate: mutCrearSinFaltantes }),
   })
 
+  // onError compartido por editar y borrar una regla. Un 409 borra_extras
+  // (ADR-0015) abre el diálogo y guarda cómo reintentar con el flag; el
+  // backend no cambió nada. Cualquier otro error va al toast como siempre.
+  const manejarErrorBorraExtras = (err, vars, mutate) => {
+    if (err.status === 409 && err.detail?.tipo === 'borra_extras') {
+      setPendienteBorraExtras({ mensaje: err.detail.mensaje, vars, mutate })
+      return
+    }
+    toast.error(err.message)
+  }
+
+  const cerrarBorraExtras = () => setPendienteBorraExtras(null)
+
+  const confirmarBorraExtras = () => {
+    const p = pendienteBorraExtras
+    setPendienteBorraExtras(null)
+    p.mutate({ ...p.vars, confirmarBorradoExtras: true })
+  }
+
   const { mutate: mutActualizar } = useMutation({
-    mutationFn: ({ id, datos }) => actualizarConcepto(id, datos),
+    mutationFn: ({ id, datos, confirmarBorradoExtras }) =>
+      actualizarConcepto(id, datos, { confirmarBorradoExtras }),
     onSuccess: () => { toast.success('Regla actualizada'); invalidar() },
-    onError: err => toast.error(err.message),
+    onError: (err, vars) => manejarErrorBorraExtras(err, vars, mutActualizar),
   })
 
+  // Recibe { id }, no el id suelto: React Query v5 pasa un segundo argumento
+  // de contexto a mutationFn, que eliminarConcepto2 tomaría como opciones.
   const { mutate: mutEliminar } = useMutation({
-    mutationFn: eliminarConcepto2,
+    mutationFn: ({ id, confirmarBorradoExtras }) =>
+      eliminarConcepto2(id, { confirmarBorradoExtras }),
     onSuccess: () => { toast.success('Regla eliminada'); invalidar() },
-    onError: err => toast.error(err.message),
+    onError: (err, vars) => manejarErrorBorraExtras(err, vars, mutEliminar),
   })
 
   const { mutate: mutGuardarPrecioPanel, isPending: guardandoPrecioPanel } = useMutation({
@@ -1563,6 +1622,14 @@ export default function Conceptos() {
           onCrearSoloFinca={pendienteSolap.fincaNueva ? crearSoloFinca : null}
           onSumarIgual={sumarIgual}
           onCancelar={cerrarSolap}
+        />
+      )}
+
+      {pendienteBorraExtras && (
+        <DialogoBorraExtras
+          mensaje={pendienteBorraExtras.mensaje}
+          onConfirmar={confirmarBorraExtras}
+          onCancelar={cerrarBorraExtras}
         />
       )}
     </div>

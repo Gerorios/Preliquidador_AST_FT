@@ -1,0 +1,35 @@
+/* Copiado del diálogo de solapamiento de Conceptos.module.css: mismo overlay,
+   misma caja y misma fila de botones. */
+.overlay {
+  position: fixed; inset: 0; z-index: 950;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.dialogo {
+  width: min(520px, 100%);
+  max-height: 90vh; overflow: auto;
+  background: var(--bg-elevated, #fff);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 18px 20px;
+  font-size: 0.88rem;
+}
+.dialogoTitulo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; color: var(--warn); font-size: 1rem;
+  margin-bottom: 12px;
+}
+.dialogoTexto { margin-bottom: 14px; }
+.dialogoBotones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+/* Una opción por botón, a lo ancho: precio, unidad y (si hace falta) tipo. */
+.opciones { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.opcion {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+  justify-content: flex-start;
+  width: 100%; text-align: left; white-space: normal;
+}
+.opcionPrecio { font-weight: 600; }
+.opcionDetalle { color: var(--text-muted); }
