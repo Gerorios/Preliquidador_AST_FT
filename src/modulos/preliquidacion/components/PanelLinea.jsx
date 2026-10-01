@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obtenerLegajosDisponibles } from '../services/preliquidacion'
 import { claves } from '../services/claves'
+import DialogoOpcionExtra from './DialogoOpcionExtra'
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados
@@ -12,8 +13,12 @@ export default function PanelLinea({
   const [form, setForm] = useState({})
   const [codigoConcepto, setCodigoConcepto] = useState('')
   const [mostrarConcepto, setMostrarConcepto] = useState(false)
-  const [agregandoConcepto, setAgregandoConcepto] = useState(false)
   const [errorConcepto, setErrorConcepto] = useState('')
+  // Pedido de Concepto extra frenado por un 409 (ADR-0015): `detalle` es el
+  // detail del 409 que abre el diálogo, y `opcion` la ya elegida, que viaja
+  // en el reintento de "codigo_repetido". `lineaId` ata el diálogo a la línea
+  // del pedido: si el panel cambió de línea, no se muestra.
+  const [pedidoExtra, setPedidoExtra] = useState(null)
   // Conceptos agregados en esta sesión del panel que todavía no llegaron
   // por la prop `linea` (el refetch del padre es async). Se muestran al
   // instante apenas el servidor confirma la creación, sin esperar el
@@ -48,6 +53,7 @@ export default function PanelLinea({
     setMostrarConcepto(false)
     setCodigoConcepto('')
     setErrorConcepto('')
+    setPedidoExtra(null)
     setConceptosOptimistas([])
     // Sólo al cambiar de línea (`linea.id`), no con cada refetch de la misma
     // línea: si corriera al llegar datos nuevos, pisaría lo que la persona
@@ -90,23 +96,59 @@ export default function PanelLinea({
     enabled: mostrarConcepto && !!quincena,
   })
 
-  const handleAgregarPorCodigo = async (codigoForzado) => {
-    const codigo = codigoForzado ?? codigoConcepto
-    if (!codigo) return
-    setAgregandoConcepto(true)
-    setErrorConcepto('')
-    try {
-      const conceptoCreado = await agregarConceptoPorCodigo(linea.id, parseInt(codigo))
+  // Alta de un concepto por código. Es una mutation (GUIA-MODULOS regla 19)
+  // para que el CargandoOverlay global aparezca en el alta y en los
+  // reintentos del diálogo (regla 21). `lineaId` viaja en las variables: si la
+  // respuesta llega cuando el panel ya muestra otra línea, se ignora.
+  const { mutate: agregarConcepto, isPending: agregandoConcepto } = useMutation({
+    mutationFn: ({ lineaId, codigo, opcion, confirmarRepetido }) =>
+      agregarConceptoPorCodigo(lineaId, parseInt(codigo), { opcion, confirmarRepetido }),
+    onSuccess: (conceptoCreado, variables) => {
+      if (variables.lineaId !== linea.id) return
       // Mostrarlo en la lista al instante, sin esperar el refetch del padre
       setConceptosOptimistas(prev => [...prev, conceptoCreado])
+      setPedidoExtra(null)
       setCodigoConcepto('')
       setMostrarConcepto(false)
       onConceptoAgregado?.()
-    } catch (err) {
-      setErrorConcepto(err.message || 'No se pudo agregar el concepto')
-    } finally {
-      setAgregandoConcepto(false)
-    }
+    },
+    onError: (err, variables) => {
+      if (variables.lineaId !== linea.id) return
+      const tipo = err.status === 409 ? err.detail?.tipo : null
+      if (tipo === 'elegir_opcion' || tipo === 'codigo_repetido') {
+        setPedidoExtra({
+          lineaId: variables.lineaId,
+          codigo: variables.codigo,
+          opcion: variables.opcion,
+          detalle: err.detail,
+        })
+      } else {
+        setPedidoExtra(null)
+        setErrorConcepto(err.message || 'No se pudo agregar el concepto')
+      }
+    },
+  })
+
+  const handleAgregarPorCodigo = (codigoForzado, { opcion, confirmarRepetido } = {}) => {
+    const codigo = codigoForzado ?? codigoConcepto
+    if (!codigo) return
+    setErrorConcepto('')
+    agregarConcepto({ lineaId: linea.id, codigo, opcion, confirmarRepetido })
+  }
+
+  // Handlers del diálogo. Mientras hay un pedido en vuelo no hacen nada, así
+  // un doble clic no manda dos altas.
+  const elegirOpcionExtra = (opcion) => {
+    if (agregandoConcepto) return
+    handleAgregarPorCodigo(pedidoExtra.codigo, { opcion })
+  }
+  const confirmarRepetidoExtra = () => {
+    if (agregandoConcepto) return
+    handleAgregarPorCodigo(pedidoExtra.codigo, { opcion: pedidoExtra.opcion, confirmarRepetido: true })
+  }
+  const cancelarPedidoExtra = () => {
+    if (agregandoConcepto) return
+    setPedidoExtra(null)
   }
 
   const importeTotal = conceptosLinea.reduce((s, c) => s + Number(c.importe || 0), 0)
@@ -271,7 +313,11 @@ export default function PanelLinea({
                 <div style={{ fontSize: 11, color: 'var(--danger)' }}>{errorConcepto}</div>
               )}
               <div className={styles.conceptoFormBtns}>
-                <button className="btn btn-sm" onClick={() => { setMostrarConcepto(false); setErrorConcepto(''); setCodigoConcepto('') }}>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => { setMostrarConcepto(false); setErrorConcepto(''); setCodigoConcepto('') }}
+                  disabled={agregandoConcepto}
+                >
                   Cancelar
                 </button>
                 <button
@@ -325,6 +371,16 @@ export default function PanelLinea({
           {guardando ? <span className="spinner" /> : 'Guardar'}
         </button>
       </div>
+
+      {pedidoExtra && pedidoExtra.lineaId === linea.id && (
+        <DialogoOpcionExtra
+          detalle={pedidoExtra.detalle}
+          modo="linea"
+          onElegir={elegirOpcionExtra}
+          onConfirmarRepetido={confirmarRepetidoExtra}
+          onCancelar={cancelarPedidoExtra}
+        />
+      )}
     </div>
   )
 }
