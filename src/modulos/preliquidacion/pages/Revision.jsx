@@ -25,7 +25,7 @@ function fmt(v) {
 
 // ─── Liquidación masiva por persona ──────────────────────────────────────────
 
-function LiquidacionPersona({ lineas, onCambio }) {
+function LiquidacionPersona({ lineas, onCambio, quincena }) {
   const [busqPersona, setBusqPersona] = useState('')
   const [personaSeleccionada, setPersonaSeleccionada] = useState(null)
   const [seleccionadas, setSeleccionadas] = useState(new Set())
@@ -35,9 +35,9 @@ function LiquidacionPersona({ lineas, onCambio }) {
   const [empresaPorGrupo, setEmpresaPorGrupo] = useState({})
 
   const { data: conceptosDisponibles = [] } = useQuery({
-    queryKey: ['conceptos-combo'],
-    queryFn: () => buscarConceptosParaCombo(''),
-    enabled: mostrarCombo,
+    queryKey: claves.conceptosCombo(quincena),
+    queryFn: () => buscarConceptosParaCombo('', quincena),
+    enabled: mostrarCombo && !!quincena,
   })
 
   const { mutate: agregar, isPending: agregando } = useMutation({
@@ -533,7 +533,11 @@ export default function Revision() {
       </div>
 
       {modoLiquidacion && (
-        <LiquidacionPersona lineas={lineas} onCambio={refrescarYSincronizarPanel} />
+        <LiquidacionPersona
+          lineas={lineas}
+          onCambio={refrescarYSincronizarPanel}
+          quincena={preliqData?.quincena}
+        />
       )}
 
       <div className={styles.layout} style={{ display: modoLiquidacion ? 'none' : undefined }}>

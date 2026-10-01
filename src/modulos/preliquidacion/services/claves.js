@@ -16,4 +16,7 @@ export const claves = {
   // (p. ej. tras cambiar un precio, que recalcula más de una).
   todasLasLineas: ['lineas'],
   todasLasStats: ['stats'],
+  // Combo de códigos para agregar concepto (panel de línea y liquidación
+  // masiva). Lleva la quincena: el backend devuelve los códigos de esa.
+  conceptosCombo: (quincena) => ['conceptos-combo', quincena ?? null],
 }
