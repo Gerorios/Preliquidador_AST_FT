@@ -45,3 +45,32 @@
   gap: 10px;
 }
 
+
+/* Encabezados ordenables de la tabla principal. */
+.thOrdenable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.thOrdenable:hover { color: var(--text-primary); }
+
+/* Ancho fijo y siempre presente: la columna no salta al aparecer la flecha. */
+.flecha {
+  display: inline-block;
+  width: 10px;
+  margin-left: 4px;
+  font-size: 9px;
+  text-align: center;
+}
+
+/* Fila TOTAL: fija abajo al scrollear. Sticky en los td, como el thead th de
+   index.css; fondo opaco para que no se vean las filas que pasan por debajo. */
+.filaTotales td {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-strong);
+  font-weight: 600;
+  cursor: default;
+}
