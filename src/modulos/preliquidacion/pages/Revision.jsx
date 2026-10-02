@@ -17,12 +17,44 @@ import DialogoOpcionExtra from '../components/DialogoOpcionExtra'
 import FiltrosBar from '../components/FiltrosBar'
 import AlertasBanner from '../components/AlertasBanner'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import { alertaDe, siguienteOrden, ordenarLineas } from './ordenarLineas'
+import { totalesLineas } from './totalesLineas'
 import styles from './Revision.module.css'
 
 function fmt(v) {
   if (v === null || v === undefined || v === '' || Number(v) === 0) return '—'
   return Number(v).toLocaleString('es-AR', { maximumFractionDigits: 2 })
 }
+
+// Badge de cada alerta. La precedencia la decide `alertaDe` (la misma que usa
+// el orden por la columna de alerta), acá sólo se elige el color.
+const BADGE_ALERTA = {
+  DUPLICADO:  'badge-danger',
+  INCOMPLETA: 'badge-warn',
+  LEGAJO:     'badge-warn',
+  EMPRESA:    'badge-info',
+}
+
+// Encabezados de la tabla principal. Las claves son las de COLUMNAS_ORDEN
+// (ordenarLineas.js). La de alerta no tiene texto: se nombra con aria-label.
+const ORDENAR = 'Ordenar por esta columna'
+const COLUMNAS_TABLA = [
+  { clave: 'alerta',        label: '',                title: ORDENAR, ariaLabel: 'Alerta' },
+  { clave: 'fecha',         label: 'FECHA',           title: ORDENAR },
+  { clave: 'empleado',      label: 'EMPLEADO',        title: ORDENAR },
+  { clave: 'legajo',        label: 'LEGAJO',          title: ORDENAR },
+  { clave: 'empresa',       label: 'EMPRESA',         title: ORDENAR },
+  { clave: 'tarea',         label: 'TAREA',           title: ORDENAR },
+  { clave: 'supervisor',    label: 'SUPERVISOR',      title: ORDENAR },
+  { clave: 'cliente_finca', label: 'CLIENTE · FINCA', title: ORDENAR },
+  { clave: 'grupo_pago',    label: 'GRUPO PAGO',      title: ORDENAR },
+  { clave: 'hsjornal',      label: 'HS. JORN.',       title: 'Horas jornal' },
+  { clave: 'hsmaquina',     label: 'HS. MAQ.',        title: 'Horas máquina' },
+  { clave: 'tancadas',      label: 'TANC.',           title: 'Tancadas' },
+  { clave: 'unidades',      label: 'UNID.',           title: 'Unidades / plantas / bins' },
+  { clave: 'importe',       label: 'IMPORTE',         title: ORDENAR },
+  { clave: 'conceptos',     label: 'CONCEPTOS',       title: ORDENAR },
+]
 
 // ─── Liquidación masiva por persona ──────────────────────────────────────────
 
@@ -374,6 +406,9 @@ export default function Revision() {
   const [busqueda, setBusqueda] = useState('')
   const [modoLiquidacion, setModoLiquidacion] = useState(false)
   const [exportando, setExportando] = useState(false)
+  // Orden por columna: { clave, dir } o null (orden del server). Vive sólo
+  // mientras se está en la pantalla.
+  const [orden, setOrden] = useState(null)
 
   const { data: preliqData } = useQuery({
     // Comparte el caché de la lista con Dashboard y el resto: `select` elige
@@ -445,12 +480,23 @@ export default function Revision() {
     return resultado
   }, [lineas, busqueda, filtros])
 
+  // El orden va encima del filtrado: al filtrar o al editar una línea se
+  // recalcula y el orden elegido se mantiene.
+  const lineasOrdenadas = useMemo(
+    () => ordenarLineas(lineasFiltradas, orden),
+    [lineasFiltradas, orden],
+  )
+
+  // Fila TOTAL: suma lo visible (filtrado, duplicadas incluidas). El orden no
+  // cambia la suma, así que depende sólo de `lineasFiltradas`.
+  const totales = useMemo(() => totalesLineas(lineasFiltradas), [lineasFiltradas])
+
   // Virtualización de la tabla: solo se montan en el DOM las filas visibles
   // (más un margen de overscan). Con 1.500-2.500 líneas, renderizarlas todas
   // congelaba el hilo principal ~1s por cada cambio de filtro o búsqueda.
   const scrollRef = useRef(null)
   const virtualizador = useVirtualizer({
-    count: lineasFiltradas.length,
+    count: lineasOrdenadas.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 38,
     overscan: 12,
@@ -460,6 +506,13 @@ export default function Revision() {
   const padBottom = filasVirtuales.length
     ? virtualizador.getTotalSize() - filasVirtuales[filasVirtuales.length - 1].end
     : 0
+
+  // Clic en un encabezado: asc → desc → orden del server. Con el orden nuevo
+  // la fila que estaba a la vista ya no es la misma, así que se vuelve arriba.
+  const ordenarPor = (clave) => {
+    setOrden(o => siguienteOrden(o, clave))
+    if (scrollRef.current) scrollRef.current.scrollTop = 0
+  }
 
   // Refetch masivo — se usa solo para operaciones donde la respuesta de la
   // mutación no trae suficiente info para actualizar el caché a mano
@@ -525,11 +578,8 @@ export default function Revision() {
   }
 
   const iconoAlerta = (linea) => {
-    if (linea.es_duplicado)     return { label: 'DUPLICADO', badge: 'badge-danger' }
-    if (linea.linea_incompleta) return { label: 'INCOMPLETA', badge: 'badge-warn' }
-    if (linea.alerta_legajo)    return { label: 'LEGAJO', badge: 'badge-warn' }
-    if (linea.alerta_empresa)   return { label: 'EMPRESA', badge: 'badge-info' }
-    return null
+    const label = alertaDe(linea)
+    return label ? { label, badge: BADGE_ALERTA[label] } : null
   }
 
   return (
@@ -601,27 +651,31 @@ export default function Revision() {
               <table>
                 <thead>
                   <tr>
-                    <th></th>
-                    <th>FECHA</th>
-                    <th>EMPLEADO</th>
-                    <th>LEGAJO</th>
-                    <th>EMPRESA</th>
-                    <th>TAREA</th>
-                    <th>SUPERVISOR</th>
-                    <th>CLIENTE · FINCA</th>
-                    <th>GRUPO PAGO</th>
-                    <th title="Horas jornal">HS. JORN.</th>
-                    <th title="Horas máquina">HS. MAQ.</th>
-                    <th title="Tancadas">TANC.</th>
-                    <th title="Unidades / plantas / bins">UNID.</th>
-                    <th>IMPORTE</th>
-                    <th>CONCEPTOS</th>
+                    {COLUMNAS_TABLA.map(c => {
+                      const activa = orden?.clave === c.clave
+                      return (
+                        <th
+                          key={c.clave}
+                          scope="col"
+                          className={styles.thOrdenable}
+                          title={c.title}
+                          aria-label={c.ariaLabel}
+                          aria-sort={activa ? (orden.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                          onClick={() => ordenarPor(c.clave)}
+                        >
+                          {c.label}
+                          <span className={styles.flecha} aria-hidden="true">
+                            {activa ? (orden.dir === 'asc' ? '▲' : '▼') : ''}
+                          </span>
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody>
                   {padTop > 0 && <tr aria-hidden="true" style={{ height: padTop, border: 0 }} />}
                   {filasVirtuales.map(fila => {
-                    const linea = lineasFiltradas[fila.index]
+                    const linea = lineasOrdenadas[fila.index]
                     return (
                     <tr
                       key={linea.id}
@@ -676,6 +730,24 @@ export default function Revision() {
                   })}
                   {padBottom > 0 && <tr aria-hidden="true" style={{ height: padBottom, border: 0 }} />}
                 </tbody>
+                {lineasFiltradas.length > 0 && (
+                  <tfoot>
+                    <tr className={styles.filaTotales}>
+                      {/* Cubre de alerta a grupo pago: las 9 primeras de COLUMNAS_TABLA. */}
+                      <td colSpan={9}>TOTAL</td>
+                      <td className="mono">{fmt(totales.hsjornal)}</td>
+                      <td className="mono">{fmt(totales.hsmaquina)}</td>
+                      <td className="mono">{fmt(totales.tancadas)}</td>
+                      <td className="mono">{fmt(totales.unidades)}</td>
+                      <td className="mono">
+                        {totales.importe_total
+                          ? `$${totales.importe_total.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
+                          : '—'}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
               </table>
               {lineasFiltradas.length === 0 && (
                 <div className={styles.empty}>Sin resultados para los filtros aplicados.</div>

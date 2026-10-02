@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test \"src/modulos/preliquidacion/pages/*.test.js\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.1",
