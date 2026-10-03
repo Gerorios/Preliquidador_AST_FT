@@ -329,6 +329,12 @@
   color: var(--text-primary);
 }
 
+.pjNota {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 2px 0;
+}
+
 .vhpBar {
   display: flex;
   align-items: center;
