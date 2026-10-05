@@ -9,13 +9,14 @@ import {
   obtenerPanelPrecios, aplicarPrecioMasivo, listarSupervisores,
 } from '../services/preliquidacion'
 import { listarQuincenasGerencial } from '../services/gerencial'
+import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import FiltrosBar from '../components/FiltrosBar'
 import PanelPorConcepto from './PanelPorConcepto'
 import useAuthStore from '../../../core/authStore'
 import { tienePermiso } from '../../../core/permisos'
 import styles from './Conceptos.module.css'
-import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
+import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
 
 // Descriptores de filtro para el Panel de precios y la tab Específicos
 // (FiltrosBar generalizado — ambos filtran por los mismos tres campos).
@@ -101,10 +102,15 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
   })
 
   const guardar = () => {
+    // La regla siempre queda con código y precio > 0 (ADR-0016): nunca se
+    // mandan en null. La categoría sí puede vaciarse.
+    if (form.codigo === '') { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(form.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     onActualizar({
-      codigo:      form.codigo !== '' ? parseInt(form.codigo) : null,
+      codigo:      parseInt(form.codigo),
       unidad_base: form.unidad_base,
-      precio:      form.precio !== '' ? parseFloat(form.precio) : null,
+      precio,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       ...(esComun ? {} : { reemplaza_comun: form.reemplaza_comun }),
@@ -205,6 +211,8 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
 
   const handleAgregar = () => {
     if (!nuevaRegla.codigo) { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(nuevaRegla.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     const codigo = parseInt(nuevaRegla.codigo)
     const datos = {
       quincena,
@@ -214,7 +222,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
       supervisor_nombre: esComun ? null : (primera.supervisor_nombre ?? null),
       codigo,
       unidad_base: nuevaRegla.unidad_base,
-      precio:      nuevaRegla.precio !== '' ? parseFloat(nuevaRegla.precio) : null,
+      precio,
       tipo:        nuevaRegla.tipo,
       categoria:   nuevaRegla.categoria !== '' ? parseInt(nuevaRegla.categoria) : null,
       reemplaza_comun: esComun ? false : nuevaRegla.reemplaza_comun,
@@ -258,7 +266,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
               regla={r}
               esComun={esComun}
               onActualizar={(datos) => mutActualizar({ id: r.id, datos })}
-              onEliminar={() => mutEliminar(r.id)}
+              onEliminar={() => mutEliminar({ id: r.id })}
             />
           ))}
 
@@ -437,6 +445,39 @@ function DialogoSolapamiento({ solapamiento, candidato, fincaNueva, onCrearSoloF
   )
 }
 
+// ─── DialogoBorraExtras: confirmación ante un 409 borra_extras (ADR-0015)
+//
+// Editar o borrar la regla deja sin opción a conceptos extra que se agregaron
+// por código en Revisión, y el backend no cambió nada todavía. El mensaje del
+// 409 dice cuántos extras y en cuántas líneas. "Cancelar" es el default; el
+// botón que borra nunca lo es.
+function DialogoBorraExtras({ mensaje, onConfirmar, onCancelar }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCancelar() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancelar])
+
+  return (
+    <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="titulo-borra-extras">
+      <div className={styles.dialogo}>
+        <div id="titulo-borra-extras" className={styles.dialogoTitulo}>
+          ⚠ Se van a borrar conceptos extra
+        </div>
+
+        <div className={`${styles.dialogoImpacto} ${styles.dialogoImpactoGrave}`}>
+          {mensaje}
+        </div>
+
+        <div className={styles.dialogoBotones}>
+          <button className="btn" autoFocus onClick={onCancelar}>Cancelar</button>
+          <button className="btn btn-danger" onClick={onConfirmar}>Borrar extras y continuar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── PromptOtraRegla: pregunta inline tras crear una regla ──────────────────
 // Reemplaza al formulario recién confirmado; "Sí, otra" lo re-abre con el
 // combo conservado, "No, listo" cierra como siempre.
@@ -458,7 +499,14 @@ function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
 
 // ─── FilaFaltante: fila expandible de la tabla "Sin concepto" ────────────────
 
-function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
+// Clave estable de una faltante: la tupla tarea/cliente/finca es única (sale
+// de un SELECT DISTINCT en el backend). Con la posición como key, al crear la
+// regla la fila desaparece y la siguiente hereda su estado (abierta, alcance,
+// formulario). JSON.stringify distingue null de '' (null vs "" en el texto),
+// que el DISTINCT devuelve como filas distintas.
+const claveFaltante = (f) => JSON.stringify([f.tarea_nombre, f.cliente_nombre, f.finca_nombre])
+
+function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -483,6 +531,8 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinF
 
   const handleGuardar = () => {
     if (!form.codigo) { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(form.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     if (alcance === 'supervisor' && !supervisorSel) { toast.error('Seleccioná un supervisor'); return }
     const codigo = parseInt(form.codigo)
     const datos = {
@@ -493,7 +543,7 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinF
       supervisor_nombre: alcance === 'supervisor' ? supervisorSel : null,
       codigo,
       unidad_base: form.unidad_base,
-      precio:      form.precio !== '' ? parseFloat(form.precio) : null,
+      precio,
       tipo:        form.tipo,
       categoria:   form.categoria !== '' ? parseInt(form.categoria) : null,
       reemplaza_comun: alcance === 'comun' ? false : form.reemplaza_comun,
@@ -548,22 +598,22 @@ function FilaFaltante({ f, idx, quincena, todasFaltantes, mutCrear, mutCrearSinF
               <>
               <div className={styles.scopeChoice}>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'finca'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'finca'}
                     onChange={() => cambiarAlcance('finca')} />
                   Por finca — {f.cliente_nombre}{f.finca_nombre ? ` / ${f.finca_nombre}` : ''}
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'cliente'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'cliente'}
                     onChange={() => cambiarAlcance('cliente')} />
                   Por cliente — {f.cliente_nombre} (todas las fincas)
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'supervisor'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'supervisor'}
                     onChange={() => cambiarAlcance('supervisor')} />
                   Por supervisor
                 </label>
                 <label className={styles.radioLabel}>
-                  <input type="radio" name={`faltante-scope-${idx}`} checked={alcance === 'comun'}
+                  <input type="radio" name={`faltante-scope-${clave}`} checked={alcance === 'comun'}
                     onChange={() => cambiarAlcance('comun')} />
                   Común
                   {cantidadConMismaTarea > 1 && (
@@ -649,8 +699,8 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
   }, [fila.precio, editando])
 
   const confirmar = () => {
-    const valor = precio !== '' ? parseFloat(precio) : null
-    if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
+    const valor = precioPositivo(precio)
+    if (valor == null) { toast.error(MSG_PRECIO); return }
     onGuardarPrecio(fila.id, valor)
     setEditando(false)
   }
@@ -731,6 +781,9 @@ export default function Conceptos() {
   // Solapamiento por cliente pendiente de decisión: el POST respondió 409 y
   // guardamos lo necesario para reintentar (confirmando o como específica).
   const [pendienteSolap, setPendienteSolap] = useState(null)
+  // Edición o borrado de regla pendiente de confirmar: el backend respondió
+  // 409 borra_extras. { mensaje, vars, mutate } para reintentar con el flag.
+  const [pendienteBorraExtras, setPendienteBorraExtras] = useState(null)
   const [quincena, setQuincena] = useState('')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
@@ -790,7 +843,9 @@ export default function Conceptos() {
   }, [tab])
 
   const { data: preliquidaciones = [] } = useQuery({
-    queryKey: ['preliquidaciones-generadas'],
+    // Misma clave que Dashboard/Verificación: con una clave propia, generar una
+    // quincena en el Dashboard no llegaba a este selector hasta el F5.
+    queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
     // El endpoint de preliquidaciones le da 403 al gerente: para ese rol el
     // selector sale de /gerencial/quincenas (ver query de abajo).
@@ -884,8 +939,10 @@ export default function Conceptos() {
     qc.invalidateQueries({ queryKey: ['solapamientos'] })
     // Impacto reactivo (WS2): un cambio de concepto recalcula líneas en el
     // backend, así que refrescamos también Revisión y sus estadísticas.
-    qc.invalidateQueries({ queryKey: ['lineas'] })
-    qc.invalidateQueries({ queryKey: ['stats'] })
+    // Prefijos de claves.js: alcanzan a las líneas de todas las quincenas,
+    // incluidas las que lee Verificación (comparte la clave con Revisión).
+    qc.invalidateQueries({ queryKey: claves.todasLasLineas })
+    qc.invalidateQueries({ queryKey: claves.todasLasStats })
   }
 
   // onError compartido por las 3 superficies de alta. Un 409 de solapamiento
@@ -954,23 +1011,46 @@ export default function Conceptos() {
       qc.invalidateQueries({ queryKey: ['quincenas-conceptos'] })
       qc.invalidateQueries({ queryKey: ['panel-precios'] })
       qc.invalidateQueries({ queryKey: ['solapamientos'] })
-      qc.invalidateQueries({ queryKey: ['lineas'] })
-      qc.invalidateQueries({ queryKey: ['stats'] })
+      qc.invalidateQueries({ queryKey: claves.todasLasLineas })
+      qc.invalidateQueries({ queryKey: claves.todasLasStats })
       ctx.onSuccess?.()
     },
     onError: (err, ctx) => manejarErrorCrear(err, { ...ctx, mutate: mutCrearSinFaltantes }),
   })
 
+  // onError compartido por editar y borrar una regla. Un 409 borra_extras
+  // (ADR-0015) abre el diálogo y guarda cómo reintentar con el flag; el
+  // backend no cambió nada. Cualquier otro error va al toast como siempre.
+  const manejarErrorBorraExtras = (err, vars, mutate) => {
+    if (err.status === 409 && err.detail?.tipo === 'borra_extras') {
+      setPendienteBorraExtras({ mensaje: err.detail.mensaje, vars, mutate })
+      return
+    }
+    toast.error(err.message)
+  }
+
+  const cerrarBorraExtras = () => setPendienteBorraExtras(null)
+
+  const confirmarBorraExtras = () => {
+    const p = pendienteBorraExtras
+    setPendienteBorraExtras(null)
+    p.mutate({ ...p.vars, confirmarBorradoExtras: true })
+  }
+
   const { mutate: mutActualizar } = useMutation({
-    mutationFn: ({ id, datos }) => actualizarConcepto(id, datos),
+    mutationFn: ({ id, datos, confirmarBorradoExtras }) =>
+      actualizarConcepto(id, datos, { confirmarBorradoExtras }),
     onSuccess: () => { toast.success('Regla actualizada'); invalidar() },
-    onError: err => toast.error(err.message),
+    onError: (err, vars) => manejarErrorBorraExtras(err, vars, mutActualizar),
   })
 
+  // Recibe { id }, no el id suelto: React Query v5 pasa un segundo argumento
+  // de contexto a mutationFn, que eliminarConcepto2 tomaría como opciones.
   const { mutate: mutEliminar } = useMutation({
-    mutationFn: eliminarConcepto2,
+    mutationFn: ({ id, confirmarBorradoExtras }) =>
+      eliminarConcepto2(id, { confirmarBorradoExtras }),
     onSuccess: () => { toast.success('Regla eliminada'); invalidar() },
-    onError: err => toast.error(err.message),
+    onError: (err, vars) => manejarErrorBorraExtras(err, vars, mutEliminar),
   })
 
   const { mutate: mutGuardarPrecioPanel, isPending: guardandoPrecioPanel } = useMutation({
@@ -1106,8 +1186,8 @@ export default function Conceptos() {
   const restaurarAnchoPanel = (clave) => setAnchosPanel(prev => ({ ...prev, [clave]: ANCHOS_PANEL_DEFAULT[clave] }))
 
   const handleAplicarPrecioMasivo = () => {
-    const valor = precioMasivo !== '' ? parseFloat(precioMasivo) : null
-    if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
+    const valor = precioPositivo(precioMasivo)
+    if (valor == null) { toast.error(MSG_PRECIO); return }
     if (panelSeleccionado.length === 0) { toast.error('No hay filas seleccionadas'); return }
     const excluidas = panelFiltrado.length - panelSeleccionado.length
     const detalle = excluidas > 0 ? ` (${excluidas} destildada${excluidas > 1 ? 's' : ''} conserva${excluidas > 1 ? 'n' : ''} su precio)` : ''
@@ -1120,6 +1200,8 @@ export default function Conceptos() {
     if ((alcanceNuevo === 'cliente' || alcanceNuevo === 'finca') && !formNuevo.cliente_nombre) { toast.error('Completá el cliente'); return }
     if (alcanceNuevo === 'supervisor' && !formNuevo.supervisor_nombre) { toast.error('Seleccioná un supervisor'); return }
     if (!formNuevo.codigo) { toast.error('Ingresá un código'); return }
+    const precio = precioPositivo(formNuevo.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     const codigo = parseInt(formNuevo.codigo)
     const datos = {
       quincena,
@@ -1129,7 +1211,7 @@ export default function Conceptos() {
       supervisor_nombre: alcanceNuevo === 'supervisor' ? formNuevo.supervisor_nombre : null,
       codigo,
       unidad_base: formNuevo.unidad_base,
-      precio:      formNuevo.precio !== '' ? parseFloat(formNuevo.precio) : null,
+      precio,
       tipo:        formNuevo.tipo,
       categoria:   formNuevo.categoria !== '' ? parseInt(formNuevo.categoria) : null,
       reemplaza_comun: alcanceNuevo === 'comun' ? false : formNuevo.reemplaza_comun,
@@ -1224,14 +1306,13 @@ export default function Conceptos() {
                   </tr>
                 </thead>
                 <tbody>
-                  {faltantes.map((f, i) => (
+                  {faltantes.map(f => (
                     <FilaFaltante
-                      key={i}
-                      idx={i}
+                      key={claveFaltante(f)}
+                      clave={claveFaltante(f)}
                       f={f}
                       quincena={quincena}
                       todasFaltantes={faltantes}
-                      mutCrear={mutCrear}
                       mutCrearSinFaltantes={mutCrearSinFaltantes}
                       onFinEncadenado={() => qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })}
                       supervisores={supervisores}
@@ -1541,6 +1622,14 @@ export default function Conceptos() {
           onCrearSoloFinca={pendienteSolap.fincaNueva ? crearSoloFinca : null}
           onSumarIgual={sumarIgual}
           onCancelar={cerrarSolap}
+        />
+      )}
+
+      {pendienteBorraExtras && (
+        <DialogoBorraExtras
+          mensaje={pendienteBorraExtras.mensaje}
+          onConfirmar={confirmarBorraExtras}
+          onCancelar={cerrarBorraExtras}
         />
       )}
     </div>

@@ -47,11 +47,19 @@ export const obtenerLegajosDisponibles = (lineaId) =>
 export const eliminarConcepto = (conceptoId) =>
   api.delete(`/preliquidacion/linea/concepto/${conceptoId}`).then(r => r.data)
 
-export const agregarConceptoPorCodigo = (lineaId, codigo) =>
-  api.post(`/preliquidacion/linea/${lineaId}/conceptos/por-codigo`, { codigo }).then(r => r.data)
+// Concepto extra (ADR-0015). Sin `opcion`, si el código tiene varias opciones
+// el backend responde 409 `elegir_opcion`; si la línea ya tiene el código, 409
+// `codigo_repetido`. El reintento lleva la opción tal como vino del 409.
+export const agregarConceptoPorCodigo = (lineaId, codigo, { opcion, confirmarRepetido } = {}) =>
+  api.post(`/preliquidacion/linea/${lineaId}/conceptos/por-codigo`, {
+    codigo, opcion: opcion ?? null, confirmar_repetido: !!confirmarRepetido,
+  }).then(r => r.data)
 
-export const agregarConceptoMasivo = (lineaIds, codigo) =>
-  api.post('/preliquidacion/lineas/concepto-masivo', { linea_ids: lineaIds, codigo }).then(r => r.data)
+// siRepetido: 'frenar' (409 `codigo_repetido`) | 'agregar' | 'saltear'.
+export const agregarConceptoMasivo = (lineaIds, codigo, { opcion, siRepetido = 'frenar' } = {}) =>
+  api.post('/preliquidacion/lineas/concepto-masivo', {
+    linea_ids: lineaIds, codigo, opcion: opcion ?? null, si_repetido: siRepetido,
+  }).then(r => r.data)
 
 export const eliminarConceptoMasivo = (lineaIds, codigo) =>
   api.post('/preliquidacion/lineas/concepto-masivo/eliminar', { linea_ids: lineaIds, codigo }).then(r => r.data)
@@ -89,11 +97,20 @@ export const listarConceptos = (quincena, scope) =>
 export const crearConcepto = (datos) =>
   api.post('/precios/conceptos', datos).then(r => r.data)
 
-export const actualizarConcepto = (id, datos) =>
-  api.patch(`/precios/conceptos/${id}`, datos).then(r => r.data)
+// Si la acción borra Conceptos extra, el backend responde 409 `borra_extras`
+// sin cambiar nada; el reintento confirma con `confirmarBorradoExtras`.
+const paramsBorradoExtras = (confirmarBorradoExtras) =>
+  confirmarBorradoExtras ? { confirmar_borrado_extras: true } : undefined
 
-export const eliminarConcepto2 = (id) =>
-  api.delete(`/precios/conceptos/${id}`).then(r => r.data)
+export const actualizarConcepto = (id, datos, { confirmarBorradoExtras } = {}) =>
+  api.patch(`/precios/conceptos/${id}`, datos, {
+    params: paramsBorradoExtras(confirmarBorradoExtras),
+  }).then(r => r.data)
+
+export const eliminarConcepto2 = (id, { confirmarBorradoExtras } = {}) =>
+  api.delete(`/precios/conceptos/${id}`, {
+    params: paramsBorradoExtras(confirmarBorradoExtras),
+  }).then(r => r.data)
 
 export const copiarConceptos = (origen, destino) =>
   api.post('/precios/conceptos/copiar', null, {

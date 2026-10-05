@@ -76,6 +76,12 @@ export default function FiltrosBar({
       if (textoBusqueda !== busqueda) onBusqueda?.(textoBusqueda)
     }, 200)
     return () => clearTimeout(t)
+    // Sólo `textoBusqueda`, a propósito. En Verificación esta barra se monta
+    // con mostrarBusqueda={false} y el texto lo escribe InputBusqueda: si
+    // `busqueda` estuviera en las deps, cada búsqueda nueva dispararía este
+    // efecto con `textoBusqueda` todavía en '' y a los 200 ms llamaría a
+    // onBusqueda(''), borrando lo que la persona acaba de tipear.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textoBusqueda])
 
   // Retrocompatibilidad: si no se pasa `datos`/`campos`, se usa `lineas` y el

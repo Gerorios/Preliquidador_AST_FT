@@ -134,8 +134,10 @@ export function TancadasJornal({ data, onGuardar, guardando }) {
 
   const fmt = (n) => n == null ? '—' : n.toLocaleString('es-AR', { maximumFractionDigits: 2 })
   const fmtMoney = (n) => n == null ? '—' : `$${n.toLocaleString('es-AR')}`
-  // DIFF viene como ratio crudo; se muestra en %. Positivo = tancada más caro.
+  // La variación viene como ratio crudo; se muestra en %. Positivo = el valor
+  // hora pagado por hora de máquina supera la referencia (valor hora pulv × 1,3).
   const fmtPct = (d) => d == null ? '—' : `${d > 0 ? '+' : ''}${(d * 100).toLocaleString('es-AR', { maximumFractionDigits: 1 })}%`
+  const filasSinHsMaquina = totales?.filas_sin_hs_maquina ?? 0
 
   return (
     <div>
@@ -152,45 +154,63 @@ export function TancadasJornal({ data, onGuardar, guardando }) {
       {filas.length === 0 ? (
         <div className={styles.empty}>No hay líneas pagadas por tancada en esta quincena.</div>
       ) : (
-        <div className={styles.pjTableWrap}>
-          <table className={styles.pjTable}>
-            <thead>
-              <tr>
-                <th>Cliente</th><th>Finca</th><th>Tarea</th>
-                <th className="mono">Tancadas</th><th className="mono">Hs jornal</th><th className="mono">Hs máquina</th>
-                <th className="mono">Valor s/jornal</th><th className="mono">Precio pagado</th><th className="mono">Valor s/tancada</th><th className="mono">Diff</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((f, i) => (
-                <tr key={i}>
-                  <td>{f.nombre_cliente}</td><td>{f.nombre_finca}</td><td>{f.nombre_tarea}</td>
-                  <td className="mono">{fmt(f.tancadas)}</td>
-                  <td className="mono">{fmt(f.hsjornal)}</td>
-                  <td className="mono">{fmt(f.hsmaquina)}</td>
-                  <td className="mono">{fmtMoney(f.valor_jornal)}</td>
-                  <td className="mono">{fmt(f.precio)}</td>
-                  <td className="mono">{fmtMoney(f.valor_tancada)}</td>
-                  <td className={`mono ${f.diff != null && f.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(f.diff)}</td>
+        <>
+          <div className={styles.pjTableWrap}>
+            <table className={styles.pjTable}>
+              <thead>
+                <tr>
+                  <th>Cliente</th><th>Finca</th><th>Tarea</th>
+                  <th className="mono">Tancadas</th><th className="mono">Hs jornal</th><th className="mono">Hs máquina</th>
+                  <th className="mono">Precio tancada</th><th className="mono">Importe pagado</th>
+                  <th className="mono">Valor hs/máquina pulv</th><th className="mono">Valor hs pulv × 1,3</th>
+                  <th className="mono">Variación</th>
                 </tr>
-              ))}
-            </tbody>
-            {totales && (
-              <tfoot>
-                <tr className={styles.pjTotalRow}>
-                  <td colSpan={3}>Total</td>
-                  <td className="mono">{fmt(totales.tancadas)}</td>
-                  <td className="mono">{fmt(totales.hsjornal)}</td>
-                  <td className="mono">{fmt(totales.hsmaquina)}</td>
-                  <td className="mono">{fmtMoney(totales.valor_jornal)}</td>
-                  <td className="mono">{fmt(totales.precio)}</td>
-                  <td className="mono">{fmtMoney(totales.valor_tancada)}</td>
-                  <td className={`mono ${totales.diff != null && totales.diff > 0 ? styles.pjAlto : ''}`}>{fmtPct(totales.diff)}</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filas.map((f, i) => (
+                  <tr key={i}>
+                    <td>{f.nombre_cliente}</td><td>{f.nombre_finca}</td><td>{f.nombre_tarea}</td>
+                    <td className="mono">{fmt(f.tancadas)}</td>
+                    <td className="mono">{fmt(f.hsjornal)}</td>
+                    <td className="mono">
+                      {fmt(f.hsmaquina)}
+                      {f.sin_hs_maquina && (
+                        <span className="badge badge-muted" style={{ marginLeft: 6 }}>sin hs máquina</span>
+                      )}
+                    </td>
+                    <td className="mono">{fmtMoney(f.precio)}</td>
+                    <td className="mono">{fmtMoney(f.importe_pagado)}</td>
+                    <td className="mono">{fmtMoney(f.valor_hora_maquina)}</td>
+                    <td className="mono">{fmtMoney(f.valor_hora_referencia)}</td>
+                    <td className={`mono ${f.variacion != null && f.variacion > 0 ? styles.pjAlto : ''}`}>{fmtPct(f.variacion)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {totales && (
+                <tfoot>
+                  <tr className={styles.pjTotalRow}>
+                    <td colSpan={3}>Total</td>
+                    <td className="mono">{fmt(totales.tancadas)}</td>
+                    <td className="mono">{fmt(totales.hsjornal)}</td>
+                    <td className="mono">{fmt(totales.hsmaquina)}</td>
+                    <td className="mono">{fmtMoney(totales.precio)}</td>
+                    <td className="mono">{fmtMoney(totales.importe_pagado)}</td>
+                    <td className="mono">{fmtMoney(totales.valor_hora_maquina)}</td>
+                    <td className="mono">{fmtMoney(totales.valor_hora_referencia)}</td>
+                    <td className={`mono ${totales.variacion != null && totales.variacion > 0 ? styles.pjAlto : ''}`}>{fmtPct(totales.variacion)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+          {filasSinHsMaquina > 0 && (
+            <p className={styles.pjNota}>
+              {filasSinHsMaquina === 1
+                ? '1 fila sin hs máquina no entra en la variación'
+                : `${filasSinHsMaquina} filas sin hs máquina no entran en la variación`}
+            </p>
+          )}
+        </>
       )}
     </div>
   )

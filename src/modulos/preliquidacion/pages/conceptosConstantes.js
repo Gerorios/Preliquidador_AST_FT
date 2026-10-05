@@ -21,3 +21,12 @@ export const TIPOS = [
 ]
 
 export const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+// Una regla del maestro siempre lleva precio mayor que 0 (ADR-0016). Devuelve
+// el número si el texto es un precio válido y positivo; si no, null.
+export function precioPositivo(texto) {
+  const valor = texto !== '' ? parseFloat(texto) : NaN
+  return Number.isFinite(valor) && valor > 0 ? valor : null
+}
+
+export const MSG_PRECIO = 'Ingresá un precio mayor que 0'

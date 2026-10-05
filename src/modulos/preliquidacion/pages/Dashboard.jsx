@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { listarPreliquidaciones, generarPreliquidacion } from '../services/preliquidacion'
+import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Dashboard.module.css'
 
@@ -27,7 +28,7 @@ export default function Dashboard() {
   const [quincena, setQuincena] = useState(QUINCENAS()[0].value)
 
   const { data: preliquidaciones = [], isLoading } = useQuery({
-    queryKey: ['preliquidaciones'],
+    queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
   })
 
@@ -37,7 +38,12 @@ export default function Dashboard() {
       toast.success(data.detalle || 'Preliquidación generada')
       // Firma v5: el array pelado (v4) no matchea la key y react-query
       // terminaba invalidando TODAS las queries del caché.
-      qc.invalidateQueries({ queryKey: ['preliquidaciones'] })
+      qc.invalidateQueries({ queryKey: claves.preliquidaciones })
+      // Generar (o regenerar) reescribe las líneas de esa quincena: si Revisión
+      // o Verificación quedaron con datos viejos en caché, tienen que refetchear.
+      // Se invalida por prefijo porque acá no se conoce el id de la preliquidación.
+      qc.invalidateQueries({ queryKey: claves.todasLasLineas })
+      qc.invalidateQueries({ queryKey: claves.todasLasStats })
     },
     onError: (err) => toast.error(err.message),
   })

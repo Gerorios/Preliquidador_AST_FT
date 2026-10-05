@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import styles from './PanelPorConcepto.module.css'
 import { agruparPorConcepto, etiquetaAlcance } from './agruparPorConcepto'
-import { UNIDADES, TIPOS, CATEGORIAS } from './conceptosConstantes'
+import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
 
 const fmt = (p) => `$${Number(p).toLocaleString('es-AR')}`
 
@@ -15,8 +15,8 @@ function CeldaPrecio({ regla, onGuardarPrecio, guardando }) {
   useEffect(() => { if (!editando) setPrecio(regla.precio ?? '') }, [regla.precio, editando])
 
   const confirmar = () => {
-    const valor = precio !== '' ? parseFloat(precio) : null
-    if (valor == null || Number.isNaN(valor)) { toast.error('Ingresá un precio válido'); return }
+    const valor = precioPositivo(precio)
+    if (valor == null) { toast.error(MSG_PRECIO); return }
     onGuardarPrecio(regla.id, valor)
     setEditando(false)
   }
@@ -88,8 +88,8 @@ function FormAltaCodigo({ tarea, fila, codigo, codigos, quincena, onCrearRegla, 
   const { titulo } = etiquetaAlcance(fila)
 
   const guardar = () => {
-    const precio = form.precio !== '' ? parseFloat(form.precio) : null
-    if (precio == null || Number.isNaN(precio)) { toast.error('Ingresá un precio válido'); return }
+    const precio = precioPositivo(form.precio)
+    if (precio == null) { toast.error(MSG_PRECIO); return }
     const datos = {
       quincena,
       tarea_nombre: tarea,

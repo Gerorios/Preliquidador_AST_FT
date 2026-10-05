@@ -11,10 +11,14 @@ import {
   legajosPorCuil, reasignarEmpresaMasivo,
   exportarQuincenaExcel,
 } from '../services/preliquidacion'
+import { claves } from '../services/claves'
 import PanelLinea from '../components/PanelLinea'
+import DialogoOpcionExtra from '../components/DialogoOpcionExtra'
 import FiltrosBar from '../components/FiltrosBar'
 import AlertasBanner from '../components/AlertasBanner'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import { alertaDe, siguienteOrden, ordenarLineas } from './ordenarLineas'
+import { totalesLineas } from './totalesLineas'
 import styles from './Revision.module.css'
 
 function fmt(v) {
@@ -22,9 +26,39 @@ function fmt(v) {
   return Number(v).toLocaleString('es-AR', { maximumFractionDigits: 2 })
 }
 
+// Badge de cada alerta. La precedencia la decide `alertaDe` (la misma que usa
+// el orden por la columna de alerta), acá sólo se elige el color.
+const BADGE_ALERTA = {
+  DUPLICADO:  'badge-danger',
+  INCOMPLETA: 'badge-warn',
+  LEGAJO:     'badge-warn',
+  EMPRESA:    'badge-info',
+}
+
+// Encabezados de la tabla principal. Las claves son las de COLUMNAS_ORDEN
+// (ordenarLineas.js). La de alerta no tiene texto: se nombra con aria-label.
+const ORDENAR = 'Ordenar por esta columna'
+const COLUMNAS_TABLA = [
+  { clave: 'alerta',        label: '',                title: ORDENAR, ariaLabel: 'Alerta' },
+  { clave: 'fecha',         label: 'FECHA',           title: ORDENAR },
+  { clave: 'empleado',      label: 'EMPLEADO',        title: ORDENAR },
+  { clave: 'legajo',        label: 'LEGAJO',          title: ORDENAR },
+  { clave: 'empresa',       label: 'EMPRESA',         title: ORDENAR },
+  { clave: 'tarea',         label: 'TAREA',           title: ORDENAR },
+  { clave: 'supervisor',    label: 'SUPERVISOR',      title: ORDENAR },
+  { clave: 'cliente_finca', label: 'CLIENTE · FINCA', title: ORDENAR },
+  { clave: 'grupo_pago',    label: 'GRUPO PAGO',      title: ORDENAR },
+  { clave: 'hsjornal',      label: 'HS. JORN.',       title: 'Horas jornal' },
+  { clave: 'hsmaquina',     label: 'HS. MAQ.',        title: 'Horas máquina' },
+  { clave: 'tancadas',      label: 'TANC.',           title: 'Tancadas' },
+  { clave: 'unidades',      label: 'UNID.',           title: 'Unidades / plantas / bins' },
+  { clave: 'importe',       label: 'IMPORTE',         title: ORDENAR },
+  { clave: 'conceptos',     label: 'CONCEPTOS',       title: ORDENAR },
+]
+
 // ─── Liquidación masiva por persona ──────────────────────────────────────────
 
-function LiquidacionPersona({ lineas, onCambio }) {
+function LiquidacionPersona({ lineas, onCambio, quincena }) {
   const [busqPersona, setBusqPersona] = useState('')
   const [personaSeleccionada, setPersonaSeleccionada] = useState(null)
   const [seleccionadas, setSeleccionadas] = useState(new Set())
@@ -32,28 +66,59 @@ function LiquidacionPersona({ lineas, onCambio }) {
   const [mostrarCombo, setMostrarCombo] = useState(false)
   const [gruposCuil, setGruposCuil] = useState(null)
   const [empresaPorGrupo, setEmpresaPorGrupo] = useState({})
+  // Concepto extra masivo frenado por un 409 (ADR-0015): `detalle` es el
+  // detail del 409 que abre el diálogo, y `opcion` la ya elegida, que viaja
+  // en el reintento de "codigo_repetido".
+  const [pedidoMasivo, setPedidoMasivo] = useState(null)
 
   const { data: conceptosDisponibles = [] } = useQuery({
-    queryKey: ['conceptos-combo'],
-    queryFn: () => buscarConceptosParaCombo(''),
-    enabled: mostrarCombo,
+    queryKey: claves.conceptosCombo(quincena),
+    queryFn: () => buscarConceptosParaCombo('', quincena),
+    enabled: mostrarCombo && !!quincena,
   })
 
   const { mutate: agregar, isPending: agregando } = useMutation({
-    mutationFn: () => {
+    mutationFn: ({ opcion, siRepetido = 'frenar' } = {}) => {
       const codigo = parseInt(codigoConcepto)
       if (!codigo || isNaN(codigo)) throw new Error('Seleccioná un concepto')
-      return agregarConceptoMasivo([...seleccionadas], codigo)
+      return agregarConceptoMasivo([...seleccionadas], codigo, { opcion, siRepetido })
     },
-    onSuccess: () => {
-      toast.success('Concepto agregado a las líneas seleccionadas')
+    onSuccess: (data) => {
+      // El backend dice cuántas líneas actualizó y cuántas salteó.
+      toast.success(data?.detalle || 'Concepto agregado a las líneas seleccionadas')
+      setPedidoMasivo(null)
       setCodigoConcepto('')
       setMostrarCombo(false)
       setSeleccionadas(new Set())
       onCambio()
     },
-    onError: err => toast.error(err.message),
+    onError: (err, variables) => {
+      const tipo = err.status === 409 ? err.detail?.tipo : null
+      if (tipo === 'elegir_opcion' || tipo === 'codigo_repetido') {
+        // Si la selección ya se limpió (se cambió de persona con el pedido en
+        // vuelo), el diálogo no tiene a qué líneas aplicarse.
+        if (seleccionadas.size > 0) setPedidoMasivo({ opcion: variables?.opcion, detalle: err.detail })
+        return
+      }
+      setPedidoMasivo(null)
+      toast.error(err.message)
+    },
   })
+
+  // Handlers del diálogo. Mientras hay un pedido en vuelo no hacen nada, así
+  // un doble clic no manda dos altas.
+  const elegirOpcionMasivo = (opcion) => {
+    if (agregando) return
+    agregar({ opcion })
+  }
+  const confirmarRepetidoMasivo = (siRepetido) => {
+    if (agregando) return
+    agregar({ opcion: pedidoMasivo.opcion, siRepetido })
+  }
+  const cancelarPedidoMasivo = () => {
+    if (agregando) return
+    setPedidoMasivo(null)
+  }
 
   const { mutate: eliminar, isPending: eliminando } = useMutation({
     mutationFn: (codigo) => eliminarConceptoMasivo([...seleccionadas], codigo),
@@ -126,7 +191,10 @@ function LiquidacionPersona({ lineas, onCambio }) {
       }
     }
     return Object.values(mapa)
-  }, [persona, seleccionadas, lineas])
+    // Sin `lineas`: `persona` sale de `empleados`, que se reconstruye (objetos
+    // nuevos) cada vez que cambia `lineas`, así que `persona` ya cambia de
+    // referencia en ese caso y el memo se recalcula igual.
+  }, [persona, seleccionadas])
 
   const toggleLinea = (id) => setSeleccionadas(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
@@ -148,6 +216,7 @@ function LiquidacionPersona({ lineas, onCambio }) {
     setSeleccionadas(new Set())
     setMostrarCombo(false)
     setCodigoConcepto('')
+    setPedidoMasivo(null)
     setGruposCuil(null)
     setEmpresaPorGrupo({})
   }
@@ -313,6 +382,16 @@ function LiquidacionPersona({ lineas, onCambio }) {
           </tbody>
         </table>
       </div>
+
+      {pedidoMasivo && (
+        <DialogoOpcionExtra
+          detalle={pedidoMasivo.detalle}
+          modo="masivo"
+          onElegir={elegirOpcionMasivo}
+          onConfirmarRepetido={confirmarRepetidoMasivo}
+          onCancelar={cancelarPedidoMasivo}
+        />
+      )}
     </div>
   )
 }
@@ -327,16 +406,21 @@ export default function Revision() {
   const [busqueda, setBusqueda] = useState('')
   const [modoLiquidacion, setModoLiquidacion] = useState(false)
   const [exportando, setExportando] = useState(false)
+  // Orden por columna: { clave, dir } o null (orden del server). Vive sólo
+  // mientras se está en la pantalla.
+  const [orden, setOrden] = useState(null)
 
   const { data: preliqData } = useQuery({
-    queryKey: ['preliq', id],
-    queryFn: () => listarPreliquidaciones().then(list =>
-      list.find(p => String(p.id) === String(id))
-    ),
+    // Comparte el caché de la lista con Dashboard y el resto: `select` elige
+    // esta preliquidación sin otro request ni otra clave que invalidar.
+    // String() en ambos lados: `id` viene de useParams (string) y p.id es número.
+    queryKey: claves.preliquidaciones,
+    queryFn: listarPreliquidaciones,
+    select: list => list.find(p => String(p.id) === String(id)),
   })
 
   const { data: stats } = useQuery({
-    queryKey: ['stats', id],
+    queryKey: claves.stats(id),
     queryFn: () => obtenerEstadisticas(id),
     // Sin polling agresivo: se invalida explícitamente tras cada mutación
     // (ver refrescarYSincronizarPanel y `guardar`). Este intervalo es solo
@@ -349,8 +433,11 @@ export default function Revision() {
   // (ver lineasFiltradas) para no re-pegarle al server ni perder el caché
   // cada vez que cambia un filtro. `placeholderData: keepPreviousData`
   // evita el parpadeo a "cargando" entre refetchs.
+  // La clave es compartida con Verificación (mismo endpoint, sin filtros):
+  // `placeholderData` es opción de este observer, no del caché, así que no
+  // afecta a lo que ve Verificación.
   const { data: lineas = [], isLoading } = useQuery({
-    queryKey: ['lineas', id],
+    queryKey: claves.lineas(id),
     queryFn: () => listarLineas(id),
     placeholderData: keepPreviousData,
   })
@@ -393,12 +480,23 @@ export default function Revision() {
     return resultado
   }, [lineas, busqueda, filtros])
 
+  // El orden va encima del filtrado: al filtrar o al editar una línea se
+  // recalcula y el orden elegido se mantiene.
+  const lineasOrdenadas = useMemo(
+    () => ordenarLineas(lineasFiltradas, orden),
+    [lineasFiltradas, orden],
+  )
+
+  // Fila TOTAL: suma lo visible (filtrado, duplicadas incluidas). El orden no
+  // cambia la suma, así que depende sólo de `lineasFiltradas`.
+  const totales = useMemo(() => totalesLineas(lineasFiltradas), [lineasFiltradas])
+
   // Virtualización de la tabla: solo se montan en el DOM las filas visibles
   // (más un margen de overscan). Con 1.500-2.500 líneas, renderizarlas todas
   // congelaba el hilo principal ~1s por cada cambio de filtro o búsqueda.
   const scrollRef = useRef(null)
   const virtualizador = useVirtualizer({
-    count: lineasFiltradas.length,
+    count: lineasOrdenadas.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 38,
     overscan: 12,
@@ -409,6 +507,13 @@ export default function Revision() {
     ? virtualizador.getTotalSize() - filasVirtuales[filasVirtuales.length - 1].end
     : 0
 
+  // Clic en un encabezado: asc → desc → orden del server. Con el orden nuevo
+  // la fila que estaba a la vista ya no es la misma, así que se vuelve arriba.
+  const ordenarPor = (clave) => {
+    setOrden(o => siguienteOrden(o, clave))
+    if (scrollRef.current) scrollRef.current.scrollTop = 0
+  }
+
   // Refetch masivo — se usa solo para operaciones donde la respuesta de la
   // mutación no trae suficiente info para actualizar el caché a mano
   // (agregar/eliminar concepto individual y las operaciones masivas de
@@ -416,13 +521,13 @@ export default function Revision() {
   // importe_total/conceptos, ver services/preliquidacion_service.py
   // agregar_concepto / agregar_concepto_por_codigo / eliminar_concepto).
   const refrescarYSincronizarPanel = async () => {
-    await qc.refetchQueries({ queryKey: ['lineas', id] })
-    const lineasFrescas = qc.getQueryData(['lineas', id])
+    await qc.refetchQueries({ queryKey: claves.lineas(id) })
+    const lineasFrescas = qc.getQueryData(claves.lineas(id))
     if (lineasFrescas && lineaSeleccionada) {
       const lineFresca = lineasFrescas.find(l => l.id === lineaSeleccionada.id)
       if (lineFresca) setLineaSeleccionada(lineFresca)
     }
-    qc.invalidateQueries({ queryKey: ['stats', id] })
+    qc.invalidateQueries({ queryKey: claves.stats(id) })
   }
 
   const { mutate: guardar, isPending: guardando } = useMutation({
@@ -432,8 +537,8 @@ export default function Revision() {
     onSuccess: (data) => {
       toast.success('Línea actualizada')
       setLineaSeleccionada(data)
-      qc.setQueryData(['lineas', id], (old) => old ? old.map(l => l.id === data.id ? data : l) : old)
-      qc.invalidateQueries({ queryKey: ['stats', id] })
+      qc.setQueryData(claves.lineas(id), (old) => old ? old.map(l => l.id === data.id ? data : l) : old)
+      qc.invalidateQueries({ queryKey: claves.stats(id) })
     },
     onError: (err) => toast.error(err.message),
   })
@@ -473,11 +578,8 @@ export default function Revision() {
   }
 
   const iconoAlerta = (linea) => {
-    if (linea.es_duplicado)     return { label: 'DUPLICADO', badge: 'badge-danger' }
-    if (linea.linea_incompleta) return { label: 'INCOMPLETA', badge: 'badge-warn' }
-    if (linea.alerta_legajo)    return { label: 'LEGAJO', badge: 'badge-warn' }
-    if (linea.alerta_empresa)   return { label: 'EMPRESA', badge: 'badge-info' }
-    return null
+    const label = alertaDe(linea)
+    return label ? { label, badge: BADGE_ALERTA[label] } : null
   }
 
   return (
@@ -524,7 +626,11 @@ export default function Revision() {
       </div>
 
       {modoLiquidacion && (
-        <LiquidacionPersona lineas={lineas} onCambio={refrescarYSincronizarPanel} />
+        <LiquidacionPersona
+          lineas={lineas}
+          onCambio={refrescarYSincronizarPanel}
+          quincena={preliqData?.quincena}
+        />
       )}
 
       <div className={styles.layout} style={{ display: modoLiquidacion ? 'none' : undefined }}>
@@ -545,27 +651,31 @@ export default function Revision() {
               <table>
                 <thead>
                   <tr>
-                    <th></th>
-                    <th>FECHA</th>
-                    <th>EMPLEADO</th>
-                    <th>LEGAJO</th>
-                    <th>EMPRESA</th>
-                    <th>TAREA</th>
-                    <th>SUPERVISOR</th>
-                    <th>CLIENTE · FINCA</th>
-                    <th>GRUPO PAGO</th>
-                    <th title="Horas jornal">HS. JORN.</th>
-                    <th title="Horas máquina">HS. MAQ.</th>
-                    <th title="Tancadas">TANC.</th>
-                    <th title="Unidades / plantas / bins">UNID.</th>
-                    <th>IMPORTE</th>
-                    <th>CONCEPTOS</th>
+                    {COLUMNAS_TABLA.map(c => {
+                      const activa = orden?.clave === c.clave
+                      return (
+                        <th
+                          key={c.clave}
+                          scope="col"
+                          className={styles.thOrdenable}
+                          title={c.title}
+                          aria-label={c.ariaLabel}
+                          aria-sort={activa ? (orden.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                          onClick={() => ordenarPor(c.clave)}
+                        >
+                          {c.label}
+                          <span className={styles.flecha} aria-hidden="true">
+                            {activa ? (orden.dir === 'asc' ? '▲' : '▼') : ''}
+                          </span>
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody>
                   {padTop > 0 && <tr aria-hidden="true" style={{ height: padTop, border: 0 }} />}
                   {filasVirtuales.map(fila => {
-                    const linea = lineasFiltradas[fila.index]
+                    const linea = lineasOrdenadas[fila.index]
                     return (
                     <tr
                       key={linea.id}
@@ -620,6 +730,24 @@ export default function Revision() {
                   })}
                   {padBottom > 0 && <tr aria-hidden="true" style={{ height: padBottom, border: 0 }} />}
                 </tbody>
+                {lineasFiltradas.length > 0 && (
+                  <tfoot>
+                    <tr className={styles.filaTotales}>
+                      {/* Cubre de alerta a grupo pago: las 9 primeras de COLUMNAS_TABLA. */}
+                      <td colSpan={9}>TOTAL</td>
+                      <td className="mono">{fmt(totales.hsjornal)}</td>
+                      <td className="mono">{fmt(totales.hsmaquina)}</td>
+                      <td className="mono">{fmt(totales.tancadas)}</td>
+                      <td className="mono">{fmt(totales.unidades)}</td>
+                      <td className="mono">
+                        {totales.importe_total
+                          ? `$${totales.importe_total.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
+                          : '—'}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
               </table>
               {lineasFiltradas.length === 0 && (
                 <div className={styles.empty}>Sin resultados para los filtros aplicados.</div>

@@ -1,22 +1,15 @@
-import { useState, useMemo, useEffect, Fragment } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
   obtenerControlTancadasJornal, setValorHoraPulv, setValorHoraTractorista,
 } from '../services/preliquidacion'
+import { claves } from '../services/claves'
 import FiltrosBar from '../components/FiltrosBar'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import InputBusqueda from '../components/InputBusqueda'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Verificacion.module.css'
-
-// Personas mensualizadas (no jornalizadas): se excluyen de todas las
-// secciones de Verificación porque estos controles miden razonabilidad del
-// pago jornalizado y no aplican a un sueldo mensual fijo. Revisión (misma
-// fuente de líneas, otra página) no filtra por esto — ahí sí hay que
-// verlas/editarlas para liquidar su sueldo. Hardcodeado a pedido del
-// usuario (2026-08-21).
-const EMPLEADOS_MENSUALIZADOS = ['ARAOZ, GUILLERMO HORACIO', 'TORANZO, JOSE PIO']
 
 const SECCIONES = [
   { key: 'horas',          label: '⏱ Horas excedidas',      umbral: '> 13 hs/día' },
@@ -89,6 +82,16 @@ function calcularResumenEmpleados(lineas) {
   }).sort((a,b) => b.importe_total - a.importe_total)
 }
 
+// Fuera del componente y con `busqueda` como argumento: así no se recrea en
+// cada render y los useMemo que la usan dependen sólo de sus datos y de
+// `busqueda`. Adentro del componente, agregarla a las deps haría que los
+// memos se recalcularan en cada render.
+function filtrarBusqueda(lista, busqueda) {
+  if (!busqueda) return lista
+  const q = busqueda.toLowerCase()
+  return lista.filter(item => item.nombre_empleado?.toLowerCase().includes(q) || item.legajo?.toLowerCase().includes(q))
+}
+
 export default function Verificacion() {
   const [preliqId, setPreliqId] = useState(null)
   const [seccion, setSeccion] = useState('horas')
@@ -97,17 +100,30 @@ export default function Verificacion() {
   const [filtros, setFiltros] = useState({})
 
   const { data: preliquidaciones = [] } = useQuery({
-    queryKey: ['preliquidaciones'],
+    queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
   })
 
+  // Misma clave que Revisión: las dos piden exactamente lo mismo (todas las
+  // líneas de la quincena, sin filtros de servidor) y así una invalidación
+  // desde Conceptos, Dashboard o una edición en Revisión también llega acá.
+  // El filtro de mensualizados es de esta pantalla y se hace abajo, en cliente,
+  // sobre la data cruda: por eso no va en un `select` ni cambia la clave.
   const { data: lineasCrudas = [], isLoading } = useQuery({
-    queryKey: ['lineas-verif', preliqId],
+    queryKey: claves.lineas(preliqId),
     queryFn: () => listarLineas(preliqId, {}),
     enabled: !!preliqId,
   })
+  // Personas mensualizadas (no jornalizadas): se excluyen de todas las
+  // secciones de Verificación porque estos controles miden razonabilidad del
+  // pago jornalizado y no aplican a un sueldo mensual fijo. Revisión (misma
+  // fuente de líneas, otra página) no filtra por esto: ahí sí hay que
+  // verlas/editarlas para liquidar su sueldo. Quién es mensualizado lo decide
+  // el servidor (configuración por CUIL, fuera del código) y lo marca en cada
+  // línea con `mensualizado`; el front no guarda datos de personas. Contra un
+  // backend que no manda el campo no se filtra nada.
   const lineas = useMemo(
-    () => lineasCrudas.filter(l => !EMPLEADOS_MENSUALIZADOS.includes(l.nombre_empleado)),
+    () => lineasCrudas.filter(l => !l.mensualizado),
     [lineasCrudas]
   )
 
@@ -150,16 +166,10 @@ export default function Verificacion() {
 
   // `busqueda` llega ya debounceada desde InputBusqueda (dueño del input):
   // tipear no re-renderiza esta página hasta que el valor se asienta.
-  const filtrarBusqueda = (lista) => {
-    if (!busqueda) return lista
-    const q = busqueda.toLowerCase()
-    return lista.filter(item => item.nombre_empleado?.toLowerCase().includes(q) || item.legajo?.toLowerCase().includes(q))
-  }
-
-  const excesoHorasF    = useMemo(() => filtrarBusqueda(excesoHoras),            [excesoHoras, busqueda])
-  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas),         [excesoTancadas, busqueda])
-  const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas),          [excesoPlantas, busqueda])
-  const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto), [resumenEmpleadosCompleto, busqueda])
+  const excesoHorasF    = useMemo(() => filtrarBusqueda(excesoHoras, busqueda),            [excesoHoras, busqueda])
+  const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas, busqueda),         [excesoTancadas, busqueda])
+  const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas, busqueda),          [excesoPlantas, busqueda])
+  const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto, busqueda), [resumenEmpleadosCompleto, busqueda])
 
   return (
     <div className={styles.page}>

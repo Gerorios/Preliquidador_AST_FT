@@ -57,6 +57,7 @@ Requiere Node.js 18+ y el backend corriendo en `http://localhost:8000`.
 npm install
 npm run dev       # http://localhost:5173
 npm run build     # bundle de producción a dist/
+npm run lint      # revisa el código con ESLint; antes de un PR, sin errores
 ```
 
 En desarrollo, Vite proxya `/api` al backend local (`vite.config.js`), así que no hay

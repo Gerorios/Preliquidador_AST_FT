@@ -5,6 +5,7 @@ import {
   listarPreliquidaciones, listarOperariosMantenimiento,
   setCategoriaOperario, heredarCategoriasOperario,
 } from '../services/preliquidacion'
+import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './CategoriasOperarios.module.css'
 
@@ -16,7 +17,7 @@ export default function CategoriasOperarios() {
   const [busqueda, setBusqueda] = useState('')
 
   const { data: preliquidaciones = [] } = useQuery({
-    queryKey: ['preliquidaciones'],
+    queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
   })
 
