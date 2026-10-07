@@ -30,6 +30,7 @@ function fmt(v) {
 // el orden por la columna de alerta), acá sólo se elige el color.
 const BADGE_ALERTA = {
   DUPLICADO:  'badge-danger',
+  'POSIBLE DUPLICADO': 'badge-warn',
   INCOMPLETA: 'badge-warn',
   LEGAJO:     'badge-warn',
   EMPRESA:    'badge-info',
@@ -467,12 +468,14 @@ export default function Revision() {
     if (filtros.alerta === 'alerta_legajo')  resultado = resultado.filter(l => l.alerta_legajo)
     if (filtros.alerta === 'alerta_empresa') resultado = resultado.filter(l => l.alerta_empresa)
     if (filtros.alerta === 'es_duplicado')   resultado = resultado.filter(l => l.es_duplicado)
+    if (filtros.alerta === 'es_posible_duplicado') resultado = resultado.filter(l => l.es_posible_duplicado)
     // Estos dos filtros antes iban al server (listarLineas); ahora que la
     // queryKey ya no incluye `filtros` y siempre se trae todo, se replican
     // en cliente para no perder funcionalidad. `solo_alertas` reproduce
     // exactamente la condición de preliquidacion_service.listar_lineas
-    // (es_duplicado | alerta_legajo | linea_incompleta — sin alerta_empresa).
-    if (filtros.solo_alertas) resultado = resultado.filter(l => l.es_duplicado || l.alerta_legajo || l.linea_incompleta)
+    // (es_duplicado | es_posible_duplicado | alerta_legajo | linea_incompleta —
+    // sin alerta_empresa).
+    if (filtros.solo_alertas) resultado = resultado.filter(l => l.es_duplicado || l.es_posible_duplicado || l.alerta_legajo || l.linea_incompleta)
     if (filtros.nombre_empleado) {
       const qn = filtros.nombre_empleado.toLowerCase()
       resultado = resultado.filter(l => l.nombre_empleado?.toLowerCase().includes(qn))
@@ -572,6 +575,7 @@ export default function Revision() {
 
   const claseLinea = (linea) => {
     if (linea.es_duplicado) return 'duplicado'
+    if (linea.es_posible_duplicado) return 'alerta'
     if (linea.linea_incompleta) return 'alerta'
     if (linea.alerta_legajo || linea.alerta_empresa) return 'alerta'
     return ''
@@ -619,6 +623,7 @@ export default function Revision() {
             total={stats.lineas_con_alerta}
             incompletas={stats.incompletas}
             duplicados={stats.duplicados}
+            posiblesDuplicados={stats.posibles_duplicados}
             alertaLegajo={stats.alerta_legajo}
             onFiltrar={() => setFiltros(f => ({ ...f, solo_alertas: true }))}
           />
