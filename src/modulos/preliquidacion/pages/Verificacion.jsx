@@ -8,6 +8,7 @@ import { claves } from '../services/claves'
 import FiltrosBar from '../components/FiltrosBar'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import InputBusqueda from '../components/InputBusqueda'
+import { agruparPosiblesDuplicados } from './posiblesDuplicados'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import styles from './Verificacion.module.css'
 
@@ -18,6 +19,7 @@ const SECCIONES = [
   { key: 'empleados',      label: '👤 Resumen por empleado', umbral: 'importe · días · $/día' },
   { key: 'plantas-jornal', label: '📊 Plantas vs Jornal',    umbral: 'rendimiento por tarea' },
   { key: 'tancadas-jornal',label: '📊 Tancadas vs Jornal',   umbral: 'tancada vs jornal' },
+  { key: 'posibles-duplicados', label: '⚠ Posibles duplicados', umbral: 'mismas unidades, distintas horas' },
 ]
 
 function calcularExcesos(lineas) {
@@ -140,6 +142,7 @@ export default function Verificacion() {
 
   const { excesoHoras, excesoTancadas, excesoPlantas } = useMemo(() => calcularExcesos(lineasFiltradas), [lineasFiltradas])
   const resumenEmpleadosCompleto = useMemo(() => calcularResumenEmpleados(lineasFiltradas), [lineasFiltradas])
+  const posiblesDuplicadosCompleto = useMemo(() => agruparPosiblesDuplicados(lineasFiltradas), [lineasFiltradas])
 
   // El precio por planta sale del pago real congelado (backend): lo que
   // efectivamente se pagó en las líneas, venga del camino que venga.
@@ -170,6 +173,7 @@ export default function Verificacion() {
   const excesoTancadasF = useMemo(() => filtrarBusqueda(excesoTancadas, busqueda),         [excesoTancadas, busqueda])
   const excesoPlantasF  = useMemo(() => filtrarBusqueda(excesoPlantas, busqueda),          [excesoPlantas, busqueda])
   const resumenEmpleados = useMemo(() => filtrarBusqueda(resumenEmpleadosCompleto, busqueda), [resumenEmpleadosCompleto, busqueda])
+  const posiblesDuplicados = useMemo(() => filtrarBusqueda(posiblesDuplicadosCompleto, busqueda), [posiblesDuplicadosCompleto, busqueda])
 
   return (
     <div className={styles.page}>
@@ -220,6 +224,7 @@ export default function Verificacion() {
                 empleados:      resumenEmpleados.length,
                 'plantas-jornal': null,
                 'tancadas-jornal': null,
+                'posibles-duplicados': posiblesDuplicados.length,
               }[s.key]
               return (
                 <button
@@ -247,6 +252,7 @@ export default function Verificacion() {
               {seccion === 'empleados'     && <ResumenEmpleados items={resumenEmpleados} expandido={expandido} setExpandido={setExpandido} />}
               {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorHoraTractorista.mutate(v)} guardando={guardarValorHoraTractorista.isPending} />}
               {seccion === 'tancadas-jornal'&& <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} />}
+              {seccion === 'posibles-duplicados' && <ListaPosiblesDuplicados items={posiblesDuplicados} expandido={expandido} setExpandido={setExpandido} />}
             </div>
           )}
         </>
@@ -288,6 +294,65 @@ function ListaExceso({ titulo, items, unidad, expandido, setExpandido }) {
                       <span className="mono">{l.hsjornal || '—'}</span>
                       <span className="mono">{l.tancadas || '—'}</span>
                       <span className="mono">{l.unidades || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Las líneas llegan crudas de la API (los Decimal como string, '4.00'): se
+// muestran como número, y el 0 o el nulo como '—', igual que en ListaExceso.
+const numeroOGuion = (v) => Number(v || 0) || '—'
+const pesos = (v) => `$${Number(v || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
+
+// Cada tarjeta es un grupo de líneas iguales salvo en las horas (la marca la
+// pone el backend). El importe de la derecha es el que está en duda: la suma
+// del grupo menos la línea de mayor importe, o sea lo que sobraría si sólo una
+// de ellas fuera trabajo real.
+function ListaPosiblesDuplicados({ items, expandido, setExpandido }) {
+  if (items.length === 0) return <div className={styles.empty}>✓ No hay posibles duplicados.</div>
+  return (
+    <div>
+      <div className={styles.seccionTitulo}>Líneas iguales con distintas horas en un mismo día — {items.length} casos</div>
+      <div className={styles.lista}>
+        {items.map((item) => {
+          const abierto = expandido === item.clave
+          const lineas = [...item.lineas].sort((a, b) => a.id - b.id)
+          return (
+            <div key={item.clave} className={styles.card}>
+              <div className={styles.cardHead} onClick={() => setExpandido(abierto ? null : item.clave)}>
+                <div className={styles.cardInfo}>
+                  <span className={styles.cardNombre}>{item.nombre_empleado || '—'}</span>
+                  <span className={styles.cardLegajo}>legajo {item.legajo || '—'}</span>
+                  <span className={styles.cardFecha}>{item.fecha}</span>
+                </div>
+                <div className={styles.cardValor} title="Importe en duda: la suma de las líneas del grupo menos la de mayor importe">{pesos(item.valor)}</div>
+                <span className={styles.cardChevron}>{abierto ? '▲' : '▼'}</span>
+              </div>
+              {abierto && (
+                <div className={styles.cardBody}>
+                  <div className={styles.lineasHeadPosibles}><span>Tarea</span><span>Cliente · Finca</span><span>Superv.</span><span>Hs.jorn.</span><span>Hs.máq.</span><span>Tanc.</span><span>Unid.</span><span>Importe</span><span /></div>
+                  {lineas.map(l => (
+                    <div key={l.id} className={styles.lineaRowPosibles}>
+                      <span>{l.nombre_tarea}</span>
+                      <span className={styles.lineaMuted}>{l.nombre_cliente} · {l.nombre_finca}</span>
+                      <span className={styles.lineaMuted}>{l.nombre_supervisor || '—'}</span>
+                      <span className="mono">{numeroOGuion(l.hsjornal)}</span>
+                      <span className="mono">{numeroOGuion(l.hsmaquina)}</span>
+                      <span className="mono">{numeroOGuion(l.tancadas)}</span>
+                      <span className="mono">{numeroOGuion(l.unidades)}</span>
+                      <span className="mono">{pesos(l.importe_total)}</span>
+                      <span>
+                        {l.es_duplicado
+                          ? <span className="badge badge-danger">DUPLICADO</span>
+                          : l.es_posible_duplicado && <span className="badge badge-warn">POSIBLE DUPLICADO</span>}
+                      </span>
                     </div>
                   ))}
                 </div>

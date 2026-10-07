@@ -195,6 +195,33 @@
   padding: 4px 0;
 }
 
+.lineasHeadPosibles {
+  display: grid;
+  grid-template-columns: 1.4fr 1.6fr 1.1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.9fr 1.3fr;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+}
+
+.lineaRowPosibles {
+  display: grid;
+  grid-template-columns: 1.4fr 1.6fr 1.1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.9fr 1.3fr;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
 .lineasHeadEmpleado {
   display: grid;
   grid-template-columns: 0.9fr 1.6fr 1.6fr 0.9fr;
