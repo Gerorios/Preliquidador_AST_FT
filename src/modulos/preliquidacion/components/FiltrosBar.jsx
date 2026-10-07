@@ -5,6 +5,7 @@ const ALERTAS = [
   { value: 'alerta_legajo', label: 'Legajo inválido' },
   { value: 'alerta_empresa', label: 'Empresa a verificar' },
   { value: 'es_duplicado', label: 'Duplicado' },
+  { value: 'es_posible_duplicado', label: 'Posible duplicado' },
 ]
 
 // Set de filtros por defecto — el usado históricamente por Revisión/Verificación,

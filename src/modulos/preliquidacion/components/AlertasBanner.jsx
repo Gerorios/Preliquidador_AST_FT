@@ -1,5 +1,5 @@
 export default function AlertasBanner({
-  total, incompletas, duplicados, alertaLegajo, onFiltrar,
+  total, incompletas, duplicados, posiblesDuplicados, alertaLegajo, onFiltrar,
   mensaje, ctaLabel = 'Ver solo alertas →', ctaSubrayada = true,
 }) {
   return (
@@ -21,6 +21,7 @@ export default function AlertasBanner({
             <strong>{total} alertas sin resolver:</strong>
             {incompletas > 0 && ` ${incompletas} incompletas`}
             {duplicados > 0 && ` · ${duplicados} duplicados`}
+            {posiblesDuplicados > 0 && ` · ${posiblesDuplicados} posibles duplicados`}
             {alertaLegajo > 0 && ` · ${alertaLegajo} legajos`}
           </>
         )}

@@ -13,10 +13,11 @@ const collatorLegajo = new Intl.Collator('es', { sensitivity: 'base', numeric: t
 
 // Precedencia de alertas: la misma que muestra el badge de la primera columna.
 // Una línea con varias alertas se ordena por la más grave.
-const PRECEDENCIA_ALERTAS = ['DUPLICADO', 'INCOMPLETA', 'LEGAJO', 'EMPRESA']
+const PRECEDENCIA_ALERTAS = ['DUPLICADO', 'POSIBLE DUPLICADO', 'INCOMPLETA', 'LEGAJO', 'EMPRESA']
 
 export function alertaDe(linea) {
   if (linea.es_duplicado)     return 'DUPLICADO'
+  if (linea.es_posible_duplicado) return 'POSIBLE DUPLICADO'
   if (linea.linea_incompleta) return 'INCOMPLETA'
   if (linea.alerta_legajo)    return 'LEGAJO'
   if (linea.alerta_empresa)   return 'EMPRESA'
