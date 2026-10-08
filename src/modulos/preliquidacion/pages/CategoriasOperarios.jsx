@@ -19,7 +19,11 @@ export default function CategoriasOperarios() {
   const [elegida, setElegida] = useEstadoPantalla('mantenimiento.quincena', null)
   const [busqueda, setBusqueda] = useEstadoPantalla('mantenimiento.busqueda', '')
 
-  const { data: preliquidaciones = [] } = useQuery({
+  const {
+    data: preliquidaciones = [],
+    isLoading: cargandoQuincenas,
+    isError: errorQuincenas,
+  } = useQuery({
     queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
   })
@@ -87,7 +91,15 @@ export default function CategoriasOperarios() {
         )}
       />
 
-      {!preliqId ? (
+      {/* Sin quincena elegida, distinguir carga, error y lista vacía: si no, un F5 o
+          una caída del backend se leen como "no hay quincenas" (GUIA-MODULOS regla 21). */}
+      {!preliqId && cargandoQuincenas ? (
+        <CargandoContenido texto="Cargando quincenas…" />
+      ) : !preliqId && errorQuincenas ? (
+        <div className={styles.empty} role="alert">
+          No se pudieron cargar las quincenas. Probá recargar la página.
+        </div>
+      ) : !preliqId ? (
         <div className={styles.empty}>Todavía no hay quincenas generadas.</div>
       ) : (
         <>
