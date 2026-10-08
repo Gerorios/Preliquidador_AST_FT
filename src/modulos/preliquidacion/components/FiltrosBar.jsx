@@ -1,59 +1,21 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import Icono from '../../../core/ui/iconos'
+import { CAMPOS_LINEAS } from '../pages/filtrarLineas'
+import { opcionesCascada } from '../pages/opcionesCascada'
+import styles from './FiltrosBar.module.css'
 
 const ALERTAS = [
-  { value: 'incompleta', label: 'Incompleta' },
-  { value: 'alerta_legajo', label: 'Legajo inválido' },
-  { value: 'alerta_empresa', label: 'Empresa a verificar' },
-  { value: 'es_duplicado', label: 'Duplicado' },
-  { value: 'es_posible_duplicado', label: 'Posible duplicado' },
+  { value: 'incompleta', label: 'Incompleta', tono: 'warn' },
+  { value: 'alerta_legajo', label: 'Legajo inválido', tono: 'warn' },
+  { value: 'alerta_empresa', label: 'Empresa a verificar', tono: 'warn' },
+  { value: 'es_duplicado', label: 'Duplicado', tono: 'danger' },
+  { value: 'es_posible_duplicado', label: 'Posible duplicado', tono: 'warn' },
 ]
 
-// Set de filtros por defecto — el usado históricamente por Revisión/Verificación,
-// operando sobre `lineas`. Si el consumidor no pasa `campos`, se usa este set
-// para que el comportamiento quede idéntico al de antes de generalizar el
-// componente.
-const CAMPOS_DEFAULT = [
-  { key: 'cliente',     label: 'Cliente',        field: 'nombre_cliente' },
-  { key: 'finca',       label: 'Finca',          field: 'nombre_finca' },
-  { key: 'tarea',       label: 'Tarea',          field: 'nombre_tarea' },
-  { key: 'empresa',     label: 'Empresa',        field: 'empresa_asignada' },
-  { key: 'grupo_pago',  label: 'Grupo de pago',  field: 'grupo_pago_aplicado' },
-  { key: 'supervisor',  label: 'Supervisor',     field: 'nombre_supervisor' },
-]
-
-/**
- * Calcula, en un solo recorrido de `datos`, las opciones disponibles para
- * cada campo de filtro considerando los DEMÁS filtros activos (cascada).
- * Cada `filtros[key]` es ahora un array de valores seleccionados (multi):
- * una fila pasa el filtro de un campo si ese array está vacío/ausente, o si
- * incluye el valor de la fila para ese campo (unión dentro del campo,
- * intersección entre campos — lo natural de una cascada multi-select).
- * Reemplaza N pasadas O(n) independientes (una por campo) por una sola
- * pasada O(n). `campos` es la lista de descriptores { key, field } a calcular.
- */
-function calcularOpcionesCascada(datos, filtros, campos) {
-  const activos = campos.filter(c => filtros[c.key]?.length)
-  const sets = {}
-  for (const c of campos) sets[c.key] = new Set()
-
-  for (const item of datos) {
-    for (const campo of campos) {
-      let ok = true
-      for (const act of activos) {
-        if (act.key === campo.key) continue
-        if (!filtros[act.key].includes(item[act.field])) { ok = false; break }
-      }
-      if (!ok) continue
-      const val = item[campo.field]
-      if (val) sets[campo.key].add(val)
-    }
-  }
-
-  const resultado = {}
-  for (const c of campos) resultado[c.key] = [...sets[c.key]].sort()
-  return resultado
-}
-
+// Barra de filtros común a todas las pantallas de Preliquidación. Siempre en
+// el mismo orden: quincena, búsqueda, filtros de la pantalla, alertas (si la
+// pantalla las usa) y Limpiar. Debajo, lo que está filtrando en ese momento,
+// cada cosa con su botón para sacarla.
 export default function FiltrosBar({
   lineas = [],
   datos,
@@ -65,6 +27,11 @@ export default function FiltrosBar({
   placeholderBusqueda = 'Buscar empleado, legajo, tarea...',
   mostrarAlertas = true,
   mostrarBusqueda = true,
+  // Selector de quincena de la pantalla (va primero en la barra).
+  quincena = null,
+  // Condición que ya aplica la pantalla además de los campos (búsqueda,
+  // alertas): las opciones de cada filtro salen sólo de lo que la cumple.
+  prefiltro = null,
 }) {
   const [abierto, setAbierto] = useState(false)
 
@@ -77,22 +44,14 @@ export default function FiltrosBar({
       if (textoBusqueda !== busqueda) onBusqueda?.(textoBusqueda)
     }, 200)
     return () => clearTimeout(t)
-    // Sólo `textoBusqueda`, a propósito. En Verificación esta barra se monta
-    // con mostrarBusqueda={false} y el texto lo escribe InputBusqueda: si
-    // `busqueda` estuviera en las deps, cada búsqueda nueva dispararía este
-    // efecto con `textoBusqueda` todavía en '' y a los 200 ms llamaría a
-    // onBusqueda(''), borrando lo que la persona acaba de tipear.
+    // Sólo `textoBusqueda`, a propósito: con `busqueda` en las deps, un
+    // cambio externo dispararía el efecto con el texto viejo y lo pisaría.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textoBusqueda])
 
-  // Retrocompatibilidad: si no se pasa `datos`/`campos`, se usa `lineas` y el
-  // set de campos histórico (Revisión/Verificación no cambian de comportamiento).
   const datosEfectivos = datos ?? lineas
-  const camposEfectivos = campos ?? CAMPOS_DEFAULT
+  const camposEfectivos = campos ?? CAMPOS_LINEAS
 
-  // Togglea un valor dentro del array de un campo: si ya está lo saca, si no
-  // lo agrega. Array vacío se guarda como undefined para que `cantFiltros` y
-  // la cascada lo traten uniformemente como "sin filtro".
   const toggle = (k, valor) => onChange(f => {
     const actual = f[k] || []
     const next = actual.includes(valor) ? actual.filter(v => v !== valor) : [...actual, valor]
@@ -104,12 +63,21 @@ export default function FiltrosBar({
     return { ...f, [k]: next.length ? next : undefined }
   })
 
-  // Setea de una todo el array de un campo (para "Seleccionar todos" / limpiar).
   const setValores = (k, arr) => onChange(f => ({ ...f, [k]: arr && arr.length ? arr : undefined }))
-
   const setAlerta = (v) => onChange(f => ({ ...f, alerta: f.alerta === v ? undefined : v }))
+  const sacar = (k) => onChange(f => ({ ...f, [k]: undefined }))
 
-  const cantFiltros = camposEfectivos.filter(c => filtros[c.key]?.length).length + (filtros.alerta ? 1 : 0)
+  const cantCampos = camposEfectivos.filter(c => filtros[c.key]?.length).length
+
+  // Todo lo que está filtrando ahora, en una lista para mostrarlo como chips.
+  const activos = [
+    ...(busqueda ? [{ id: 'busqueda', texto: `Búsqueda: “${busqueda}”`, quitar: () => { setTextoBusqueda(''); onBusqueda?.('') } }] : []),
+    ...(filtros.solo_alertas ? [{ id: 'solo_alertas', texto: 'Sólo líneas con alerta', quitar: () => sacar('solo_alertas') }] : []),
+    ...(filtros.alerta ? [{ id: 'alerta', texto: `Alerta: ${ALERTAS.find(a => a.value === filtros.alerta)?.label ?? filtros.alerta}`, quitar: () => sacar('alerta') }] : []),
+    ...camposEfectivos.flatMap(c => (filtros[c.key] || []).map(v => ({
+      id: `${c.key}:${v}`, texto: `${c.label}: ${v}`, quitar: () => quitar(c.key, v),
+    }))),
+  ]
 
   const limpiar = () => {
     onChange({})
@@ -117,66 +85,55 @@ export default function FiltrosBar({
     onBusqueda?.('')
   }
 
-  // Opciones en cascada — se recalculan según los demás filtros activos.
-  // Solo se computan mientras el panel está abierto: colapsado, no tiene
-  // sentido pagar el recorrido de `datos` en cada cambio de filtro.
+  // Opciones en cascada: sólo se calculan con el panel abierto, sobre lo que
+  // ya pasa la búsqueda y las alertas de la pantalla.
   const opciones = useMemo(() => {
     if (!abierto) {
       const vacio = {}
       for (const c of camposEfectivos) vacio[c.key] = []
       return vacio
     }
-    return calcularOpcionesCascada(datosEfectivos, filtros, camposEfectivos)
-  }, [datosEfectivos, filtros, abierto, camposEfectivos])
+    return opcionesCascada(datosEfectivos, filtros, camposEfectivos, prefiltro)
+  }, [datosEfectivos, filtros, abierto, camposEfectivos, prefiltro])
 
   return (
-    <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+    <div className={styles.barra}>
+      <div className={styles.fila}>
+        {quincena}
 
-      {/* Barra principal */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', flexWrap: 'wrap' }}>
-        {/* La búsqueda se oculta cuando la pantalla ya tiene su propia barra
-            (ej. Verificación), para no duplicarla. Ver mostrarBusqueda. */}
         {mostrarBusqueda && (
-          <input
-            className="input"
-            style={{ width: 240 }}
-            placeholder={placeholderBusqueda}
-            value={textoBusqueda}
-            onChange={e => setTextoBusqueda(e.target.value)}
-          />
+          <label className={styles.busqueda}>
+            <Icono nombre="buscar" size={15} />
+            <input
+              placeholder={placeholderBusqueda}
+              value={textoBusqueda}
+              onChange={e => setTextoBusqueda(e.target.value)}
+            />
+          </label>
         )}
 
-        <button
-          className={`btn btn-sm ${abierto ? 'btn-primary' : ''}`}
-          onClick={() => setAbierto(!abierto)}
-        >
-          ⚙ Filtros {cantFiltros > 0 && <span style={{ background: 'var(--accent)', color: 'var(--bg-base)', borderRadius: 3, padding: '0 5px', fontSize: 10, marginLeft: 2 }}>{cantFiltros}</span>}
-        </button>
+        {camposEfectivos.length > 0 && (
+          <button
+            type="button"
+            className={`btn btn-sm ${abierto ? 'btn-primary' : ''}`}
+            aria-expanded={abierto}
+            onClick={() => setAbierto(!abierto)}
+          >
+            <Icono nombre="filtro" size={14} />
+            Filtros
+            {cantCampos > 0 && <span className={styles.contador}>{cantCampos}</span>}
+          </button>
+        )}
 
-        {/* Chips de alertas — solo se muestran cuando mostrarAlertas=true (Revisión) */}
         {mostrarAlertas && (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 4 }}>
+          <div className={styles.alertas} role="group" aria-label="Alertas">
             {ALERTAS.map(a => (
               <button
                 key={a.value}
+                type="button"
+                aria-pressed={filtros.alerta === a.value}
+                className={`${styles.alerta} ${filtros.alerta === a.value ? styles[a.tono] : ''}`}
                 onClick={() => setAlerta(a.value)}
-                style={{
-                  padding: '3px 8px',
-                  fontSize: 11,
-                  borderRadius: 3,
-                  border: '1px solid',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-mono)',
-                  background: filtros.alerta === a.value
-                    ? (a.value === 'es_duplicado' ? 'var(--danger-dim)' : 'var(--warn-dim)')
-                    : 'var(--bg-elevated)',
-                  borderColor: filtros.alerta === a.value
-                    ? (a.value === 'es_duplicado' ? 'var(--danger)' : 'var(--warn)')
-                    : 'var(--border-strong)',
-                  color: filtros.alerta === a.value
-                    ? (a.value === 'es_duplicado' ? 'var(--danger)' : 'var(--warn)')
-                    : 'var(--text-muted)',
-                }}
               >
                 {a.label}
               </button>
@@ -184,22 +141,16 @@ export default function FiltrosBar({
           </div>
         )}
 
-        {cantFiltros > 0 || textoBusqueda || busqueda ? (
-          <button className="btn btn-sm" style={{ marginLeft: 'auto' }} onClick={limpiar}>
-            ✕ Limpiar
+        {activos.length > 0 && (
+          <button type="button" className={`btn btn-sm ${styles.limpiar}`} onClick={limpiar}>
+            <Icono nombre="cerrar" size={14} />
+            Limpiar
           </button>
-        ) : null}
+        )}
       </div>
 
-      {/* Panel de filtros expandible */}
       {abierto && (
-        <div style={{
-          padding: '12px 12px 14px',
-          borderTop: '1px solid var(--border)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: 10,
-        }}>
+        <div className={styles.panel}>
           {camposEfectivos.map(c => (
             <FiltroMultiSelect
               key={c.key}
@@ -213,13 +164,27 @@ export default function FiltrosBar({
           ))}
         </div>
       )}
+
+      {activos.length > 0 && (
+        <div className={styles.activos} aria-label="Filtros activos">
+          <span className={styles.activosTitulo}>Filtrando por</span>
+          {activos.map(a => (
+            <span key={a.id} className={styles.chip}>
+              {a.texto}
+              <button type="button" aria-label={`Quitar ${a.texto}`} onClick={a.quitar}>
+                <Icono nombre="cerrar" size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-// Dropdown multi-select: un botón que muestra los valores elegidos como chips
-// removibles (o "Todas" si no hay ninguno), y una lista con checkboxes que se
-// abre debajo. Se cierra al hacer click afuera (ref + listener en document).
+// Dropdown multi-select: un botón que muestra los valores elegidos (o "Todas"
+// si no hay ninguno), y una lista con checkboxes que se abre debajo. Se cierra
+// al hacer click afuera.
 function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQuitar, onSetTodos }) {
   const [abierto, setAbierto] = useState(false)
   const ref = useRef(null)
@@ -233,115 +198,49 @@ function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQui
     return () => document.removeEventListener('mousedown', handler)
   }, [abierto])
 
-  // Si algún valor actualmente seleccionado ya no está entre las opciones
-  // disponibles (por la cascada), se mantiene visible igual para no perder
-  // la selección abruptamente.
+  // Un valor elegido que la cascada ya no ofrece se sigue mostrando, para no
+  // perder la selección de golpe.
   const todasOpciones = useMemo(() => {
     const faltantes = valores.filter(v => !opciones.includes(v))
     return faltantes.length ? [...faltantes, ...opciones].sort() : opciones
   }, [opciones, valores])
 
   return (
-    <div style={{ position: 'relative' }} ref={ref}>
-      <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 4 }}>
-        {label}
-      </div>
-
-      <button
-        type="button"
-        className="input"
-        onClick={() => setAbierto(o => !o)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 4,
-          minHeight: 30,
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-      >
+    <div className={styles.multi} ref={ref}>
+      <div className={styles.multiLabel}>{label}</div>
+      <button type="button" className={`input ${styles.multiBoton}`} onClick={() => setAbierto(o => !o)}>
         {valores.length === 0 ? (
-          <span style={{ color: 'var(--text-muted)' }}>— Todas —</span>
+          <span className={styles.todas}>Todas</span>
         ) : valores.length <= 2 ? (
           valores.map(v => (
-            <span
-              key={v}
-              className="badge badge-info"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%', overflow: 'hidden' }}
-              onClick={e => { e.stopPropagation(); onQuitar(v) }}
-            >
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
-              <span style={{ cursor: 'pointer', fontWeight: 700 }}>✕</span>
+            <span key={v} className="badge badge-info" onClick={e => { e.stopPropagation(); onQuitar(v) }}>
+              <span className={styles.recorte}>{v}</span>
+              <Icono nombre="cerrar" size={11} />
             </span>
           ))
         ) : (
           <span className="badge badge-info">{valores.length} seleccionadas</span>
         )}
-        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 10 }}>▾</span>
+        <span className={styles.flecha}><Icono nombre="abajo" size={14} /></span>
       </button>
 
       {abierto && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 20,
-            marginTop: 2,
-            maxHeight: 220,
-            overflowY: 'auto',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-strong)',
-            borderRadius: 'var(--radius)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            padding: 4,
-          }}
-        >
-          {todasOpciones.length === 0 && (
-            <div style={{ padding: '6px 8px', fontSize: 12, color: 'var(--text-muted)' }}>Sin opciones.</div>
-          )}
+        <div className={styles.lista}>
+          {todasOpciones.length === 0 && <div className={styles.sinOpciones}>Sin opciones.</div>}
           {todasOpciones.length > 0 && (
-            <label
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
-                fontSize: 12, fontWeight: 600, borderRadius: 4, cursor: 'pointer',
-                borderBottom: '1px solid var(--border)', marginBottom: 2,
-              }}
-              onMouseDown={e => e.preventDefault()}
-            >
+            <label className={`${styles.opcion} ${styles.opcionTodos}`} onMouseDown={e => e.preventDefault()}>
               <input
                 type="checkbox"
                 checked={todasOpciones.every(o => valores.includes(o))}
                 onChange={e => onSetTodos(e.target.checked ? todasOpciones : [])}
-                style={{ width: 'var(--control-size)', height: 'var(--control-size)' }}
               />
               <span>Seleccionar todos</span>
             </label>
           )}
           {todasOpciones.map(o => (
-            <label
-              key={o}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '5px 8px',
-                fontSize: 12,
-                borderRadius: 4,
-                cursor: 'pointer',
-              }}
-              onMouseDown={e => e.preventDefault()}
-            >
-              <input
-                type="checkbox"
-                checked={valores.includes(o)}
-                onChange={() => onToggle(o)}
-                style={{ width: 'var(--control-size)', height: 'var(--control-size)' }}
-              />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o}</span>
+            <label key={o} className={styles.opcion} onMouseDown={e => e.preventDefault()}>
+              <input type="checkbox" checked={valores.includes(o)} onChange={() => onToggle(o)} />
+              <span className={styles.recorte}>{o}</span>
             </label>
           ))}
         </div>
