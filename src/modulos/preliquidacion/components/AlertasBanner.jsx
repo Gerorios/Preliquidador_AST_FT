@@ -1,3 +1,5 @@
+import Icono from '../../../core/ui/iconos'
+
 export default function AlertasBanner({
   total, incompletas, duplicados, posiblesDuplicados, alertaLegajo, onFiltrar,
   mensaje, ctaLabel = 'Ver solo alertas →', ctaSubrayada = true,
@@ -14,7 +16,7 @@ export default function AlertasBanner({
       color: 'var(--warn)',
       flexShrink: 0,
     }}>
-      <span>⚠</span>
+      <span><Icono nombre="alerta" size={16} enTexto /></span>
       <span>
         {mensaje ?? (
           <>

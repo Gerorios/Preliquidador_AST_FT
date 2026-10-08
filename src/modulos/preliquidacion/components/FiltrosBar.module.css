@@ -1,0 +1,211 @@
+.barra {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.busqueda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 260px;
+  padding: 0 10px;
+  height: 30px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+}
+
+.busqueda:focus-within { border-color: var(--accent); }
+
+.busqueda input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.busqueda input::placeholder { color: var(--text-muted); }
+
+.contador {
+  background: var(--accent);
+  color: var(--bg-base);
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+.alertas {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-left: 4px;
+}
+
+.alerta {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.alerta:hover { color: var(--text-primary); }
+.alerta.warn { background: var(--warn-dim); border-color: var(--warn); color: var(--warn); }
+.alerta.danger { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+
+.limpiar { margin-left: auto; }
+
+.panel {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+/* Lo que está filtrando ahora */
+.activos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-base);
+}
+
+.activosTitulo {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+}
+
+.chip button {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chip button:hover { background: var(--accent-glow); }
+
+/* Multi-select de cada campo */
+.multi { position: relative; }
+
+.multiLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.multiBoton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 30px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.multiBoton :global(.badge) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.todas { color: var(--text-muted); }
+.flecha { margin-left: auto; color: var(--text-muted); display: inline-flex; }
+
+.recorte {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin-top: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+}
+
+.sinOpciones {
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.opcion:hover { background: var(--bg-hover); }
+
+.opcion input {
+  width: var(--control-size);
+  height: var(--control-size);
+}
+
+.opcionTodos {
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}

@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obtenerLegajosDisponibles } from '../services/preliquidacion'
 import { claves } from '../services/claves'
 import DialogoOpcionExtra from './DialogoOpcionExtra'
+import Icono from '../../../core/ui/iconos'
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados
@@ -180,7 +181,7 @@ export default function PanelLinea({
         {linea.fecha_tarea && (
           <div className={styles.panelFecha}>{linea.fecha_tarea}</div>
         )}
-        <button className={styles.closeBtn} onClick={onCerrar}>✕</button>
+        <button className={styles.closeBtn} onClick={onCerrar} aria-label="Cerrar"><Icono nombre="cerrar" size={16} enTexto /></button>
       </div>
 
       <div className={styles.panelBody}>
@@ -188,10 +189,10 @@ export default function PanelLinea({
         {/* Alertas */}
         {(linea.es_duplicado || linea.es_posible_duplicado || linea.alerta_legajo || linea.linea_incompleta) && (
           <div className={styles.alertaBox}>
-            {linea.es_duplicado     && <div className={styles.alertaItem}>⚠ Línea duplicada</div>}
-            {linea.es_posible_duplicado && <div className={styles.alertaItem}>⚠ Posible duplicado: otra línea igual con distintas horas</div>}
-            {linea.alerta_legajo    && <div className={styles.alertaItem}>⚠ Legajo no validado</div>}
-            {linea.linea_incompleta && <div className={styles.alertaItem}>⚠ Línea incompleta: falta código o precio</div>}
+            {linea.es_duplicado     && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Línea duplicada</div>}
+            {linea.es_posible_duplicado && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Posible duplicado: otra línea igual con distintas horas</div>}
+            {linea.alerta_legajo    && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Legajo no validado</div>}
+            {linea.linea_incompleta && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Línea incompleta: falta código o precio</div>}
           </div>
         )}
 
@@ -286,7 +287,7 @@ export default function PanelLinea({
                   <span className={styles.conceptoImporte}>
                     ${Number(c.importe).toLocaleString('es-AR')}
                   </span>
-                  <button className={styles.conceptoDel} onClick={() => onEliminarConcepto(c.id)}>✕</button>
+                  <button className={styles.conceptoDel} onClick={() => onEliminarConcepto(c.id)} aria-label="Quitar concepto"><Icono nombre="cerrar" size={13} enTexto /></button>
                 </div>
               ))}
             </div>
