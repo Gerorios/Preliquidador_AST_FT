@@ -404,7 +404,17 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
   )
 }
 
+// El selector de quincena navega dentro de esta misma ruta y React Router no
+// vuelve a montar la página: sin `key`, la línea abierta en el panel y el modo
+// de liquidación masiva seguirían siendo de la quincena anterior ("Guardar"
+// editaría esa línea). Filtros, búsqueda y orden viven en useEstadoPantalla y
+// se conservan igual.
 export default function Revision() {
+  const { id } = useParams()
+  return <RevisionQuincena key={id} />
+}
+
+function RevisionQuincena() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
