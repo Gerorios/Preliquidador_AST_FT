@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
@@ -7,19 +7,24 @@ import {
 } from '../services/preliquidacion'
 import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import FiltrosBar from '../components/FiltrosBar'
+import SelectorQuincena from '../components/SelectorQuincena'
 import styles from './CategoriasOperarios.module.css'
+import { useEstadoPantalla } from '../estadoPantallas'
 
 const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 export default function CategoriasOperarios() {
   const qc = useQueryClient()
-  const [preliqId, setPreliqId] = useState(null)
-  const [busqueda, setBusqueda] = useState('')
+  const [elegida, setElegida] = useEstadoPantalla('mantenimiento.quincena', null)
+  const [busqueda, setBusqueda] = useEstadoPantalla('mantenimiento.busqueda', '')
 
   const { data: preliquidaciones = [] } = useQuery({
     queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
   })
+  // Arranca en la quincena más nueva, como el resto de las pantallas.
+  const preliqId = elegida ?? preliquidaciones[0]?.id ?? null
 
   const { data: operarios = [], isLoading } = useQuery({
     queryKey: ['operarios-mantenimiento', preliqId],
@@ -60,40 +65,39 @@ export default function CategoriasOperarios() {
     <div className={styles.page}>
       <div className={styles.topbar}>
         <div className={styles.titulo}>Categorías de operarios de mantenimiento</div>
-        <select
-          className="input"
-          style={{ width: 200 }}
-          value={preliqId || ''}
-          onChange={e => {
-            setPreliqId(e.target.value || null)
-            setBusqueda('')
-          }}
-        >
-          <option value="">— Seleccionar quincena —</option>
-          {preliquidaciones.map(p => (
-            <option key={p.id} value={p.id}>{p.quincena}</option>
-          ))}
-        </select>
       </div>
 
+      <FiltrosBar
+        key={preliqId}
+        datos={operarios}
+        campos={[]}
+        filtros={{}}
+        onChange={() => {}}
+        busqueda={busqueda}
+        onBusqueda={setBusqueda}
+        mostrarAlertas={false}
+        mostrarBusqueda={!!preliqId}
+        placeholderBusqueda="Buscar por nombre, CUIL o legajo..."
+        quincena={(
+          <SelectorQuincena
+            preliquidaciones={preliquidaciones}
+            value={preliqId}
+            onChange={id => { setElegida(id); setBusqueda('') }}
+          />
+        )}
+      />
+
       {!preliqId ? (
-        <div className={styles.empty}>Seleccioná una quincena para asignar categorías.</div>
+        <div className={styles.empty}>Todavía no hay quincenas generadas.</div>
       ) : (
         <>
           <div className={styles.toolbar}>
-            <input
-              className="input"
-              style={{ width: 280 }}
-              placeholder="Buscar por nombre, CUIL o legajo..."
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-            />
             <button
               className="btn btn-sm"
               onClick={() => mutHeredar.mutate()}
               disabled={mutHeredar.isPending}
             >
-              {mutHeredar.isPending ? <><span className="spinner" /> Heredando...</> : '⇩ Heredar de quincena anterior'}
+              {mutHeredar.isPending ? <><span className="spinner" /> Heredando...</> : 'Heredar de quincena anterior'}
             </button>
             <span className={styles.count}>{operariosFiltrados.length} operario(s)</span>
           </div>
