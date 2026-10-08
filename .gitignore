@@ -46,6 +46,14 @@ CLAUDE.local.md
 # Worktrees de Claude Code: copias de trabajo de cada máquina.
 .claude/worktrees/
 
-# Motor de la skill impeccable: lo baja su lanzador la primera vez que corre
-# (IMPECCABLE_HOME en .claude/settings.json), uno por máquina.
-.impeccable/
+# Skill impeccable: de .impeccable/ sólo van a git config.json, design.json y
+# live/config.json (configuración y sistema de diseño del proyecto). Todo lo demás
+# (el motor que el lanzador baja la primera vez, capturas, informes de critique,
+# sesiones, estado de cada máquina) se ignora: es de cada máquina o puede traer
+# datos reales de testing, y el repo es público.
+.impeccable/*
+!.impeccable/config.json
+!.impeccable/design.json
+!.impeccable/live/
+.impeccable/live/*
+!.impeccable/live/config.json

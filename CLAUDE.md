@@ -20,9 +20,11 @@ lo que existe en Claude Code.
 - **Interfaz**: la skill `impeccable` (`.claude/skills/impeccable/`, de pbakaus/impeccable,
   Apache-2.0, copiada tal cual con sus 4 agentes `impeccable-*` y sin sus hooks) es la que
   se usa en todo cambio visual o feature nueva (`AGENTS.md`, "Cambios de interfaz"). Su
-  lanzador baja el motor la primera vez a `.impeccable/`, ignorado por git. Para
-  actualizarla, se reemplaza la carpeta entera por la de un commit nuevo del original, en
-  un PR.
+  lanzador baja el motor la primera vez a `.impeccable/bin/`. De `.impeccable/` sólo se
+  commitean `config.json`, `design.json` y `live/config.json`; todo lo demás se ignora,
+  porque es de cada máquina o puede traer datos reales de `testing` (capturas, informes
+  de `/impeccable critique`, sesiones). Para actualizarla, se reemplaza la carpeta
+  entera por la de un commit nuevo del original, en un PR.
 - **Bitácora**: el agente `bitacora` y `/bitacora` viven en el repo del backend y se corren
   desde allá; el agente también actualiza `docs/estado.md` del backend, y los dos se
   commitean juntos a `main` del backend. Desde acá sólo se pregunta. Dos respaldos
