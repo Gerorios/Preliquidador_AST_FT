@@ -17,6 +17,12 @@ lo que existe en Claude Code.
   `backend_preliquidacion/.claude/skills/flujo-preliquidacion/SKILL.md`. Una sesión abierta
   desde la carpeta de los dos repos la ve; una abierta sólo en este repo no: leer ese
   archivo y seguirlo en lugar de la global.
+- **Interfaz**: la skill `impeccable` (`.claude/skills/impeccable/`, de pbakaus/impeccable,
+  Apache-2.0, copiada tal cual con sus 4 agentes `impeccable-*` y sin sus hooks) es la que
+  se usa en todo cambio visual o feature nueva (`AGENTS.md`, "Cambios de interfaz"). Su
+  lanzador baja el motor la primera vez a `.impeccable/`, ignorado por git. Para
+  actualizarla, se reemplaza la carpeta entera por la de un commit nuevo del original, en
+  un PR.
 - **Bitácora**: el agente `bitacora` y `/bitacora` viven en el repo del backend y se corren
   desde allá; el agente también actualiza `docs/estado.md` del backend, y los dos se
   commitean juntos a `main` del backend. Desde acá sólo se pregunta. Dos respaldos

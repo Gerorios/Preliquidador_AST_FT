@@ -3,7 +3,8 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 
 export default [
-  { ignores: ['dist'] },
+  // La skill impeccable es de terceros y no corre en la app.
+  { ignores: ['dist', '.claude/skills/impeccable'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],
