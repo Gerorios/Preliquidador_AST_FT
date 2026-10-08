@@ -1,4 +1,7 @@
 {
+  "env": {
+    "IMPECCABLE_HOME": ".impeccable"
+  },
   "permissions": {
     "ask": [
       "Bash(ssh *)",

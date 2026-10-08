@@ -45,3 +45,7 @@ CLAUDE.local.md
 
 # Worktrees de Claude Code: copias de trabajo de cada máquina.
 .claude/worktrees/
+
+# Motor de la skill impeccable: lo baja su lanzador la primera vez que corre
+# (IMPECCABLE_HOME en .claude/settings.json), uno por máquina.
+.impeccable/
