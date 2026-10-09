@@ -88,7 +88,7 @@
   border-color: rgba(150, 96, 15, 0.35);
 }
 
-.datos .destacado dd { color: var(--warn); }
+.datos .destacado dd { color: var(--text-primary); }
 
 .cuerpo {
   padding: 16px 22px 20px;
