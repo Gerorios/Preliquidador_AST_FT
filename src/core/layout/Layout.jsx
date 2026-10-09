@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '../authStore'
-import { tienePermiso } from '../permisos'
+import { puedeVer } from '../permisos'
+import { menuDe } from '../accesos'
 import { useRegistro } from '../registroContext'
 import Icono from '../ui/iconos'
 import CargandoOverlay from '../ui/CargandoOverlay'
@@ -26,12 +27,14 @@ export default function Layout({ modulo, marco }) {
   const esGerencial = marco === 'gerencial'
 
   // En el marco gerencial el menú tiene una entrada por módulo con panel
-  // gerencial al que la persona accede (hoy solo Preliquidación).
+  // gerencial que la persona puede ver (hoy solo Preliquidación). En el de un
+  // módulo, las entradas de su menú que puede ver (`menuDe`, la misma regla
+  // que decide el destino de su tarjeta en el Inicio).
   const entradas = esGerencial
     ? MODULOS
-        .filter(m => m.gerencial && tienePermiso(usuario, m.clave, m.gerencial.roles))
+        .filter(m => m.gerencial && puedeVer(usuario, m.clave, m.gerencial.pantalla))
         .map(m => ({ to: m.gerencial.ruta, label: m.nombre, icono: m.icono }))
-    : (modulo?.nav ?? []).filter(n => tienePermiso(usuario, n.modulo, n.roles))
+    : menuDe(modulo, usuario)
 
   const titulo = esGerencial ? 'Gerencial' : (modulo?.nombre ?? '')
 

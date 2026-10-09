@@ -25,8 +25,3 @@ export const puedeEditar = (usuario, modulo, pantalla) => {
 // backend cuando recibe varias).
 export const puedeVerAlguna = (usuario, modulo, pantallas) =>
   (pantallas ?? []).some((pantalla) => puedeVer(usuario, modulo, pantalla))
-
-// Esquema anterior, por módulo y rol (PR 3 etapa 0): sigue mientras las
-// pantallas lo usen y sale cuando pasen a `puedeVer` (plan, pasos 3.2 a 3.4).
-export const tienePermiso = (usuario, modulo, roles) =>
-  !!usuario && (usuario.rol === 'admin' || (roles?.includes(usuario.modulos?.[modulo]) ?? false))
