@@ -1,6 +1,8 @@
 /* Ocupa todo el ancho: con el menú contraído no queda hueco a la derecha. */
 .pantalla {
   min-height: 100%;
+  /* La barra de filtros arranca donde el título (padding de .header). */
+  --filtros-margen: 28px;
 }
 
 .page {
