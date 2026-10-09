@@ -110,8 +110,10 @@
 }
 
 .tipo b { font-family: var(--font-mono); font-weight: 600; }
-.danger { background: var(--danger-dim); color: var(--danger); }
-.warn { background: var(--warn-dim); color: var(--warn); }
+/* Texto chico (12 px): en rojo o ámbar sobre su fondo pálido no llegaba a AA (4,5:1).
+   El texto va en el color normal y el tono queda en el fondo y el borde (como .badge-*). */
+.danger { background: var(--danger-dim); color: var(--text-primary); border: 1px solid rgba(192, 64, 56, 0.35); }
+.warn { background: var(--warn-dim); color: var(--text-primary); border: 1px solid rgba(150, 96, 15, 0.35); }
 
 .filaDetalle,
 .filaDetalle:hover { background: var(--bg-base); cursor: default; }
