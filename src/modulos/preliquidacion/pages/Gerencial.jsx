@@ -112,12 +112,20 @@ export default function Gerencial() {
   // quincena. Colapsados por defecto; la query recién dispara al abrirlos.
   const [controlAbierto, setControlAbierto] = useState({ plantas: false, tancadas: false })
   const enQuincena = modo === 'quincena' && Boolean(quincenaSel)
-  const { data: controlPlantas } = useQuery({
+  const {
+    data: controlPlantas,
+    isLoading: cargandoControlPlantas,
+    isError: errorControlPlantas,
+  } = useQuery({
     queryKey: ['gerencial-control-plantas', quincenaSel],
     queryFn: () => obtenerControlPlantasGerencial(quincenaSel),
     enabled: enQuincena && controlAbierto.plantas,
   })
-  const { data: controlTancadas } = useQuery({
+  const {
+    data: controlTancadas,
+    isLoading: cargandoControlTancadas,
+    isError: errorControlTancadas,
+  } = useQuery({
     queryKey: ['gerencial-control-tancadas', quincenaSel],
     queryFn: () => obtenerControlTancadasGerencial(quincenaSel),
     enabled: enQuincena && controlAbierto.tancadas,
@@ -304,10 +312,15 @@ export default function Gerencial() {
         <button className="btn btn-sm" onClick={() => setControlAbierto(a => ({ ...a, plantas: !a.plantas }))}>
           <Icono nombre={controlAbierto.plantas ? 'abajo' : 'derecha'} size={14} enTexto /> Control Plantas vs Jornal
         </button>
+        {/* Carga y error visibles: si no, una caída se lee como "sin datos" o
+            "el liquidador no cargó el valor hora" (GUIA-MODULOS regla 21). */}
         {controlAbierto.plantas && (
-          enQuincena
-            ? <div style={{ marginTop: 12 }}><PlantasJornal data={controlPlantas} /></div>
-            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+          !enQuincena
+            ? <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+            : cargandoControlPlantas ? <CargandoContenido texto="Cargando el control…" />
+            : errorControlPlantas
+              ? <div className={styles.empty} role="alert">No se pudo cargar el control Plantas vs Jornal. Probá recargar la página.</div>
+              : <div style={{ marginTop: 12 }}><PlantasJornal data={controlPlantas} /></div>
         )}
       </section>
 
@@ -316,9 +329,12 @@ export default function Gerencial() {
           <Icono nombre={controlAbierto.tancadas ? 'abajo' : 'derecha'} size={14} enTexto /> Control Tancadas vs Jornal
         </button>
         {controlAbierto.tancadas && (
-          enQuincena
-            ? <div style={{ marginTop: 12 }}><TancadasJornal data={controlTancadas} /></div>
-            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+          !enQuincena
+            ? <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+            : cargandoControlTancadas ? <CargandoContenido texto="Cargando el control…" />
+            : errorControlTancadas
+              ? <div className={styles.empty} role="alert">No se pudo cargar el control Tancadas vs Jornal. Probá recargar la página.</div>
+              : <div style={{ marginTop: 12 }}><TancadasJornal data={controlTancadas} /></div>
         )}
       </section>
 

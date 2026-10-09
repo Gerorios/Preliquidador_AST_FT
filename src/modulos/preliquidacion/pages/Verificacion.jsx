@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import {
   listarLineas, listarPreliquidaciones, obtenerControlPlantasJornal,
   obtenerControlTancadasJornal, setValorHoraPulv, setValorHoraTractorista,
@@ -128,7 +129,7 @@ export default function Verificacion() {
   // desde Conceptos, Dashboard o una edición en Revisión también llega acá.
   // El filtro de mensualizados es de esta pantalla y se hace abajo, en cliente,
   // sobre la data cruda: por eso no va en un `select` ni cambia la clave.
-  const { data: lineasCrudas = [], isLoading } = useQuery({
+  const { data: lineasCrudas = [], isLoading, isError: errorLineas } = useQuery({
     queryKey: claves.lineas(preliqId),
     queryFn: () => listarLineas(preliqId, {}),
     enabled: !!preliqId,
@@ -155,25 +156,43 @@ export default function Verificacion() {
 
   // El precio por planta sale del pago real congelado (backend): lo que
   // efectivamente se pagó en las líneas, venga del camino que venga.
-  const { data: plantasJornal = { filas: [], totales: {}, valor_hora_tractorista: null } } = useQuery({
+  const {
+    data: plantasJornal = { filas: [], totales: {}, valor_hora_tractorista: null },
+    isLoading: cargandoPlantasJornal,
+    isError: errorPlantasJornal,
+  } = useQuery({
     queryKey: ['control-plantas-jornal', preliqId],
     queryFn: () => obtenerControlPlantasJornal(preliqId),
     enabled: !!preliqId && seccion === 'plantas-jornal',
   })
 
+  // Guardar el valor hora cambia los porcentajes del control: el liquidador
+  // tiene que saber si quedó guardado o no (GUIA-MODULOS regla 21).
   const queryClient = useQueryClient()
   const guardarValorHoraTractorista = useMutation({
     mutationFn: (valor) => setValorHoraTractorista(preliqId, valor),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['control-plantas-jornal', preliqId] }),
+    onSuccess: () => {
+      toast.success('Valor hora guardado')
+      queryClient.invalidateQueries({ queryKey: ['control-plantas-jornal', preliqId] })
+    },
+    onError: err => toast.error(`No se guardó el valor hora: ${err.message}`),
   })
-  const { data: tancadasJornal = { filas: [], totales: {}, valor_hora_pulv: null } } = useQuery({
+  const {
+    data: tancadasJornal = { filas: [], totales: {}, valor_hora_pulv: null },
+    isLoading: cargandoTancadasJornal,
+    isError: errorTancadasJornal,
+  } = useQuery({
     queryKey: ['control-tancadas-jornal', preliqId],
     queryFn: () => obtenerControlTancadasJornal(preliqId),
     enabled: !!preliqId && seccion === 'tancadas-jornal',
   })
   const guardarValorHora = useMutation({
     mutationFn: (valor) => setValorHoraPulv(preliqId, valor),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['control-tancadas-jornal', preliqId] }),
+    onSuccess: () => {
+      toast.success('Valor hora guardado')
+      queryClient.invalidateQueries({ queryKey: ['control-tancadas-jornal', preliqId] })
+    },
+    onError: err => toast.error(`No se guardó el valor hora: ${err.message}`),
   })
 
   // `busqueda` llega ya debounceada desde FiltrosBar (dueña del input):
@@ -243,16 +262,44 @@ export default function Verificacion() {
             })}
           </div>
 
-          {isLoading ? (
+          {/* Un control que no pudo cargar no puede decir "no hay excesos": se
+              avisa el error en lugar de la sección (GUIA-MODULOS regla 21). Plantas y
+              Tancadas vs Jornal tienen su propia consulta: no dependen de las líneas,
+              así que ni su carga ni su error las tapan. */}
+          {seccion === 'plantas-jornal' ? (
+            cargandoPlantasJornal ? <CargandoContenido texto="Cargando el control…" />
+            : errorPlantasJornal ? (
+              <div className={styles.empty} role="alert">
+                No se pudo cargar el control Plantas vs Jornal. Probá recargar la página.
+              </div>
+            ) : (
+              <div className={styles.content}>
+                <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorHoraTractorista.mutate(v)} guardando={guardarValorHoraTractorista.isPending} orden={orden} onOrden={setOrden} />
+              </div>
+            )
+          ) : seccion === 'tancadas-jornal' ? (
+            cargandoTancadasJornal ? <CargandoContenido texto="Cargando el control…" />
+            : errorTancadasJornal ? (
+              <div className={styles.empty} role="alert">
+                No se pudo cargar el control Tancadas vs Jornal. Probá recargar la página.
+              </div>
+            ) : (
+              <div className={styles.content}>
+                <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} orden={orden} onOrden={setOrden} />
+              </div>
+            )
+          ) : isLoading ? (
             <CargandoContenido texto="Cargando líneas…" />
+          ) : errorLineas ? (
+            <div className={styles.empty} role="alert">
+              No se pudieron cargar las líneas de la quincena. Probá recargar la página.
+            </div>
           ) : (
             <div className={styles.content}>
               {seccion === 'horas'         && <ListaExceso titulo="Empleados con más de 13 horas jornal en un mismo día" items={excesoHorasF} unidad="hs" orden={orden} onOrden={setOrden} />}
               {seccion === 'tancadas'      && <ListaExceso titulo="Empleados con más de 35 tancadas en un mismo día" items={excesoTancadasF} unidad="tancadas" orden={orden} onOrden={setOrden} />}
               {seccion === 'plantas'       && <ListaExceso titulo="Empleados con más de 6.000 plantas en un mismo día" items={excesoPlantasF} unidad="plantas" orden={orden} onOrden={setOrden} />}
               {seccion === 'empleados'     && <ResumenEmpleados items={resumenEmpleados} orden={orden} onOrden={setOrden} />}
-              {seccion === 'plantas-jornal'&& <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorHoraTractorista.mutate(v)} guardando={guardarValorHoraTractorista.isPending} orden={orden} onOrden={setOrden} />}
-              {seccion === 'tancadas-jornal'&& <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} orden={orden} onOrden={setOrden} />}
               {seccion === 'posibles-duplicados' && <ListaPosiblesDuplicados items={posiblesDuplicados} orden={orden} onOrden={setOrden} />}
             </div>
           )}
