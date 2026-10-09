@@ -7,6 +7,7 @@ import {
 } from '../services/preliquidacion'
 import { claves } from '../services/claves'
 import FiltrosBar from '../components/FiltrosBar'
+import AvisoError from '../components/AvisoError'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import SelectorQuincena from '../components/SelectorQuincena'
 import TablaOrdenable from '../components/TablaOrdenable'
@@ -227,9 +228,9 @@ export default function Verificacion() {
       {!preliqId && cargandoQuincenas ? (
         <CargandoContenido texto="Cargando quincenas…" />
       ) : !preliqId && errorQuincenas ? (
-        <div className={styles.empty} role="alert">
+        <AvisoError>
           No se pudieron cargar las quincenas. Probá recargar la página.
-        </div>
+        </AvisoError>
       ) : !preliqId ? (
         <div className={styles.empty}>Todavía no hay quincenas generadas.</div>
       ) : (
@@ -269,9 +270,9 @@ export default function Verificacion() {
           {seccion === 'plantas-jornal' ? (
             cargandoPlantasJornal ? <CargandoContenido texto="Cargando el control…" />
             : errorPlantasJornal ? (
-              <div className={styles.empty} role="alert">
+              <AvisoError>
                 No se pudo cargar el control Plantas vs Jornal. Probá recargar la página.
-              </div>
+              </AvisoError>
             ) : (
               <div className={styles.content}>
                 <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorHoraTractorista.mutate(v)} guardando={guardarValorHoraTractorista.isPending} orden={orden} onOrden={setOrden} />
@@ -280,9 +281,9 @@ export default function Verificacion() {
           ) : seccion === 'tancadas-jornal' ? (
             cargandoTancadasJornal ? <CargandoContenido texto="Cargando el control…" />
             : errorTancadasJornal ? (
-              <div className={styles.empty} role="alert">
+              <AvisoError>
                 No se pudo cargar el control Tancadas vs Jornal. Probá recargar la página.
-              </div>
+              </AvisoError>
             ) : (
               <div className={styles.content}>
                 <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} orden={orden} onOrden={setOrden} />
@@ -291,9 +292,9 @@ export default function Verificacion() {
           ) : isLoading ? (
             <CargandoContenido texto="Cargando líneas…" />
           ) : errorLineas ? (
-            <div className={styles.empty} role="alert">
+            <AvisoError>
               No se pudieron cargar las líneas de la quincena. Probá recargar la página.
-            </div>
+            </AvisoError>
           ) : (
             <div className={styles.content}>
               {seccion === 'horas'         && <ListaExceso titulo="Empleados con más de 13 horas jornal en un mismo día" items={excesoHorasF} unidad="hs" orden={orden} onOrden={setOrden} />}

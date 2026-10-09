@@ -8,6 +8,7 @@ import {
 import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import FiltrosBar from '../components/FiltrosBar'
+import AvisoError from '../components/AvisoError'
 import SelectorQuincena from '../components/SelectorQuincena'
 import styles from './CategoriasOperarios.module.css'
 import { useEstadoPantalla } from '../estadoPantallas'
@@ -96,9 +97,9 @@ export default function CategoriasOperarios() {
       {!preliqId && cargandoQuincenas ? (
         <CargandoContenido texto="Cargando quincenas…" />
       ) : !preliqId && errorQuincenas ? (
-        <div className={styles.empty} role="alert">
+        <AvisoError>
           No se pudieron cargar las quincenas. Probá recargar la página.
-        </div>
+        </AvisoError>
       ) : !preliqId ? (
         <div className={styles.empty}>Todavía no hay quincenas generadas.</div>
       ) : (
