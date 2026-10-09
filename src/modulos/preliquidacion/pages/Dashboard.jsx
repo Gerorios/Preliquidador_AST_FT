@@ -74,10 +74,14 @@ export default function Dashboard() {
       <div className={styles.genPanel}>
         <div className={styles.genLabel}>NUEVA QUINCENA</div>
         <div className={styles.genRow}>
+          {/* Mientras carga el listado, la quincena elegida todavía es la del mes en
+              curso (la última generada llega con el listado): un clic temprano
+              generaría la quincena equivocada. Por eso el selector y el botón esperan. */}
           <select
             className="input"
             value={quincena}
             onChange={e => setQuincena(e.target.value)}
+            disabled={isLoading}
             style={{ width: 280 }}
           >
             {opciones.map(o => (
@@ -87,7 +91,7 @@ export default function Dashboard() {
           <button
             className="btn btn-primary"
             onClick={() => generar()}
-            disabled={isPending}
+            disabled={isPending || isLoading}
           >
             {isPending
               ? <><span className="spinner" /> Procesando...</>
