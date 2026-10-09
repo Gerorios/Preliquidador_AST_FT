@@ -852,7 +852,11 @@ export default function Conceptos() {
     setAlcanceNuevo(SCOPE_POR_TAB[tab] ?? 'comun')
   }, [tab])
 
-  const { data: preliquidaciones = [] } = useQuery({
+  const {
+    data: preliquidaciones = [],
+    isLoading: cargandoPreliquidaciones,
+    isError: errorPreliquidaciones,
+  } = useQuery({
     // Misma clave que Dashboard/Verificación: con una clave propia, generar una
     // quincena en el Dashboard no llegaba a este selector hasta el F5.
     queryKey: claves.preliquidaciones,
@@ -862,11 +866,24 @@ export default function Conceptos() {
     enabled: !esGerente,
   })
 
-  const { data: quincenasGerencial = [] } = useQuery({
+  const {
+    data: quincenasGerencial = [],
+    isLoading: cargandoQuincenasGerencial,
+    isError: errorQuincenasGerencial,
+  } = useQuery({
     queryKey: ['gerencial-quincenas'],
     queryFn: listarQuincenasGerencial,
     enabled: esGerente,
   })
+
+  // Carga y error de la lista que corresponde al rol (la query deshabilitada no
+  // cuenta): sin esto, un F5 o una caída del backend se leen como "no hay
+  // quincenas" y "no hay conceptos" (GUIA-MODULOS regla 21).
+  const cargandoQuincenas = esGerente ? cargandoQuincenasGerencial : cargandoPreliquidaciones
+  const errorQuincenas = esGerente ? errorQuincenasGerencial : errorPreliquidaciones
+  // Sin quincena elegida y la lista cargando o caída: el contenido de las solapas
+  // se reemplaza por el aviso (más abajo).
+  const avisoQuincenas = !quincena && (cargandoQuincenas || errorQuincenas)
 
   const { data: quincenasExistentes = [] } = useQuery({
     queryKey: ['quincenas-conceptos'],
@@ -1279,9 +1296,13 @@ export default function Conceptos() {
             onChange={e => { setQuincena(e.target.value); setMostrarCopiar(false); setFiltrosEspecificos({}) }}
             style={{ width: 240 }}
             disabled={quincenasGeneradas.length === 0}>
-            {quincenasGeneradas.length === 0
-              ? <option value="">Sin quincenas generadas</option>
-              : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {quincenasGeneradas.length > 0
+              ? quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)
+              : cargandoQuincenas
+                ? <option value="">Cargando quincenas…</option>
+                : errorQuincenas
+                  ? <option value="">No se pudieron cargar las quincenas</option>
+                  : <option value="">Sin quincenas generadas</option>}
           </select>
         )}
       />
@@ -1331,8 +1352,18 @@ export default function Conceptos() {
         </p>
       )}
 
+      {/* Sin quincena elegida, distinguir carga, error y lista vacía: si no, un F5 o
+          una caída del backend se leen como "no hay conceptos" en cada solapa
+          (GUIA-MODULOS regla 21). Con la lista vacía de verdad, lo de siempre. */}
+      {!quincena && cargandoQuincenas && <CargandoContenido texto="Cargando quincenas…" />}
+      {!quincena && !cargandoQuincenas && errorQuincenas && (
+        <div className={styles.empty} role="alert">
+          No se pudieron cargar las quincenas. Probá recargar la página.
+        </div>
+      )}
+
       {/* Tab 0: Faltantes */}
-      {tab === 0 && (
+      {!avisoQuincenas && tab === 0 && (
         <div className={styles.tabPane}>
           {faltantes.length === 0 ? (
             <div className={styles.emptyOk}>
@@ -1367,7 +1398,7 @@ export default function Conceptos() {
       )}
 
       {/* Tabs 1-4: Comunes / Por cliente / Por finca / Por supervisor */}
-      {tab >= 1 && tab <= 4 && (
+      {!avisoQuincenas && tab >= 1 && tab <= 4 && (
         <div className={styles.tabContent}>
           {/* Nuevo y cantidad (la búsqueda está en la barra común) */}
           <div className={styles.searchBar}>
@@ -1513,7 +1544,7 @@ export default function Conceptos() {
       )}
 
       {/* Tab 5: Panel de precios */}
-      {tab === 5 && (
+      {!avisoQuincenas && tab === 5 && (
         <div className={styles.tabContent}>
 
           {/* Conmutador de vista + (solo en Por regla) barra de precio masivo. */}
