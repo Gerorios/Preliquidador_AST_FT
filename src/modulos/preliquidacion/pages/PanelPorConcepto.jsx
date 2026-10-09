@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import styles from './PanelPorConcepto.module.css'
 import { agruparPorConcepto, etiquetaAlcance } from './agruparPorConcepto'
+import Icono from '../../../core/ui/iconos'
 import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
 
 const fmt = (p) => `$${Number(p).toLocaleString('es-AR')}`
@@ -27,8 +28,8 @@ function CeldaPrecio({ regla, onGuardarPrecio, guardando }) {
         <input className="input input-mono" type="number" style={{ width: 84 }} autoFocus
           value={precio} onChange={e => setPrecio(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setEditando(false) }} />
-        <button className="btn btn-primary btn-sm" onClick={confirmar} disabled={guardando}>✓</button>
-        <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
+        <button className="btn btn-primary btn-sm" onClick={confirmar} disabled={guardando} aria-label="Guardar"><Icono nombre="tilde" size={14} enTexto /></button>
+        <button className="btn btn-sm" onClick={() => setEditando(false)} aria-label="Cancelar"><Icono nombre="cerrar" size={14} enTexto /></button>
       </span>
     )
   }
@@ -135,10 +136,10 @@ function FormAltaCodigo({ tarea, fila, codigo, codigos, quincena, onCrearRegla, 
 
 const TEXTO_ESTADO = (fila) => {
   if (fila.estado === 'informativo') return <span className={styles.info}>solo informativo — no se controla</span>
-  if (fila.estado === 'falta') return <span className={styles.bad}>✗ falta {fila.faltan.join(', ')}</span>
-  if (fila.estado === 'sin_precio') return <span className={styles.wa}>⚠ {fila.sinPrecio.join(', ')} sin precio</span>
-  if (fila.estado === 'sin_codigo') return <span className={styles.wa}>⚠ {fila.sinCodigo} {fila.sinCodigo === 1 ? 'regla' : 'reglas'} sin código</span>
-  return <span className={styles.ok}>✓ completo</span>
+  if (fila.estado === 'falta') return <span className={styles.bad}><Icono nombre="cerrar" size={12} enTexto /> falta {fila.faltan.join(', ')}</span>
+  if (fila.estado === 'sin_precio') return <span className={styles.wa}><Icono nombre="alerta" size={12} enTexto /> {fila.sinPrecio.join(', ')} sin precio</span>
+  if (fila.estado === 'sin_codigo') return <span className={styles.wa}><Icono nombre="alerta" size={12} enTexto /> {fila.sinCodigo} {fila.sinCodigo === 1 ? 'regla' : 'reglas'} sin código</span>
+  return <span className={styles.ok}><Icono nombre="tilde" size={12} enTexto /> completo</span>
 }
 
 export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtros, onGuardarPrecio, guardando, onCrearRegla }) {
@@ -212,7 +213,7 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
                         ? <span className="badge badge-muted" title="Solo alcances informativos: no hay nada que controlar">sin control</span>
                         : <span className="badge badge-green">completo</span>}
               </div>
-              <span className={styles.cardChevron}>{abierta ? '▲' : '▼'}</span>
+              <span className={styles.cardChevron}><Icono nombre={abierta ? 'arriba' : 'abajo'} size={14} enTexto /></span>
             </div>
 
             {abierta && (

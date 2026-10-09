@@ -51,6 +51,23 @@
   flex-shrink: 0;
 }
 
+/* Explicación de cómo se combinan las reglas, arriba de cada solapa. */
+.comoSeCombinan {
+  flex-shrink: 0;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--info-dim);
+  border-radius: var(--radius);
+}
+
+.comoSeCombinan strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 /* ── Barra búsqueda ───────────────────────────────────────────────── */
 .searchBar {
   display: flex;

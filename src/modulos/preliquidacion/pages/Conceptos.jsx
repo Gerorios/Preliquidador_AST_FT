@@ -12,11 +12,14 @@ import { listarQuincenasGerencial } from '../services/gerencial'
 import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import FiltrosBar from '../components/FiltrosBar'
+import Icono from '../../../core/ui/iconos'
+import { formatoQuincena } from './formatoQuincena'
 import PanelPorConcepto from './PanelPorConcepto'
 import useAuthStore from '../../../core/authStore'
 import { tienePermiso } from '../../../core/permisos'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
+import { useEstadoPantalla } from '../estadoPantallas'
 
 // Descriptores de filtro para el Panel de precios y la tab Específicos
 // (FiltrosBar generalizado — ambos filtran por los mismos tres campos).
@@ -78,12 +81,15 @@ const NOMBRE_SCOPE = { 1: 'comunes', 2: 'por cliente', 3: 'por finca', 4: 'por s
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-// Convierte una fecha ISO (YYYY-MM-DD) de quincena en el label amigable
-// "1ra MAY 2026" / "2da MAY 2026" (día 1-15 = 1ra, 16+ = 2da).
-const formatQuincenaLabel = (fechaISO) => {
-  const [y, m, d] = fechaISO.split('-').map(Number)
-  const mes = new Date(y, m - 1, 1).toLocaleString('es-AR', { month: 'short' }).toUpperCase()
-  return `${d <= 15 ? '1ra' : '2da'} ${mes} ${y}`
+// El mismo formato de quincena que el resto de las pantallas.
+const formatQuincenaLabel = formatoQuincena
+
+// Qué alcanza cada tipo de regla, para el texto de arriba de cada solapa.
+const ALCANCE_TEXTO = {
+  1: 'Comunes: valen para toda línea de la tarea, en cualquier cliente y finca.',
+  2: 'Por cliente: valen para la tarea en cualquier finca de ese cliente.',
+  3: 'Por finca: valen para la tarea sólo en esa finca de ese cliente.',
+  4: 'Por supervisor: valen para la tarea cuando la supervisa esa persona.',
 }
 
 const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNERATIVO', categoria: '', reemplaza_comun: false }
@@ -142,7 +148,7 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
       )}
       <div className={styles.rowActions}>
         <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
-        <button className="btn btn-sm btn-danger" onClick={onEliminar}>✕</button>
+        <button className="btn btn-sm btn-danger" onClick={onEliminar} aria-label="Eliminar"><Icono nombre="cerrar" size={14} enTexto /></button>
       </div>
     </div>
   )
@@ -184,8 +190,8 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
         </label>
       )}
       <div className={styles.rowActions} style={{ marginLeft: 0, alignSelf: 'flex-end' }}>
-        <button className="btn btn-primary btn-sm" onClick={guardar}>✓</button>
-        <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
+        <button className="btn btn-primary btn-sm" onClick={guardar} aria-label="Guardar"><Icono nombre="tilde" size={14} enTexto /></button>
+        <button className="btn btn-sm" onClick={() => setEditando(false)} aria-label="Cancelar"><Icono nombre="cerrar" size={14} enTexto /></button>
       </div>
     </div>
   )
@@ -255,7 +261,7 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
             <span className="badge badge-warn">Sin código</span>
           )}
         </div>
-        <span className={styles.cardChevron}>{abierto ? '▲' : '▼'}</span>
+        <span className={styles.cardChevron}><Icono nombre={abierto ? 'arriba' : 'abajo'} size={14} enTexto /></span>
       </div>
 
       {abierto && (
@@ -339,8 +345,8 @@ function FranjaSolapamientos({ items, onVerReglas, onVerEspecificas }) {
   return (
     <div className={styles.franjaSolap} role="status">
       <div className={styles.franjaSolapHead} onClick={() => setAbierta(o => !o)}>
-        <span>⚠ Esta quincena tiene {n} solapamiento{n === 1 ? '' : 's'} por cliente que suma{n === 1 ? '' : 'n'}</span>
-        <span>{abierta ? '▲' : '▼'}</span>
+        <span><Icono nombre="alerta" size={14} enTexto /> Esta quincena tiene {n} solapamiento{n === 1 ? '' : 's'} por cliente que suma{n === 1 ? '' : 'n'}</span>
+        <span><Icono nombre={abierta ? 'arriba' : 'abajo'} size={14} enTexto /></span>
       </div>
       {abierta && items.map(s => (
         <div key={`${s.tarea_nombre}|${s.cliente_nombre}`} className={styles.franjaSolapItem}>
@@ -384,7 +390,7 @@ function DialogoSolapamiento({ solapamiento, candidato, fincaNueva, onCrearSoloF
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="titulo-solap">
       <div className={styles.dialogo}>
         <div id="titulo-solap" className={styles.dialogoTitulo}>
-          ⚠ Esta regla se va a SUMAR a reglas ya existentes
+          <Icono nombre="alerta" size={14} enTexto /> Esta regla se va a SUMAR a reglas ya existentes
         </div>
 
         <div className={styles.dialogoDatos}>
@@ -462,7 +468,7 @@ function DialogoBorraExtras({ mensaje, onConfirmar, onCancelar }) {
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="titulo-borra-extras">
       <div className={styles.dialogo}>
         <div id="titulo-borra-extras" className={styles.dialogoTitulo}>
-          ⚠ Se van a borrar conceptos extra
+          <Icono nombre="alerta" size={14} enTexto /> Se van a borrar conceptos extra
         </div>
 
         <div className={`${styles.dialogoImpacto} ${styles.dialogoImpactoGrave}`}>
@@ -486,7 +492,7 @@ function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
   return (
     <div className={styles.promptOtra}>
       <span>
-        ✓ Regla <b className="mono">{codigo}</b> creada —{' '}
+        <Icono nombre="tilde" size={14} enTexto /> Regla <b className="mono">{codigo}</b> creada —{' '}
         <b>¿Crear otra regla para {combo}?</b>
       </span>
       <span className={styles.promptOtraBotones}>
@@ -580,7 +586,7 @@ function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes
     <>
       <tr className={styles.faltanteRow} onClick={() => { if (reglaCreada != null) { terminarEncadenado(); return } setAbierta(o => !o) }}>
         <td>
-          <span className={styles.faltanteChevron}>{abierta ? '▲' : '▼'}</span>
+          <span className={styles.faltanteChevron}><Icono nombre={abierta ? 'arriba' : 'abajo'} size={14} enTexto /></span>
           {f.tarea_nombre}
         </td>
         <td>{f.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
@@ -736,7 +742,7 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
       <td>
         {fila.reemplaza_comun && (
           <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
-            ✓
+            <Icono nombre="tilde" size={14} enTexto />
           </span>
         )}
       </td>
@@ -751,8 +757,8 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
               value={precio}
               onChange={e => setPrecio(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setEditando(false) }} />
-            <button className="btn btn-primary btn-sm" onClick={confirmar} disabled={guardando}>✓</button>
-            <button className="btn btn-sm" onClick={() => setEditando(false)}>✕</button>
+            <button className="btn btn-primary btn-sm" onClick={confirmar} disabled={guardando} aria-label="Guardar"><Icono nombre="tilde" size={14} enTexto /></button>
+            <button className="btn btn-sm" onClick={() => setEditando(false)} aria-label="Cancelar"><Icono nombre="cerrar" size={14} enTexto /></button>
           </div>
         ) : (
           <span
@@ -777,22 +783,22 @@ export default function Conceptos() {
   // usamos /gerencial/quincenas en su lugar (ver más abajo).
   const { usuario } = useAuthStore()
   const esGerente = !tienePermiso(usuario, 'preliquidacion', ['operador'])
-  const [tab, setTab] = useState(1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
+  const [tab, setTab] = useEstadoPantalla('conceptos.solapa', 1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
   // Solapamiento por cliente pendiente de decisión: el POST respondió 409 y
   // guardamos lo necesario para reintentar (confirmando o como específica).
   const [pendienteSolap, setPendienteSolap] = useState(null)
   // Edición o borrado de regla pendiente de confirmar: el backend respondió
   // 409 borra_extras. { mensaje, vars, mutate } para reintentar con el flag.
   const [pendienteBorraExtras, setPendienteBorraExtras] = useState(null)
-  const [quincena, setQuincena] = useState('')
+  const [quincena, setQuincena] = useEstadoPantalla('conceptos.quincena', '')
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
-  const [busqueda, setBusqueda] = useState('')
-  const [filtrosEspecificos, setFiltrosEspecificos] = useState({})
+  const [busqueda, setBusqueda] = useEstadoPantalla('conceptos.busqueda', '')
+  const [filtrosEspecificos, setFiltrosEspecificos] = useEstadoPantalla('conceptos.filtros', {})
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [reglaCreadaNuevo, setReglaCreadaNuevo] = useState(null)
-  const [filtroCodigoPanel, setFiltroCodigoPanel] = useState('')
-  const [filtrosPanel, setFiltrosPanel] = useState({})
+  const [filtroCodigoPanel, setFiltroCodigoPanel] = useEstadoPantalla('conceptos.codigoPanel', '')
+  const [filtrosPanel, setFiltrosPanel] = useEstadoPantalla('conceptos.filtrosPanel', {})
   // Vista del panel: 'regla' (tabla plana, con selección y precio masivo) o
   // 'concepto' (una fila por alcance, una columna por código — CONTEXT-preliquidacion.md:
   // Concepto completo). Se recuerda la última elegida.
@@ -887,7 +893,7 @@ export default function Conceptos() {
     if (!quincena && quincenasGeneradas.length > 0) {
       setQuincena(quincenasGeneradas[0].value)
     }
-  }, [quincena, quincenasGeneradas])
+  }, [quincena, quincenasGeneradas, setQuincena])
 
   const { data: faltantes = [] } = useQuery({
     queryKey: ['conceptos-faltantes', quincena],
@@ -1076,7 +1082,7 @@ export default function Conceptos() {
       if (data.solapamientos_heredados > 0) {
         const n = data.solapamientos_heredados
         toast(`Atención: ${n} solapamiento${n === 1 ? '' : 's'} por cliente heredado${n === 1 ? '' : 's'}. Revisá la franja de aviso.`,
-          { icon: '⚠', duration: 8000 })
+          { icon: <Icono nombre="alerta" size={16} enTexto />, duration: 8000 })
       }
       setMostrarCopiar(false); setQuincenaOrigen(''); invalidar()
     },
@@ -1235,25 +1241,45 @@ export default function Conceptos() {
 
   const cantGrupos = Object.keys(gruposFiltrados).length
 
+  // Qué muestra la barra común en cada solapa: "Sin concepto" sólo la
+  // quincena; "Comunes" búsqueda por tarea; las por alcance, búsqueda y
+  // filtros; el panel de precios, filtro por código y filtros.
+  const propsBarra = tab === 0
+    ? { datos: [], campos: [], filtros: {}, onChange: () => {}, mostrarBusqueda: false }
+    : tab === 1
+      ? { datos: items, campos: [], filtros: {}, onChange: () => {}, busqueda, onBusqueda: setBusqueda, placeholderBusqueda: 'Buscar tarea...' }
+      : tab <= 4
+        ? { datos: items, campos: CAMPOS_PANEL, filtros: filtrosEspecificos, onChange: setFiltrosEspecificos, busqueda, onBusqueda: setBusqueda, placeholderBusqueda: 'Buscar tarea, cliente, finca, supervisor...' }
+        : { datos: panelPrecios, campos: CAMPOS_PANEL, filtros: filtrosPanel, onChange: setFiltrosPanel, busqueda: filtroCodigoPanel, onBusqueda: setFiltroCodigoPanel, placeholderBusqueda: 'Filtrar por código...' }
+
   return (
     <div className={styles.page}>
       {/* Topbar */}
       <div className={styles.topbar}>
         <span className={styles.title}>Maestro de Conceptos y Precios</span>
-        <select className="input" value={quincena}
-          onChange={e => { setQuincena(e.target.value); setMostrarCopiar(false); setFiltrosEspecificos({}) }}
-          style={{ width: 200 }}
-          disabled={quincenasGeneradas.length === 0}>
-          {quincenasGeneradas.length === 0
-            ? <option value="">— Sin quincenas generadas —</option>
-            : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
         {tab >= 1 && tab <= 4 && (
-          <button className="btn btn-sm" onClick={() => setMostrarCopiar(o => !o)}>
-            ⧉ Copiar de quincena anterior
+          <button className="btn btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setMostrarCopiar(o => !o)}>
+            <Icono nombre="copiar" size={14} /> Copiar de quincena anterior
           </button>
         )}
       </div>
+
+      {/* Barra común: quincena, búsqueda y filtros de la solapa abierta. */}
+      <FiltrosBar
+        key={`${tab}-${quincena}`}
+        {...propsBarra}
+        mostrarAlertas={false}
+        quincena={(
+          <select className="input" aria-label="Quincena" value={quincena}
+            onChange={e => { setQuincena(e.target.value); setMostrarCopiar(false); setFiltrosEspecificos({}) }}
+            style={{ width: 240 }}
+            disabled={quincenasGeneradas.length === 0}>
+            {quincenasGeneradas.length === 0
+              ? <option value="">Sin quincenas generadas</option>
+              : quincenasGeneradas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        )}
+      />
 
       {/* Panel copiar */}
       {mostrarCopiar && (
@@ -1290,12 +1316,22 @@ export default function Conceptos() {
         ))}
       </div>
 
+      {/* Cómo se combinan las reglas (CONTEXT-preliquidacion: los cuatro
+          caminos suman; "Reemplaza al común" apaga las comunes). */}
+      {tab >= 1 && tab <= 4 && (
+        <p className={styles.comoSeCombinan}>
+          <strong>{ALCANCE_TEXTO[tab]}</strong>{' '}
+          Las reglas que coinciden con una línea se suman entre sí. Si una regla que no es común
+          tiene “Reemplaza al común”, a esa línea no se le aplica la común de la tarea.
+        </p>
+      )}
+
       {/* Tab 0: Faltantes */}
       {tab === 0 && (
         <div className={styles.tabPane}>
           {faltantes.length === 0 ? (
             <div className={styles.emptyOk}>
-              ✓ Todas las tareas de esta quincena tienen concepto cargado.
+              <Icono nombre="tilde" size={14} enTexto /> Todas las tareas de esta quincena tienen concepto cargado.
             </div>
           ) : (
             <div className="table-wrap">
@@ -1328,33 +1364,16 @@ export default function Conceptos() {
       {/* Tabs 1-4: Comunes / Por cliente / Por finca / Por supervisor */}
       {tab >= 1 && tab <= 4 && (
         <div className={styles.tabContent}>
-          {/* Barra búsqueda + nuevo */}
+          {/* Nuevo y cantidad (la búsqueda está en la barra común) */}
           <div className={styles.searchBar}>
-            <input className="input" style={{ width: 320 }}
-              placeholder={tab === 1 ? 'Buscar tarea...' : 'Buscar tarea, cliente, finca, supervisor...'}
-              value={busqueda} onChange={e => setBusqueda(e.target.value)} />
             <button className="btn btn-sm btn-primary" onClick={() => { setMostrarNuevo(o => !o); setReglaCreadaNuevo(null) }}>
-              {mostrarNuevo ? '✕ Cancelar' : '+ Nuevo'}
+              {mostrarNuevo ? <><Icono nombre="cerrar" size={14} enTexto /> Cancelar</> : '+ Nuevo'}
             </button>
             <span className={styles.searchCount}>
               {cantGrupos} {NOMBRE_SCOPE[tab]}
             </span>
           </div>
 
-          {/* Filtros multi-select por cliente/finca/supervisor/tarea — solo
-              solapas no-comunes (los comunes solo tienen tarea y el buscador
-              les alcanza). La búsqueda de texto vive en la barra de arriba:
-              mostrarBusqueda=false. */}
-          {tab >= 2 && tab <= 4 && (
-            <FiltrosBar
-              datos={items}
-              campos={CAMPOS_PANEL}
-              filtros={filtrosEspecificos}
-              onChange={setFiltrosEspecificos}
-              mostrarAlertas={false}
-              mostrarBusqueda={false}
-            />
-          )}
 
           {/* Formulario nuevo grupo */}
           {mostrarNuevo && reglaCreadaNuevo != null && (
@@ -1491,18 +1510,6 @@ export default function Conceptos() {
       {/* Tab 5: Panel de precios */}
       {tab === 5 && (
         <div className={styles.tabContent}>
-          {/* Una sola barra de filtros: código (texto) + cliente/finca/tarea
-              (cascada), todo dentro de FiltrosBar. */}
-          <FiltrosBar
-            datos={panelPrecios}
-            campos={CAMPOS_PANEL}
-            filtros={filtrosPanel}
-            onChange={setFiltrosPanel}
-            busqueda={filtroCodigoPanel}
-            onBusqueda={setFiltroCodigoPanel}
-            placeholderBusqueda="Filtrar por código..."
-            mostrarAlertas={false}
-          />
 
           {/* Conmutador de vista + (solo en Por regla) barra de precio masivo. */}
           <div className={styles.searchBar}>
