@@ -1,4 +1,9 @@
+/* Cada pantalla le pasa su margen para que los controles arranquen donde arranca
+   el título: --filtros-margen es el padding lateral de la barra y --filtros-sangria
+   la saca del padding de la pantalla para que vaya a todo el ancho. Los valores por
+   defecto dejan la barra como estaba (16 px, sin sangría). */
 .barra {
+  margin: 0 calc(-1 * var(--filtros-sangria, 0px));
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -8,7 +13,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 8px var(--filtros-margen, 16px);
   flex-wrap: wrap;
 }
 
@@ -74,7 +79,7 @@
 .limpiar { margin-left: auto; }
 
 .panel {
-  padding: 12px 16px 14px;
+  padding: 12px var(--filtros-margen, 16px) 14px;
   border-top: 1px solid var(--border);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -87,7 +92,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 6px 16px 8px;
+  padding: 6px var(--filtros-margen, 16px) 8px;
   border-top: 1px solid var(--border);
   background: var(--bg-base);
 }

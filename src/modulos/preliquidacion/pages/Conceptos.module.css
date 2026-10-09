@@ -3,6 +3,9 @@
   flex-direction: column;
   height: 100%;
   padding: 20px 24px;
+  /* La barra de filtros va a todo el ancho y arranca donde el título. */
+  --filtros-margen: 24px;
+  --filtros-sangria: 24px;
   gap: 14px;
   overflow: hidden;
 }

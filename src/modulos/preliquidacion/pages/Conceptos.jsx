@@ -12,6 +12,7 @@ import { listarQuincenasGerencial } from '../services/gerencial'
 import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import FiltrosBar from '../components/FiltrosBar'
+import AvisoError from '../components/AvisoError'
 import Icono from '../../../core/ui/iconos'
 import { formatoQuincena } from './formatoQuincena'
 import PanelPorConcepto from './PanelPorConcepto'
@@ -1357,9 +1358,9 @@ export default function Conceptos() {
           (GUIA-MODULOS regla 21). Con la lista vacía de verdad, lo de siempre. */}
       {!quincena && cargandoQuincenas && <CargandoContenido texto="Cargando quincenas…" />}
       {!quincena && !cargandoQuincenas && errorQuincenas && (
-        <div className={styles.empty} role="alert">
+        <AvisoError>
           No se pudieron cargar las quincenas. Probá recargar la página.
-        </div>
+        </AvisoError>
       )}
 
       {/* Tab 0: Faltantes */}

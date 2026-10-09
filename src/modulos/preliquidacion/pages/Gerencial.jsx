@@ -10,6 +10,7 @@ import {
 } from '../services/gerencial'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import FiltrosBar from '../components/FiltrosBar'
+import AvisoError from '../components/AvisoError'
 import { useEstadoPantalla } from '../estadoPantallas'
 import { formatoQuincena } from './formatoQuincena'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
@@ -319,7 +320,7 @@ export default function Gerencial() {
             ? <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
             : cargandoControlPlantas ? <CargandoContenido texto="Cargando el control…" />
             : errorControlPlantas
-              ? <div className={styles.empty} role="alert">No se pudo cargar el control Plantas vs Jornal. Probá recargar la página.</div>
+              ? <div style={{ marginTop: 12 }}><AvisoError>No se pudo cargar el control Plantas vs Jornal. Probá recargar la página.</AvisoError></div>
               : <div style={{ marginTop: 12 }}><PlantasJornal data={controlPlantas} /></div>
         )}
       </section>
@@ -333,7 +334,7 @@ export default function Gerencial() {
             ? <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
             : cargandoControlTancadas ? <CargandoContenido texto="Cargando el control…" />
             : errorControlTancadas
-              ? <div className={styles.empty} role="alert">No se pudo cargar el control Tancadas vs Jornal. Probá recargar la página.</div>
+              ? <div style={{ marginTop: 12 }}><AvisoError>No se pudo cargar el control Tancadas vs Jornal. Probá recargar la página.</AvisoError></div>
               : <div style={{ marginTop: 12 }}><TancadasJornal data={controlTancadas} /></div>
         )}
       </section>

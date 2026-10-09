@@ -1,5 +1,8 @@
 .page {
   padding: 24px 32px;
+  /* La barra de filtros va a todo el ancho y arranca donde el título. */
+  --filtros-margen: 32px;
+  --filtros-sangria: 32px;
   display: flex;
   flex-direction: column;
   gap: 16px;
