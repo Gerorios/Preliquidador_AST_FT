@@ -1,6 +1,7 @@
-/* Pantalla de Administración: dos bloques (la lista de usuarios y el alta
-   desde el padrón), cada uno en una .card del design system. Acá solo vive lo
-   que las clases globales de src/index.css no cubren. */
+/* Pantalla de Administración: dos solapas (Usuarios, con la lista y el alta
+   desde el padrón; y Roles, con la lista y el editor), cada bloque en una
+   .card del design system. Acá solo vive lo que las clases globales de
+   src/index.css no cubren. */
 
 .page {
   min-height: 100%;
@@ -263,4 +264,387 @@
   background: var(--danger-dim);
   color: var(--danger);
   font-size: 12px;
+}
+
+/* ---- Solapas ---- */
+
+/* Usan .chip / .chip-active de index.css, como las solapas de Conceptos, un
+   poco más grandes: es la navegación principal de la pantalla. */
+.solapas {
+  display: flex;
+  gap: 6px;
+}
+
+.solapa {
+  padding: 8px 20px;
+  font-size: 13px;
+}
+
+/* El panel oculto conserva su estado (un rol a medio editar) y no se ve. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+/* Foco visible de teclado en los controles propios de la pantalla. */
+.solapa:focus-visible,
+.itemRol:focus-visible,
+.segmentado button:focus-visible,
+.botonCambiar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Columna Roles y su fila de detalle ---- */
+
+.celdaRoles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 380px;
+  white-space: normal;
+}
+
+.veTodo {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cajaRoles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  border: 0;
+  font-size: 12px;
+}
+
+.leyendaRoles {
+  float: left;
+  width: 100%;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.casillasRoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+}
+
+.opcionRol {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.pieRoles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.avisoSinAcceso {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cargandoRoles {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Casillas de roles del alta: el fieldset sin su marco de navegador. */
+.grupoRoles {
+  min-width: 0;
+  border: 0;
+}
+
+.grupoRoles legend {
+  padding: 0;
+}
+
+/* ---- Solapa Roles ---- */
+
+.rolesLayout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .rolesLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.listaRoles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.botonNuevoRol {
+  justify-content: center;
+}
+
+.itemsRoles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 560px;
+  overflow: auto;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-base);
+}
+
+.itemRol {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.itemRol:hover {
+  background: var(--bg-elevated);
+}
+
+/* El elegido se marca con fondo, borde y peso, no sólo con el color. */
+.itemRolActivo,
+.itemRolActivo:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  font-weight: 600;
+  cursor: default;
+}
+
+.nombreRol {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cuentaPersonas {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.columnaEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ---- Editor de un rol ---- */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.campoNombre {
+  display: flex;
+  flex-direction: column;
+  max-width: 360px;
+}
+
+.moduloPermisos {
+  min-width: 0;
+  padding: 0 0 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-base);
+}
+
+.moduloTitulo {
+  margin-left: 10px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.filaPantalla {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 14px;
+}
+
+.filaPantalla + .filaPantalla {
+  border-top: 1px solid var(--border);
+}
+
+.nombrePantalla {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.ayudaPantalla {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Selector Sin acceso / Ver / Editar. El elegido va relleno y en negrita;
+   "Sin acceso" en gris oscuro y Ver o Editar en el verde de acción, así la
+   diferencia no depende sólo del tono. */
+.segmentado {
+  display: inline-flex;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.segmentado button {
+  min-width: 84px;
+  padding: 7px 14px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.segmentado button + button {
+  border-left: 1px solid var(--border-strong);
+}
+
+.segmentado button:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.segmentado .segmentoActivo,
+.segmentado .segmentoActivo:hover {
+  font-weight: 600;
+  color: var(--bg-base);
+  background: var(--accent);
+}
+
+.segmentado .segmentoSinAcceso,
+.segmentado .segmentoSinAcceso:hover {
+  font-weight: 600;
+  color: var(--bg-base);
+  background: var(--text-secondary);
+}
+
+.personas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.personasTitulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.listaPersonas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+}
+
+.persona,
+.personaInactiva {
+  padding: 3px 9px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+}
+
+.persona {
+  color: var(--text-primary);
+}
+
+.personaInactiva {
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
+/* Confirmaciones en línea (guardar un rol en uso, borrar, cambios sin
+   guardar): mismo tono de aviso que la fila de detalle de Usuarios. */
+.confirmacion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--warn-dim);
+}
+
+.pieEditor {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.zonaBorrar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 420px;
+  margin-left: auto;
+}
+
+.motivoBorrar {
+  font-size: 12px;
+  text-align: right;
+  color: var(--text-muted);
 }

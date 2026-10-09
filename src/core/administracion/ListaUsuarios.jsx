@@ -4,18 +4,26 @@ import toast from 'react-hot-toast'
 import CargandoContenido from '../ui/CargandoContenido'
 import Icono from '../ui/iconos'
 import {
-  ROLES_GLOBALES, actualizarModulos, actualizarUsuario, listarUsuarios, resetearPassword,
+  ROLES_GLOBALES, actualizarRolesDeUsuario, actualizarUsuario, listarRoles, listarUsuarios,
+  resetearPassword,
 } from './adminApi'
+import { quedaSinAcceso } from './roles'
 import styles from './Administracion.module.css'
 
 // Con lo que la persona entra al sistema: el CUIL si vino del padrón, el mail
 // para los usuarios anteriores al PR 5, que se crearon a mano.
 const identificador = (u) => u.cuil ?? u.email
 
-// Bloque "Usuarios": la lista completa, con el rol global, los accesos por
-// módulo y las acciones de una fila. No hay borrado a propósito — hay
-// auditoría apuntando a `usuarios`, así que a quien se va se lo desactiva.
-export default function ListaUsuarios({ modulos }) {
+const AVISO_SIN_ACCESO = 'no va a poder entrar hasta que le asignes un rol.'
+
+// Bloque "Usuarios": la lista completa, con el tipo de usuario (la marca
+// global de admin), sus roles y las acciones de una fila. No hay borrado a
+// propósito — hay auditoría apuntando a `usuarios`, así que a quien se va se
+// lo desactiva.
+//
+// Los roles se cambian en una fila de detalle con casillas, como el reset de
+// contraseña a mano: se guardan recién al tocar Guardar, todos juntos.
+export default function ListaUsuarios() {
   const qc = useQueryClient()
   const [filtro, setFiltro] = useState('')
   // Resultado del último reseteo, para mostrar la contraseña una sola vez.
@@ -23,8 +31,11 @@ export default function ListaUsuarios({ modulos }) {
   // Id del usuario sin CUIL al que se le está tipeando una contraseña a mano.
   const [resetManual, setResetManual] = useState(null)
   const [passwordManual, setPasswordManual] = useState('')
+  // Fila de detalle de roles abierta: { id, roles: [ids marcados] }. Una sola
+  // a la vez; abrir otra descarta lo marcado en la anterior.
+  const [cambioRoles, setCambioRoles] = useState(null)
   // Qué filas tienen un pedido en el aire, como claves 'accion:id'. Hace falta
-  // llevarlo aparte porque las tres mutaciones son una sola instancia para toda
+  // llevarlo aparte porque cada mutación es una sola instancia para toda
   // la tabla, y `mutacion.variables` solo recuerda la última invocación: sin
   // esto, tocar la fila B rehabilitaría la fila A con su pedido todavía sin
   // responder. Se guardan repetidos y se saca de a uno, para que dos pedidos
@@ -36,15 +47,9 @@ export default function ListaUsuarios({ modulos }) {
     queryFn: listarUsuarios,
   })
 
-  const clavesActivas = useMemo(() => modulos.map(m => m.clave), [modulos])
-
-  // Un usuario puede tener asignado un módulo que hoy está inactivo (y por eso
-  // no viene en `modulos`). Se muestra, sin selector, para que el acceso no
-  // quede invisible.
-  const hayAccesosInactivos = useMemo(
-    () => usuarios.some(u => Object.keys(u.modulos ?? {}).some(c => !clavesActivas.includes(c))),
-    [usuarios, clavesActivas]
-  )
+  // Los roles que existen, para las casillas de la fila de detalle. Es la
+  // misma consulta que la solapa Roles y el alta.
+  const roles = useQuery({ queryKey: ['admin-roles'], queryFn: listarRoles })
 
   const visibles = useMemo(() => {
     const q = filtro.trim().toLowerCase()
@@ -55,7 +60,12 @@ export default function ListaUsuarios({ modulos }) {
     )
   }, [usuarios, filtro])
 
-  const refrescar = () => qc.invalidateQueries({ queryKey: ['admin-usuarios'] })
+  // La solapa Roles muestra quién tiene cada rol (y si está inactiva): todo
+  // cambio de una persona la afecta también.
+  const refrescar = () => Promise.all([
+    qc.invalidateQueries({ queryKey: ['admin-usuarios'] }),
+    qc.invalidateQueries({ queryKey: ['admin-roles'] }),
+  ])
 
   const tomar = (accion, id) => setEnVuelo(prev => [...prev, `${accion}:${id}`])
   const soltar = (accion, id) => setEnVuelo(prev => {
@@ -70,26 +80,28 @@ export default function ListaUsuarios({ modulos }) {
     mutationFn: ({ id, cambio }) => actualizarUsuario(id, cambio),
     onMutate: ({ id }) => tomar('usuario', id),
     onSettled: (_data, _error, { id }) => soltar('usuario', id),
-    onSuccess: () => {
+    onSuccess: (_data, { advertirSinAcceso }) => {
       toast.success('Usuario actualizado')
+      // Dejar de ser administrador sin tener roles es quedarse afuera.
+      if (advertirSinAcceso) toast(`Ya no es administrador y no tiene roles: ${AVISO_SIN_ACCESO}`)
       refrescar()
     },
     onError: (e) => toast.error(e.message),
   })
 
-  const mutModulos = useMutation({
-    mutationFn: ({ id, mapa }) => actualizarModulos(id, mapa),
-    onMutate: ({ id }) => tomar('modulos', id),
-    onSettled: (_data, _error, { id }) => soltar('modulos', id),
-    onSuccess: (_data, { advertirSinAcceso }) => {
-      toast.success('Accesos actualizados')
-      // Quitar accesos es legítimo, pero que un usuario no-admin quede sin
-      // ningún módulo no puede pasar en silencio: sin módulos no puede
-      // entrar (Login lo rechaza por falta de módulos asignados).
-      if (advertirSinAcceso) {
-        toast('Este usuario se quedó sin acceso a ningún módulo: no va a poder entrar hasta que le asignes uno.')
-      }
-      refrescar()
+  const mutRoles = useMutation({
+    mutationFn: ({ id, roles: ids }) => actualizarRolesDeUsuario(id, ids),
+    onMutate: ({ id }) => tomar('roles', id),
+    onSettled: (_data, _error, { id }) => soltar('roles', id),
+    onSuccess: async (_data, { id, advertirSinAcceso }) => {
+      // Se espera la lista nueva antes de cerrar la fila: el overlay sigue
+      // hasta que las etiquetas muestran lo guardado.
+      await refrescar()
+      setCambioRoles(actual => (actual?.id === id ? null : actual))
+      toast.success('Roles actualizados')
+      // Sacarle todos los roles es legítimo, pero no puede pasar en silencio:
+      // sin roles no entra (el Login no la deja pasar sin tarjetas).
+      if (advertirSinAcceso) toast(`Esta persona se quedó sin roles: ${AVISO_SIN_ACCESO}`)
     },
     onError: (e) => toast.error(e.message),
   })
@@ -111,15 +123,28 @@ export default function ListaUsuarios({ modulos }) {
     onError: (e) => toast.error(e.message),
   })
 
-  // `actualizarModulos` reemplaza el mapa completo, así que se parte del mapa
-  // que el usuario ya tiene: cambiar un módulo no puede borrarle los otros
-  // (incluidos los de módulos hoy inactivos, que no tienen selector).
-  const cambiarModulo = (usuario, clave, rol) => {
-    const mapa = { ...(usuario.modulos ?? {}) }
-    if (rol) mapa[clave] = rol
-    else delete mapa[clave]
-    const advertirSinAcceso = usuario.rol !== 'admin' && Object.keys(mapa).length === 0
-    mutModulos.mutate({ id: usuario.id, mapa, advertirSinAcceso })
+  const cambiarRolGlobal = (usuario, rol) => {
+    const advertirSinAcceso = quedaSinAcceso({ rol }, usuario.roles)
+    // Un administrador no tiene botón "Cambiar": si tenía la fila abierta, se cierra.
+    if (rol === 'admin') setCambioRoles(actual => (actual?.id === usuario.id ? null : actual))
+    mutUsuario.mutate({ id: usuario.id, cambio: { rol }, advertirSinAcceso })
+  }
+
+  const abrirCambioRoles = (usuario) =>
+    setCambioRoles({ id: usuario.id, roles: (usuario.roles ?? []).map(r => r.id) })
+
+  const alternarRol = (rolId) => setCambioRoles(actual => ({
+    ...actual,
+    roles: actual.roles.includes(rolId)
+      ? actual.roles.filter(id => id !== rolId)
+      : [...actual.roles, rolId],
+  }))
+
+  // `actualizarRolesDeUsuario` reemplaza la lista entera: se mandan los
+  // marcados que siguen existiendo, en el orden de la lista de roles.
+  const guardarRoles = (usuario) => {
+    const ids = (roles.data ?? []).map(r => r.id).filter(id => cambioRoles.roles.includes(id))
+    mutRoles.mutate({ id: usuario.id, roles: ids, advertirSinAcceso: quedaSinAcceso(usuario, ids) })
   }
 
   const pedirReset = (usuario) => {
@@ -151,9 +176,8 @@ export default function ListaUsuarios({ modulos }) {
     }
   }
 
-  // Columnas fijas (nombre, identificador, rol, estado, acciones) + una por
-  // módulo activo + la de accesos inactivos si hace falta.
-  const columnas = 5 + modulos.length + (hayAccesosInactivos ? 1 : 0)
+  // Nombre, identificador, tipo de usuario, roles, estado y acciones.
+  const columnas = 6
 
   return (
     <section className={`card ${styles.bloque}`}>
@@ -177,7 +201,7 @@ export default function ListaUsuarios({ modulos }) {
       {isLoading ? (
         <CargandoContenido texto="Cargando usuarios…" />
       ) : isError ? (
-        <div className={styles.error}>No se pudo cargar la lista de usuarios: {error.message}</div>
+        <div className={styles.error} role="alert">No se pudo cargar la lista de usuarios: {error.message}</div>
       ) : visibles.length === 0 ? (
         <div className={styles.vacio}>
           {usuarios.length === 0 ? 'Todavía no hay usuarios.' : 'Ningún usuario coincide con el filtro.'}
@@ -189,18 +213,17 @@ export default function ListaUsuarios({ modulos }) {
               <tr>
                 <th>NOMBRE</th>
                 <th>IDENTIFICADOR</th>
-                <th>ROL EN EL SISTEMA</th>
-                {modulos.map(m => <th key={m.clave}>{m.nombre.toUpperCase()}</th>)}
-                {hayAccesosInactivos && <th>OTROS ACCESOS</th>}
+                <th>TIPO DE USUARIO</th>
+                <th>ROLES</th>
                 <th>ESTADO</th>
                 <th>ACCIONES</th>
               </tr>
             </thead>
             <tbody>
               {visibles.map(u => {
-                const asignados = u.modulos ?? {}
-                const inactivos = Object.entries(asignados)
-                  .filter(([clave]) => !clavesActivas.includes(clave))
+                const esAdmin = u.rol === 'admin'
+                const susRoles = u.roles ?? []
+                const editandoRoles = cambioRoles?.id === u.id
                 return [
                   <tr key={u.id} className={u.activo ? '' : styles.filaInactiva}>
                     <td>{u.nombre}</td>
@@ -208,9 +231,10 @@ export default function ListaUsuarios({ modulos }) {
                     <td>
                       <select
                         className={`input ${styles.selectRol}`}
+                        aria-label={`Tipo de usuario de ${u.nombre}`}
                         value={u.rol}
                         disabled={ocupada('usuario', u.id)}
-                        onChange={e => mutUsuario.mutate({ id: u.id, cambio: { rol: e.target.value } })}
+                        onChange={e => cambiarRolGlobal(u, e.target.value)}
                       >
                         {ROLES_GLOBALES.map(r => (
                           <option key={r.valor} value={r.valor}>{r.etiqueta}</option>
@@ -218,39 +242,33 @@ export default function ListaUsuarios({ modulos }) {
                       </select>
                     </td>
 
-                    {modulos.map(m => (
-                      <td key={m.clave}>
-                        <select
-                          className={`input ${styles.selectRol}`}
-                          value={asignados[m.clave] ?? ''}
-                          disabled={ocupada('modulos', u.id)}
-                          onChange={e => cambiarModulo(u, m.clave, e.target.value)}
-                        >
-                          <option value="">— Sin acceso —</option>
-                          {Object.entries(m.etiquetas_rol ?? {}).map(([rol, etiqueta]) => (
-                            <option key={rol} value={rol}>{etiqueta}</option>
-                          ))}
-                        </select>
-                      </td>
-                    ))}
-
-                    {hayAccesosInactivos && (
-                      <td>
-                        {inactivos.length === 0 ? (
-                          <span className={styles.guion}>—</span>
+                    <td>
+                      <div className={styles.celdaRoles}>
+                        {esAdmin ? (
+                          <span className={styles.veTodo}>Ve todo</span>
+                        ) : susRoles.length === 0 ? (
+                          <span className="badge badge-warn">Sin roles: no puede entrar</span>
                         ) : (
-                          inactivos.map(([clave, rol]) => (
-                            <span
-                              key={clave}
-                              className="badge badge-muted"
-                              title="El módulo está inactivo: el acceso se conserva, pero no se edita desde acá"
-                            >
-                              {clave}: {rol}
-                            </span>
+                          susRoles.map(r => (
+                            <span key={r.id} className="badge badge-info">{r.nombre}</span>
                           ))
                         )}
-                      </td>
-                    )}
+                        {/* Un administrador ve todo: sus roles no cuentan
+                            mientras tenga esa marca. */}
+                        {!esAdmin && (
+                          <button
+                            type="button"
+                            className={`btn btn-sm ${styles.botonCambiar}`}
+                            aria-expanded={editandoRoles}
+                            aria-label={`Cambiar los roles de ${u.nombre}`}
+                            disabled={ocupada('roles', u.id)}
+                            onClick={() => (editandoRoles ? setCambioRoles(null) : abrirCambioRoles(u))}
+                          >
+                            Cambiar
+                          </button>
+                        )}
+                      </div>
+                    </td>
 
                     <td>
                       <span className={`badge ${u.activo ? 'badge-green' : 'badge-muted'}`}>
@@ -279,6 +297,22 @@ export default function ListaUsuarios({ modulos }) {
                       </div>
                     </td>
                   </tr>,
+
+                  editandoRoles && (
+                    <tr key={`${u.id}-roles`} className={styles.filaDetalle}>
+                      <td colSpan={columnas}>
+                        <FilaCambioRoles
+                          usuario={u}
+                          roles={roles}
+                          marcados={cambioRoles.roles}
+                          ocupada={ocupada('roles', u.id)}
+                          onAlternar={alternarRol}
+                          onGuardar={() => guardarRoles(u)}
+                          onCancelar={() => setCambioRoles(null)}
+                        />
+                      </td>
+                    </tr>
+                  ),
 
                   resetManual === u.id && (
                     <tr key={`${u.id}-manual`} className={styles.filaDetalle}>
@@ -350,5 +384,79 @@ export default function ListaUsuarios({ modulos }) {
         </div>
       )}
     </section>
+  )
+}
+
+// Fila de detalle de "Cambiar": una casilla por rol que existe, y Guardar o
+// Cancelar. Nada se guarda hasta tocar Guardar.
+function FilaCambioRoles({ usuario, roles, marcados, ocupada, onAlternar, onGuardar, onCancelar }) {
+  const lista = roles.data ?? []
+  const actuales = (usuario.roles ?? []).map(r => r.id)
+  const sinCambios = actuales.length === marcados.length && actuales.every(id => marcados.includes(id))
+  const sinAcceso = quedaSinAcceso(usuario, marcados)
+
+  if (roles.isLoading) {
+    return (
+      <div className={styles.cajaRoles}>
+        <span className={styles.cargandoRoles}><span className="spinner" /> Cargando roles…</span>
+      </div>
+    )
+  }
+  if (roles.isError) {
+    return (
+      <div className={styles.cajaRoles}>
+        <div className={styles.error} role="alert">
+          No se pudieron cargar los roles: {roles.error.message}
+        </div>
+        <div className={styles.pieRoles}>
+          <button type="button" className="btn btn-sm" onClick={onCancelar}>Cerrar</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <fieldset className={styles.cajaRoles} disabled={ocupada}>
+      <legend className={styles.leyendaRoles}>
+        Roles de <strong>{usuario.nombre}</strong>
+      </legend>
+
+      {lista.length === 0 ? (
+        <span className={styles.nota}>Todavía no hay roles: armalos en la solapa Roles.</span>
+      ) : (
+        <div className={styles.casillasRoles}>
+          {lista.map(r => (
+            <label key={r.id} className={styles.opcionRol}>
+              <input
+                type="checkbox"
+                className={styles.casilla}
+                checked={marcados.includes(r.id)}
+                onChange={() => onAlternar(r.id)}
+              />
+              {r.nombre}
+            </label>
+          ))}
+        </div>
+      )}
+
+      <div className={styles.pieRoles}>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          disabled={sinCambios}
+          onClick={onGuardar}
+        >
+          Guardar
+        </button>
+        <button type="button" className="btn btn-sm" onClick={onCancelar}>
+          Cancelar
+        </button>
+        {sinAcceso && (
+          <span className={styles.avisoSinAcceso}>
+            Sin ningún rol, {usuario.nombre} {AVISO_SIN_ACCESO}
+          </span>
+        )}
+      </div>
+    </fieldset>
   )
 }

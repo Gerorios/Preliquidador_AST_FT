@@ -38,7 +38,7 @@ export default function Login() {
       const tarjetas = tarjetasPara(res.data.usuario)
       if (tarjetas.length === 0) {
         logout()
-        toast.error('Tu usuario no tiene módulos asignados. Pedile al administrador que te habilite uno.')
+        toast.error('Tu usuario todavía no tiene acceso a ninguna pantalla. Pedile al administrador las que necesitás.')
       } else {
         login(res.data.access_token, res.data.usuario)
         toast.success(`Bienvenido, ${res.data.usuario.nombre}`)
