@@ -195,7 +195,7 @@ export default function Gerencial() {
             <div className={styles.kpiDelta}>
               {resumen.variacion_pct != null && (
                 <span className={resumen.variacion_pct >= 0 ? styles.deltaUp : styles.deltaDown}>
-                  <Icono nombre={resumen.variacion_pct >= 0 ? 'arriba' : 'abajo'} size={14} enTexto /> {Math.abs(resumen.variacion_pct).toLocaleString('es-AR')} %
+                  <Icono nombre={resumen.variacion_pct >= 0 ? 'arriba' : 'abajo'} size={14} enTexto /> {resumen.variacion_pct > 0 ? '+' : ''}{resumen.variacion_pct.toLocaleString('es-AR')} %
                 </span>
               )}
               <span className={styles.deltaRef}> vs {compacto(resumen.periodo_anterior.total)} del período anterior</span>
@@ -214,7 +214,7 @@ export default function Gerencial() {
           {indicadores?.variaciones?.costo_hora_pct != null && (
             <div className={styles.kpiDelta}>
               <span className={indicadores.variaciones.costo_hora_pct >= 0 ? styles.deltaUp : styles.deltaDown}>
-                <Icono nombre={indicadores.variaciones.costo_hora_pct >= 0 ? 'arriba' : 'abajo'} size={14} enTexto /> {Math.abs(indicadores.variaciones.costo_hora_pct).toLocaleString('es-AR')} %
+                <Icono nombre={indicadores.variaciones.costo_hora_pct >= 0 ? 'arriba' : 'abajo'} size={14} enTexto /> {indicadores.variaciones.costo_hora_pct > 0 ? '+' : ''}{indicadores.variaciones.costo_hora_pct.toLocaleString('es-AR')} %
               </span>
               <span className={styles.deltaRef}> vs período anterior</span>
             </div>

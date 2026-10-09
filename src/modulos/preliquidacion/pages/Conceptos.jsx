@@ -741,7 +741,7 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
       </td>
       <td>
         {fila.reemplaza_comun && (
-          <span className="badge badge-info" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
+          <span className="badge badge-info" role="img" aria-label="Reemplaza al común" title="Esta línea paga solo lo específico, sin sumar los comunes de la tarea">
             <Icono nombre="tilde" size={14} enTexto />
           </span>
         )}
@@ -794,6 +794,10 @@ export default function Conceptos() {
   const [mostrarCopiar, setMostrarCopiar] = useState(false)
   const [quincenaOrigen, setQuincenaOrigen] = useState('')
   const [busqueda, setBusqueda] = useEstadoPantalla('conceptos.busqueda', '')
+  // FiltrosBar toma la búsqueda sólo al montarse: cuando Conceptos la cambia
+  // desde afuera (solapas, "Ver por cliente") se sube la versión para volver a
+  // montarla. No va atada a la quincena, para no perder el foco del selector.
+  const [versionBarra, setVersionBarra] = useState(0)
   const [filtrosEspecificos, setFiltrosEspecificos] = useEstadoPantalla('conceptos.filtros', {})
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [reglaCreadaNuevo, setReglaCreadaNuevo] = useState(null)
@@ -972,6 +976,7 @@ export default function Conceptos() {
   const verReglasSolap = (s, tabDestino) => {
     setTab(tabDestino)
     setBusqueda(s.tarea_nombre)
+    setVersionBarra(v => v + 1)
     setFiltrosEspecificos({})
     setMostrarNuevo(false)
     setReglaCreadaNuevo(null)
@@ -1266,7 +1271,7 @@ export default function Conceptos() {
 
       {/* Barra común: quincena, búsqueda y filtros de la solapa abierta. */}
       <FiltrosBar
-        key={`${tab}-${quincena}`}
+        key={`${tab}-${versionBarra}`}
         {...propsBarra}
         mostrarAlertas={false}
         quincena={(
@@ -1310,7 +1315,7 @@ export default function Conceptos() {
         {TABS.map((t, i) => (
           <button key={i}
             className={`chip ${tab === i ? (t.alert ? 'chip-alert' : 'chip-active') : ''}`}
-            onClick={() => { setTab(i); setBusqueda(''); setFiltrosEspecificos({}); setMostrarNuevo(false); setReglaCreadaNuevo(null) }}>
+            onClick={() => { setTab(i); setBusqueda(''); setVersionBarra(v => v + 1); setFiltrosEspecificos({}); setMostrarNuevo(false); setReglaCreadaNuevo(null) }}>
             {t.label}
           </button>
         ))}
