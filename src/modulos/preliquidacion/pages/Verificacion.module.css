@@ -55,6 +55,7 @@
   color: var(--text-primary);
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
 .navUmbral {
@@ -63,7 +64,7 @@
   color: var(--text-muted);
 }
 
-.loading, .empty {
+.empty {
   padding: 50px;
   text-align: center;
   color: var(--text-muted);
@@ -88,167 +89,6 @@
   margin-bottom: 10px;
 }
 
-.lista {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.cardHead {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  cursor: pointer;
-}
-
-.cardHead:hover {
-  background: var(--bg-hover);
-}
-
-.cardInfo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-.cardNombre {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cardLegajo {
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.cardFecha {
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.cardValor {
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  color: var(--warn);
-  white-space: nowrap;
-}
-
-.cardChevron {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.cardBody {
-  padding: 10px 14px 14px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-elevated);
-  /* Acotado para que, si el detalle tiene muchas líneas, sea el propio
-     cardBody (no la página) el que scrollea — así el header sticky de
-     abajo tiene un contenedor real contra el cual quedar fijo. */
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.lineasHead {
-  display: grid;
-  grid-template-columns: 1.6fr 1.6fr 1.1fr 0.7fr 0.7fr 0.7fr;
-  gap: 8px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-elevated);
-}
-
-.lineaRow {
-  display: grid;
-  grid-template-columns: 1.6fr 1.6fr 1.1fr 0.7fr 0.7fr 0.7fr;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  padding: 4px 0;
-}
-
-.lineasHeadPosibles {
-  display: grid;
-  grid-template-columns: 1.4fr 1.6fr 1.1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.9fr 1.3fr;
-  gap: 8px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-elevated);
-}
-
-.lineaRowPosibles {
-  display: grid;
-  grid-template-columns: 1.4fr 1.6fr 1.1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.9fr 1.3fr;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  padding: 4px 0;
-}
-
-.lineasHeadEmpleado {
-  display: grid;
-  grid-template-columns: 0.9fr 1.6fr 1.6fr 0.9fr;
-  gap: 8px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-elevated);
-}
-
-.lineaRowEmpleado {
-  display: grid;
-  grid-template-columns: 0.9fr 1.6fr 1.6fr 0.9fr;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  padding: 4px 0;
-}
-
 .lineaMuted {
   color: var(--text-muted);
 }
@@ -259,39 +99,6 @@
   gap: 4px;
   padding: 0 0 6px 0;
   margin-top: -2px;
-}
-
-.resumenStats {
-  display: flex;
-  gap: 18px;
-  flex-shrink: 0;
-}
-
-.statItem {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.statLabel {
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.statValor {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-}
-
-.statValorTotal {
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  color: var(--accent);
 }
 
 .pjTableWrap {
@@ -312,7 +119,7 @@
 
 .pjTable th {
   text-align: left;
-  padding: 8px 10px;
+  padding: 0; /* el relleno lo pone el botón que ordena */
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
   font-size: 11px;

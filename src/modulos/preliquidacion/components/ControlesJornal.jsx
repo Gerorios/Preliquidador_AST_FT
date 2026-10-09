@@ -1,5 +1,44 @@
 import { useState, useEffect } from 'react'
 import styles from '../pages/Verificacion.module.css'
+import { EncabezadoOrdenable } from './TablaOrdenable'
+import { ordenarFilas } from '../pages/ordenarFilas'
+
+// Columnas de cada control: cómo se lee el valor de cada fila para ordenar.
+const COLS_PLANTAS = [
+  { clave: 'cliente', label: 'Cliente', valor: f => f.nombre_cliente },
+  { clave: 'finca', label: 'Finca', valor: f => f.nombre_finca },
+  { clave: 'tarea', label: 'Tarea', valor: f => f.nombre_tarea },
+  { clave: 'precio', label: 'Precio pagado', valor: f => f.precio_promedio, numerica: true },
+  { clave: 'unidades', label: 'Un', valor: f => f.unidades, numerica: true },
+  { clave: 'hs', label: 'Hs', valor: f => f.hs, numerica: true },
+  { clave: 'porHsm', label: 'Plantas/Hsm', valor: f => f.plantas_por_hsm, numerica: true },
+  { clave: 'porHsm8', label: 'Plantas/Hsm×8', valor: f => f.plantas_por_hsm_x8, numerica: true },
+  { clave: 'promJornal', label: 'Prom Jornal', valor: f => f.prom_jornal, numerica: true },
+  { clave: 'jornadas', label: 'Jornadas', valor: f => f.jornadas, numerica: true },
+  { clave: 'totalJornal', label: 'Jornal tractorista', valor: f => f.total_jornal, numerica: true },
+  { clave: 'dif', label: '%Dif', valor: f => f.diff_jornada_pct, numerica: true },
+]
+
+const COLS_TANCADAS = [
+  { clave: 'cliente', label: 'Cliente', valor: f => f.nombre_cliente },
+  { clave: 'finca', label: 'Finca', valor: f => f.nombre_finca },
+  { clave: 'tarea', label: 'Tarea', valor: f => f.nombre_tarea },
+  { clave: 'tancadas', label: 'Tancadas', valor: f => f.tancadas, numerica: true },
+  { clave: 'hsjornal', label: 'Hs jornal', valor: f => f.hsjornal, numerica: true },
+  { clave: 'hsmaquina', label: 'Hs máquina', valor: f => f.hsmaquina, numerica: true },
+  { clave: 'precio', label: 'Precio tancada', valor: f => f.precio, numerica: true },
+  { clave: 'importe', label: 'Importe pagado', valor: f => f.importe_pagado, numerica: true },
+  { clave: 'valorHora', label: 'Valor hs/máquina pulv', valor: f => f.valor_hora_maquina, numerica: true },
+  { clave: 'referencia', label: 'Valor hs pulv × 1,3', valor: f => f.valor_hora_referencia, numerica: true },
+  { clave: 'variacion', label: 'Variación', valor: f => f.variacion, numerica: true },
+]
+
+// El orden lo puede guardar la pantalla (Verificación, para conservarlo al
+// navegar); si no lo pasa (Gerencial), vive en el propio control.
+function useOrden(orden, onOrden) {
+  const [propio, setPropio] = useState(null)
+  return onOrden ? [orden ?? null, onOrden] : [propio, setPropio]
+}
 
 // Controles de pago Plantas vs Jornal y Tancadas vs Jornal, compartidos entre
 // Verificación (liquidador: puede cargar el valor hora vía `onGuardar`) y la
@@ -59,8 +98,10 @@ function BarraValorHora({ etiqueta, valorHora, onGuardar, guardando, avisoFalta 
   )
 }
 
-export function PlantasJornal({ data, onGuardar, guardando }) {
+export function PlantasJornal({ data, onGuardar, guardando, orden: ordenPantalla, onOrden: onOrdenPantalla }) {
+  const [orden, setOrden] = useOrden(ordenPantalla, onOrdenPantalla)
   const filas = data?.filas || []
+  const ordenadas = ordenarFilas(filas, COLS_PLANTAS, orden)
   const totales = data?.totales
 
   return (
@@ -82,15 +123,11 @@ export function PlantasJornal({ data, onGuardar, guardando }) {
         <table className={styles.pjTable}>
           <thead>
             <tr>
-              <th>Cliente</th><th>Finca</th><th>Tarea</th>
-              <th className="mono">Precio pagado</th><th className="mono">Un</th><th className="mono">Hs</th>
-              <th className="mono">Plantas/Hsm</th><th className="mono">Plantas/Hsm×8</th><th className="mono">Prom Jornal</th>
-              <th className="mono">Jornadas</th><th className="mono">Jornal tractorista</th>
-              <th className="mono">%Dif</th>
+              {COLS_PLANTAS.map(c => <EncabezadoOrdenable key={c.clave} columna={c} orden={orden} onOrden={setOrden} />)}
             </tr>
           </thead>
           <tbody>
-            {filas.map((f, i) => (
+            {ordenadas.map((f, i) => (
               <tr key={i}>
                 <td>{f.nombre_cliente}</td><td>{f.nombre_finca}</td><td>{f.nombre_tarea}</td>
                 <td className="mono">{f.precio_promedio.toLocaleString('es-AR')}</td>
@@ -128,8 +165,10 @@ export function PlantasJornal({ data, onGuardar, guardando }) {
   )
 }
 
-export function TancadasJornal({ data, onGuardar, guardando }) {
+export function TancadasJornal({ data, onGuardar, guardando, orden: ordenPantalla, onOrden: onOrdenPantalla }) {
+  const [orden, setOrden] = useOrden(ordenPantalla, onOrdenPantalla)
   const filas = data?.filas || []
+  const ordenadas = ordenarFilas(filas, COLS_TANCADAS, orden)
   const totales = data?.totales
 
   const fmt = (n) => n == null ? '—' : n.toLocaleString('es-AR', { maximumFractionDigits: 2 })
@@ -159,15 +198,11 @@ export function TancadasJornal({ data, onGuardar, guardando }) {
             <table className={styles.pjTable}>
               <thead>
                 <tr>
-                  <th>Cliente</th><th>Finca</th><th>Tarea</th>
-                  <th className="mono">Tancadas</th><th className="mono">Hs jornal</th><th className="mono">Hs máquina</th>
-                  <th className="mono">Precio tancada</th><th className="mono">Importe pagado</th>
-                  <th className="mono">Valor hs/máquina pulv</th><th className="mono">Valor hs pulv × 1,3</th>
-                  <th className="mono">Variación</th>
+                  {COLS_TANCADAS.map(c => <EncabezadoOrdenable key={c.clave} columna={c} orden={orden} onOrden={setOrden} />)}
                 </tr>
               </thead>
               <tbody>
-                {filas.map((f, i) => (
+                {ordenadas.map((f, i) => (
                   <tr key={i}>
                     <td>{f.nombre_cliente}</td><td>{f.nombre_finca}</td><td>{f.nombre_tarea}</td>
                     <td className="mono">{fmt(f.tancadas)}</td>
