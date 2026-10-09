@@ -17,7 +17,11 @@ export default function Layout({ modulo, marco }) {
   const navigate = useNavigate()
   const { usuario, logout } = useAuthStore()
   const { MODULOS } = useRegistro()
-  const [colapsado, setColapsado] = useState(false)
+  const [colapsado, setColapsadoEstado] = useState(leerColapsado)
+  const setColapsado = (valor) => {
+    setColapsadoEstado(valor)
+    guardarColapsado(valor)
+  }
 
   const esGerencial = marco === 'gerencial'
 
@@ -37,7 +41,7 @@ export default function Layout({ modulo, marco }) {
   }
 
   return (
-    <div className={`${styles.shell} ${colapsado ? styles.shellCollapsed : ''}`}>
+    <div className={styles.shell}>
       <CargandoOverlay />
       <aside className={`${styles.sidebar} ${colapsado ? styles.collapsed : ''}`}>
         <NavLink to="/" className={styles.volver} title={colapsado ? 'Módulos' : undefined}>
@@ -102,4 +106,16 @@ export default function Layout({ modulo, marco }) {
       <AsistenteChat />
     </div>
   )
+}
+
+// El menú recuerda si quedó contraído, en este navegador. Si el almacenamiento
+// no está disponible (modo privado, bloqueado), arranca expandido como antes.
+const CLAVE_COLAPSADO = 'menu-contraido'
+
+function leerColapsado() {
+  try { return localStorage.getItem(CLAVE_COLAPSADO) === '1' } catch { return false }
+}
+
+function guardarColapsado(valor) {
+  try { localStorage.setItem(CLAVE_COLAPSADO, valor ? '1' : '0') } catch { /* sin almacenamiento */ }
 }
