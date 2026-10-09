@@ -19,6 +19,8 @@ import SelectorQuincena from '../components/SelectorQuincena'
 import { filtrarLineas, pasaBusquedaYAlertas, CAMPOS_LINEAS } from './filtrarLineas'
 import AlertasBanner from '../components/AlertasBanner'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import useAuthStore from '../../../core/authStore'
+import { puedeVer } from '../../../core/permisos'
 import { alertaDe, siguienteOrden, ordenarLineas } from './ordenarLineas'
 import { totalesLineas } from './totalesLineas'
 import styles from './Revision.module.css'
@@ -418,6 +420,10 @@ function RevisionQuincena() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  // "Ir a Conceptos" sólo si la persona puede abrir Conceptos: si no, la guarda
+  // de la ruta la mandaría al Inicio. El aviso de incompletas se muestra igual.
+  const { usuario } = useAuthStore()
+  const veConceptos = puedeVer(usuario, 'preliquidacion', 'conceptos')
 
   const [filtros, setFiltros] = useEstadoPantalla('revision.filtros', {})
   const [lineaSeleccionada, setLineaSeleccionada] = useState(null)
@@ -609,7 +615,7 @@ function RevisionQuincena() {
             mensaje={<><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</>}
             ctaLabel="Ir a Conceptos →"
             ctaSubrayada={false}
-            onFiltrar={() => navigate('/preliquidacion/conceptos')}
+            onFiltrar={veConceptos ? () => navigate('/preliquidacion/conceptos') : undefined}
           />
         )}
         {stats?.lineas_con_alerta > 0 && stats?.incompletas === 0 && (

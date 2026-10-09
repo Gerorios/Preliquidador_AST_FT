@@ -16,6 +16,8 @@ import Icono from '../../../core/ui/iconos'
 import { filtrarLineas } from './filtrarLineas'
 import { agruparPosiblesDuplicados } from './posiblesDuplicados'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import useAuthStore from '../../../core/authStore'
+import { puedeEditar } from '../../../core/permisos'
 import styles from './Verificacion.module.css'
 import { useEstadoPantalla } from '../estadoPantallas'
 
@@ -108,6 +110,11 @@ export default function Verificacion() {
   // El orden de cada tabla se guarda por sección.
   const [orden, setOrden] = useEstadoPantalla(`verificacion.orden.${seccion}`, null)
   const [filtros, setFiltros] = useEstadoPantalla('verificacion.filtros', {})
+  // Cargar el valor hora es la única escritura de Verificación (el backend la
+  // protege con Editar Verificación). Con sólo Ver, los controles no reciben
+  // `onGuardar` y muestran el valor como texto, igual que en Gerencial.
+  const { usuario } = useAuthStore()
+  const editable = puedeEditar(usuario, 'preliquidacion', 'verificacion')
 
   const {
     data: preliquidaciones = [],
@@ -275,7 +282,7 @@ export default function Verificacion() {
               </AvisoError>
             ) : (
               <div className={styles.content}>
-                <PlantasJornal data={plantasJornal} onGuardar={(v) => guardarValorHoraTractorista.mutate(v)} guardando={guardarValorHoraTractorista.isPending} orden={orden} onOrden={setOrden} />
+                <PlantasJornal data={plantasJornal} onGuardar={editable ? (v) => guardarValorHoraTractorista.mutate(v) : undefined} guardando={guardarValorHoraTractorista.isPending} orden={orden} onOrden={setOrden} />
               </div>
             )
           ) : seccion === 'tancadas-jornal' ? (
@@ -286,7 +293,7 @@ export default function Verificacion() {
               </AvisoError>
             ) : (
               <div className={styles.content}>
-                <TancadasJornal data={tancadasJornal} onGuardar={(v) => guardarValorHora.mutate(v)} guardando={guardarValorHora.isPending} orden={orden} onOrden={setOrden} />
+                <TancadasJornal data={tancadasJornal} onGuardar={editable ? (v) => guardarValorHora.mutate(v) : undefined} guardando={guardarValorHora.isPending} orden={orden} onOrden={setOrden} />
               </div>
             )
           ) : isLoading ? (
