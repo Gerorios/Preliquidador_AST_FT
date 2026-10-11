@@ -43,7 +43,7 @@ function useOrden(orden, onOrden) {
 // Controles de pago Plantas vs Jornal y Tancadas vs Jornal, compartidos entre
 // Verificación (liquidador: puede cargar el valor hora vía `onGuardar`) y la
 // vista gerencial (solo lectura: sin `onGuardar`, el valor se muestra como
-// texto y si falta se avisa que lo carga el liquidador).
+// texto y si falta se avisa que todavía no se cargó).
 
 export const UMBRAL_PROM_JORNAL_ALTO = 50000
 
@@ -91,7 +91,7 @@ function BarraValorHora({ etiqueta, valorHora, onGuardar, guardando, avisoFalta 
         </>
       ) : (
         valorHora == null
-          ? <span className={styles.vhpAviso}>El liquidador todavía no cargó este valor para la quincena.</span>
+          ? <span className={styles.vhpAviso}>Todavía no se cargó este valor para la quincena.</span>
           : <span className="mono">${valorHora.toLocaleString('es-AR')}</span>
       )}
     </div>
