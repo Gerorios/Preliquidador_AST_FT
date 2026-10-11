@@ -150,7 +150,7 @@ export default function EditorRol({
       {confirmando === 'guardar' && (
         <div className={styles.confirmacion} role="alert">
           <span>{textoConfirmacion(personas)}</span>
-          <button type="button" className="btn btn-sm btn-primary" onClick={confirmar}>
+          <button type="button" className="btn btn-sm btn-primary" autoFocus onClick={confirmar}>
             Sí, guardar
           </button>
           <button type="button" className="btn btn-sm" onClick={() => setConfirmando(null)}>
@@ -165,7 +165,7 @@ export default function EditorRol({
           <button type="button" className="btn btn-sm btn-danger" onClick={confirmar}>
             Sí, borrar
           </button>
-          <button type="button" className="btn btn-sm" onClick={() => setConfirmando(null)}>
+          <button type="button" className="btn btn-sm" autoFocus onClick={() => setConfirmando(null)}>
             Cancelar
           </button>
         </div>

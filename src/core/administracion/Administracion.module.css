@@ -126,12 +126,23 @@
   width: 170px;
 }
 
+/* En la tabla de usuarios el select toma el ancho de su texto, con un
+   mínimo, para que la tabla entre en una ventana angosta (~800 px). El del
+   alta conserva su ancho fijo. */
+.tabla .selectRol {
+  width: auto;
+  min-width: 140px;
+}
+
 .guion {
   color: var(--text-muted);
 }
 
+/* Con poco ancho, los botones de una fila bajan a otra línea en lugar de
+   estirar la tabla. */
 .acciones {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -307,7 +318,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  max-width: 380px;
+  max-width: 260px;
   white-space: normal;
 }
 
@@ -456,17 +467,22 @@
 
 .cuentaPersonas {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--text-muted);
   white-space: nowrap;
 }
 
+/* Ancho máximo para que, en un monitor ancho, el nombre de cada pantalla no
+   quede lejos de sus tres opciones. Va en la columna y no en el editor para
+   que el aviso de cambios sin guardar tenga el mismo ancho. Con 640 px el pie
+   (Guardar, Descartar y la zona de borrar con su motivo) entra en una línea. */
 .columnaEditor {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  max-width: 640px;
 }
 
 /* ---- Editor de un rol ---- */
@@ -522,13 +538,14 @@
 }
 
 .ayudaPantalla {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
-/* Selector Sin acceso / Ver / Editar. El elegido va relleno y en negrita;
-   "Sin acceso" en gris oscuro y Ver o Editar en el verde de acción, así la
-   diferencia no depende sólo del tono. */
+/* Selector Sin acceso / Ver / Editar. El elegido va en negrita: Ver o Editar
+   rellenos en el verde de acción, que es lo que el rol da y lo que más se
+   tiene que ver; "Sin acceso" en un tono neutro, con un marco más marcado,
+   así la diferencia no depende sólo del tono. */
 .segmentado {
   display: inline-flex;
   flex-shrink: 0;
@@ -569,8 +586,11 @@
 .segmentado .segmentoSinAcceso,
 .segmentado .segmentoSinAcceso:hover {
   font-weight: 600;
-  color: var(--bg-base);
-  background: var(--text-secondary);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  /* El borde va por dentro (sombra inset) para no correr el ancho del
+     segmento: suma su línea a la del grupo y al separador. */
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .personas {
