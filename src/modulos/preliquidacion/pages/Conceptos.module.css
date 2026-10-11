@@ -296,6 +296,11 @@
   text-decoration: underline;
 }
 
+/* Con sólo Ver: el precio es un dato, sin el color ni el puntero de lo que se edita. */
+.panelPrecioFijo {
+  font-family: var(--font-mono);
+}
+
 .panelPrecioEdit {
   display: flex;
   align-items: center;

@@ -17,10 +17,11 @@ import Icono from '../../../core/ui/iconos'
 import { formatoQuincena } from './formatoQuincena'
 import PanelPorConcepto from './PanelPorConcepto'
 import useAuthStore from '../../../core/authStore'
-import { puedeVerAlguna } from '../../../core/permisos'
+import { puedeVerAlguna, puedeEditar } from '../../../core/permisos'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
 import { useEstadoPantalla } from '../estadoPantallas'
+import { columnasDelPanel, textoSinConceptos, conteoPanel } from './conceptosSoloLectura'
 
 // Descriptores de filtro para el Panel de precios y la tab Específicos
 // (FiltrosBar generalizado — ambos filtran por los mismos tres campos).
@@ -97,7 +98,7 @@ const EMPTY_REGLA = { codigo: '', unidad_base: 'fijo', precio: '', tipo: 'REMUNE
 
 // ─── ReglaRow: fila editable de una regla ────────────────────────────────────
 
-function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
+function ReglaRow({ regla, esComun, editable, onActualizar, onEliminar }) {
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({
     codigo:      regla.codigo ?? '',
@@ -147,10 +148,12 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
           Reemplaza al común
         </span>
       )}
-      <div className={styles.rowActions}>
-        <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
-        <button className="btn btn-sm btn-danger" onClick={onEliminar} aria-label="Eliminar"><Icono nombre="cerrar" size={14} enTexto /></button>
-      </div>
+      {editable && (
+        <div className={styles.rowActions}>
+          <button className="btn btn-sm" onClick={() => setEditando(true)}>Editar</button>
+          <button className="btn btn-sm btn-danger" onClick={onEliminar} aria-label="Eliminar"><Icono nombre="cerrar" size={14} enTexto /></button>
+        </div>
+      )}
     </div>
   )
 
@@ -200,7 +203,7 @@ function ReglaRow({ regla, esComun, onActualizar, onEliminar }) {
 
 // ─── GrupoCard: card colapsable para tarea+cliente+finca ─────────────────────
 
-function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutEliminar }) {
+function GrupoCard({ reglas, quincena, esComun, editable, mutCrear, mutActualizar, mutEliminar }) {
   const [abierto, setAbierto] = useState(false)
   // Un concepto específico nuevo nace con "Reemplaza al común" tildado; los
   // comunes no muestran el checkbox y viajan siempre en false.
@@ -272,13 +275,14 @@ function GrupoCard({ reglas, quincena, esComun, mutCrear, mutActualizar, mutElim
               key={r.id}
               regla={r}
               esComun={esComun}
+              editable={editable}
               onActualizar={(datos) => mutActualizar({ id: r.id, datos })}
               onEliminar={() => mutEliminar({ id: r.id })}
             />
           ))}
 
-          {/* Agregar nueva regla */}
-          {reglaCreada != null ? (
+          {/* Agregar nueva regla (sólo con Editar Conceptos) */}
+          {!editable ? null : reglaCreada != null ? (
             <PromptOtraRegla
               codigo={reglaCreada}
               combo={titulo}
@@ -513,7 +517,7 @@ function PromptOtraRegla({ codigo, combo, onOtra, onListo }) {
 // que el DISTINCT devuelve como filas distintas.
 const claveFaltante = (f) => JSON.stringify([f.tarea_nombre, f.cliente_nombre, f.finca_nombre])
 
-function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
+function FilaFaltante({ f, clave, quincena, todasFaltantes, editable, mutCrearSinFaltantes, onFinEncadenado, supervisores }) {
   const [abierta, setAbierta] = useState(false)
   const [alcance, setAlcance] = useState('finca') // 'comun' | 'cliente' | 'finca' | 'supervisor'
   const [supervisorSel, setSupervisorSel] = useState('')
@@ -585,15 +589,17 @@ function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes
 
   return (
     <>
-      <tr className={styles.faltanteRow} onClick={() => { if (reglaCreada != null) { terminarEncadenado(); return } setAbierta(o => !o) }}>
+      {/* Con sólo Ver la fila es un dato: no se despliega el alta. */}
+      <tr className={editable ? styles.faltanteRow : undefined}
+        onClick={editable ? () => { if (reglaCreada != null) { terminarEncadenado(); return } setAbierta(o => !o) } : undefined}>
         <td>
-          <span className={styles.faltanteChevron}><Icono nombre={abierta ? 'arriba' : 'abajo'} size={14} enTexto /></span>
+          {editable && <span className={styles.faltanteChevron}><Icono nombre={abierta ? 'arriba' : 'abajo'} size={14} enTexto /></span>}
           {f.tarea_nombre}
         </td>
         <td>{f.cliente_nombre || <span className={styles.textoMuted}>— (común)</span>}</td>
         <td>{f.finca_nombre || '—'}</td>
       </tr>
-      {abierta && (
+      {editable && abierta && (
         <tr className={styles.faltanteExpandRow}>
           <td colSpan={3}>
             <div className={styles.faltanteExpand}>
@@ -697,7 +703,7 @@ function FilaFaltante({ f, clave, quincena, todasFaltantes, mutCrearSinFaltantes
 
 // ─── PanelPrecioRow: fila plana editable del Panel de precios ───────────────
 
-function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio, guardando }) {
+function PanelPrecioRow({ fila, editable, seleccionada, onToggleSeleccion, onGuardarPrecio, guardando }) {
   const [editando, setEditando] = useState(false)
   const [precio, setPrecio] = useState(fila.precio ?? '')
 
@@ -715,13 +721,15 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
   const unidadLabel = UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base
 
   return (
-    <tr className={seleccionada ? undefined : styles.filaExcluida}>
-      <td>
-        <input type="checkbox" checked={seleccionada}
-          style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
-          aria-label={`Incluir ${fila.tarea_nombre} en el precio masivo`}
-          onChange={onToggleSeleccion} />
-      </td>
+    <tr className={!editable || seleccionada ? undefined : styles.filaExcluida}>
+      {editable && (
+        <td>
+          <input type="checkbox" checked={seleccionada}
+            style={{ accentColor: 'var(--accent)', width: 17, height: 17, cursor: 'pointer' }}
+            aria-label={`Incluir ${fila.tarea_nombre} en el precio masivo`}
+            onChange={onToggleSeleccion} />
+        </td>
+      )}
       <td title={fila.tarea_nombre}>
         <div className={styles.celdaTruncada}>{fila.tarea_nombre}</div>
       </td>
@@ -761,6 +769,10 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
             <button className="btn btn-primary btn-sm" onClick={confirmar} disabled={guardando} aria-label="Guardar"><Icono nombre="tilde" size={14} enTexto /></button>
             <button className="btn btn-sm" onClick={() => setEditando(false)} aria-label="Cancelar"><Icono nombre="cerrar" size={14} enTexto /></button>
           </div>
+        ) : !editable ? (
+          <span className={styles.panelPrecioFijo}>
+            {fila.precio != null ? `$${Number(fila.precio).toLocaleString('es-AR')}` : <span className={styles.precioVacio}>sin precio</span>}
+          </span>
         ) : (
           <span
             className={styles.panelPrecioValor}
@@ -787,6 +799,10 @@ export default function Conceptos() {
   // /gerencial/quincenas, que también se abre con Conceptos (ver más abajo).
   const { usuario } = useAuthStore()
   const usaListado = puedeVerAlguna(usuario, 'preliquidacion', ['inicio', 'revision', 'verificacion', 'mantenimiento'])
+  // Con sólo Ver Conceptos no hay "+ Nuevo", ni editar o borrar reglas, ni
+  // altas desde "Sin concepto" o el panel, ni precio masivo, ni "Copiar": el
+  // backend responde 403 a todas esas escrituras (`editar_conceptos`).
+  const editable = puedeEditar(usuario, 'preliquidacion', 'conceptos')
   const [tab, setTab] = useEstadoPantalla('conceptos.solapa', 1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
   // Solapamiento por cliente pendiente de decisión: el POST respondió 409 y
   // guardamos lo necesario para reintentar (confirmando o como específica).
@@ -1283,7 +1299,7 @@ export default function Conceptos() {
       {/* Topbar */}
       <div className={styles.topbar}>
         <span className={styles.title}>Maestro de Conceptos y Precios</span>
-        {tab >= 1 && tab <= 4 && (
+        {editable && tab >= 1 && tab <= 4 && (
           <button className="btn btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setMostrarCopiar(o => !o)}>
             <Icono nombre="copiar" size={14} /> Copiar de quincena anterior
           </button>
@@ -1312,7 +1328,7 @@ export default function Conceptos() {
       />
 
       {/* Panel copiar */}
-      {mostrarCopiar && (
+      {editable && mostrarCopiar && (
         <div className={styles.copyPanel}>
           <span className={styles.textoMuted}>Copiar desde:</span>
           <select className="input" value={quincenaOrigen}
@@ -1389,6 +1405,7 @@ export default function Conceptos() {
                       f={f}
                       quincena={quincena}
                       todasFaltantes={faltantes}
+                      editable={editable}
                       mutCrearSinFaltantes={mutCrearSinFaltantes}
                       onFinEncadenado={() => qc.invalidateQueries({ queryKey: ['conceptos-faltantes'] })}
                       supervisores={supervisores}
@@ -1406,9 +1423,11 @@ export default function Conceptos() {
         <div className={styles.tabContent}>
           {/* Nuevo y cantidad (la búsqueda está en la barra común) */}
           <div className={styles.searchBar}>
-            <button className="btn btn-sm btn-primary" onClick={() => { setMostrarNuevo(o => !o); setReglaCreadaNuevo(null) }}>
-              {mostrarNuevo ? <><Icono nombre="cerrar" size={14} enTexto /> Cancelar</> : '+ Nuevo'}
-            </button>
+            {editable && (
+              <button className="btn btn-sm btn-primary" onClick={() => { setMostrarNuevo(o => !o); setReglaCreadaNuevo(null) }}>
+                {mostrarNuevo ? <><Icono nombre="cerrar" size={14} enTexto /> Cancelar</> : '+ Nuevo'}
+              </button>
+            )}
             <span className={styles.searchCount}>
               {cantGrupos} {NOMBRE_SCOPE[tab]}
             </span>
@@ -1416,7 +1435,7 @@ export default function Conceptos() {
 
 
           {/* Formulario nuevo grupo */}
-          {mostrarNuevo && reglaCreadaNuevo != null && (
+          {editable && mostrarNuevo && reglaCreadaNuevo != null && (
             <PromptOtraRegla
               codigo={reglaCreadaNuevo}
               combo={`${formNuevo.tarea_nombre}${formNuevo.cliente_nombre ? ` · ${formNuevo.cliente_nombre}` : ''}${formNuevo.finca_nombre ? ` · ${formNuevo.finca_nombre}` : ''}${formNuevo.supervisor_nombre ? ` · Sup. ${formNuevo.supervisor_nombre}` : ''}`}
@@ -1429,7 +1448,7 @@ export default function Conceptos() {
               }}
             />
           )}
-          {mostrarNuevo && reglaCreadaNuevo == null && (
+          {editable && mostrarNuevo && reglaCreadaNuevo == null && (
             <div className={styles.newGroupForm}>
               <div><div className="field-label">Tarea</div>
                 <select className="input" style={{ width: 220 }} value={formNuevo.tarea_nombre}
@@ -1528,8 +1547,7 @@ export default function Conceptos() {
             {isLoading && <CargandoContenido texto="Cargando conceptos…" />}
             {!isLoading && cantGrupos === 0 && (
               <div className={styles.empty}>
-                No hay conceptos {NOMBRE_SCOPE[tab]} para esta quincena.
-                Usá "+ Nuevo" para agregar.
+                {textoSinConceptos(NOMBRE_SCOPE[tab], editable)}
               </div>
             )}
             {Object.entries(gruposFiltrados).map(([key, reglas]) => (
@@ -1538,6 +1556,7 @@ export default function Conceptos() {
                 reglas={reglas}
                 quincena={quincena}
                 esComun={tab === 1}
+                editable={editable}
                 mutCrear={mutCrear}
                 mutActualizar={mutActualizar}
                 mutEliminar={mutEliminar}
@@ -1551,7 +1570,8 @@ export default function Conceptos() {
       {!avisoQuincenas && tab === 5 && (
         <div className={styles.tabContent}>
 
-          {/* Conmutador de vista + (solo en Por regla) barra de precio masivo. */}
+          {/* Conmutador de vista + (solo en Por regla) barra de precio masivo,
+              que con sólo Ver no aparece: queda el conteo. */}
           <div className={styles.searchBar}>
             <div className={styles.segmented} role="group" aria-label="Vista del panel">
               <button type="button" aria-pressed={vistaPanel === 'regla'}
@@ -1563,20 +1583,27 @@ export default function Conceptos() {
             </div>
             {vistaPanel === 'regla' && (
               <>
-                <input className="input input-mono" type="number" style={{ width: 120 }}
-                  placeholder="$ precio"
-                  value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
-                <button className="btn btn-sm btn-primary"
-                  onClick={handleAplicarPrecioMasivo}
-                  disabled={aplicandoMasivo || panelSeleccionado.length === 0}>
-                  {aplicandoMasivo
-                    ? <><span className="spinner" /> Aplicando...</>
-                    : `Aplicar a la selección (${panelSeleccionado.length} de ${panelFiltrado.length})`}
-                </button>
+                {editable && (
+                  <>
+                    <input className="input input-mono" type="number" style={{ width: 120 }}
+                      placeholder="$ precio"
+                      value={precioMasivo} onChange={e => setPrecioMasivo(e.target.value)} />
+                    <button className="btn btn-sm btn-primary"
+                      onClick={handleAplicarPrecioMasivo}
+                      disabled={aplicandoMasivo || panelSeleccionado.length === 0}>
+                      {aplicandoMasivo
+                        ? <><span className="spinner" /> Aplicando...</>
+                        : `Aplicar a la selección (${panelSeleccionado.length} de ${panelFiltrado.length})`}
+                    </button>
+                  </>
+                )}
                 <span className={styles.searchCount}>
-                  {panelFiltrado.length - panelSeleccionado.length > 0
-                    ? `${panelFiltrado.length - panelSeleccionado.length} destildada(s) conservan su precio`
-                    : `${panelFiltrado.length} de ${panelPrecios.length} conceptos`}
+                  {conteoPanel({
+                    filtradas: panelFiltrado.length,
+                    seleccionadas: panelSeleccionado.length,
+                    total: panelPrecios.length,
+                    editable,
+                  })}
                 </span>
               </>
             )}
@@ -1591,6 +1618,7 @@ export default function Conceptos() {
                   quincena={quincena}
                   filtroCodigo={filtroCodigoPanel}
                   filtros={filtrosPanel}
+                  editable={editable}
                   onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
                   guardando={guardandoPrecioPanel}
                   onCrearRegla={(datos, onSuccess) => mutCrear({ datos, onSuccess, fincaNueva: null })}
@@ -1613,11 +1641,11 @@ export default function Conceptos() {
                 <div className="table-wrap">
                   <table className={styles.panelTable}>
                     <colgroup>
-                      {COLUMNAS_PANEL.map(c => <col key={c.key} style={{ width: anchosPanel[c.key] }} />)}
+                      {columnasDelPanel(COLUMNAS_PANEL, editable).map(c => <col key={c.key} style={{ width: anchosPanel[c.key] }} />)}
                     </colgroup>
                     <thead>
                       <tr>
-                        {COLUMNAS_PANEL.map(c => (
+                        {columnasDelPanel(COLUMNAS_PANEL, editable).map(c => (
                           <th key={c.key} className={styles.thPanel}>
                             {c.key === 'chk' ? (
                               <input type="checkbox"
@@ -1641,6 +1669,7 @@ export default function Conceptos() {
                         <PanelPrecioRow
                           key={fila.id}
                           fila={fila}
+                          editable={editable}
                           seleccionada={!exclusionesPanel.has(fila.id)}
                           onToggleSeleccion={() => toggleSeleccionPanel(fila.id)}
                           onGuardarPrecio={(id, precio) => mutGuardarPrecioPanel({ id, precio })}
