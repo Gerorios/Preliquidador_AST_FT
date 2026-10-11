@@ -13,10 +13,8 @@ const CambiarPassword = lazy(() => import('./core/pages/CambiarPassword'))
 
 // App es el único punto que conoce el registro de módulos: se lo inyecta al
 // núcleo por contexto para que la carpeta core no importe los módulos.
-// `moduloDeRuta` y `etiquetaRol` quedan exportadas en registro.js pero fuera
-// del contexto: hoy nadie en el núcleo las consume (la persona ya no ve su
-// propio rol; `etiquetaRol` sigue viva para cuando haga falta volver a
-// mostrarlo).
+// `moduloDeRuta` queda exportada en registro.js pero fuera del contexto: hoy
+// nadie en el núcleo la consume.
 const REGISTRO = { MODULOS, tarjetasPara, pantallasAsistente, resolverPantalla }
 
 // Redirección que conserva los parámetros de la URL (p. ej. /revision/12 → /preliquidacion/revision/12)
@@ -54,8 +52,8 @@ export default function App() {
           {/* Un marco por módulo activo: su menú y su nombre en la marca. */}
           {MODULOS.map(m => (
             <Route key={m.clave} element={<ProtectedRoute><Layout modulo={m} /></ProtectedRoute>}>
-              {m.rutas.filter(r => r.path !== m.gerencial?.ruta).map(({ path, element, modulo, roles }) => (
-                <Route key={path} path={path} element={<ProtectedRoute modulo={modulo} roles={roles}>{element}</ProtectedRoute>} />
+              {m.rutas.filter(r => r.path !== m.gerencial?.ruta).map(({ path, element, modulo, pantalla }) => (
+                <Route key={path} path={path} element={<ProtectedRoute modulo={modulo} pantalla={pantalla}>{element}</ProtectedRoute>} />
               ))}
             </Route>
           ))}
@@ -64,7 +62,7 @@ export default function App() {
           <Route element={<ProtectedRoute><Layout marco="gerencial" /></ProtectedRoute>}>
             {MODULOS.filter(m => m.gerencial).map(m => {
               const r = m.rutas.find(x => x.path === m.gerencial.ruta)
-              return <Route key={r.path} path={r.path} element={<ProtectedRoute modulo={m.clave} roles={m.gerencial.roles}>{r.element}</ProtectedRoute>} />
+              return <Route key={r.path} path={r.path} element={<ProtectedRoute modulo={m.clave} pantalla={m.gerencial.pantalla}>{r.element}</ProtectedRoute>} />
             })}
           </Route>
 

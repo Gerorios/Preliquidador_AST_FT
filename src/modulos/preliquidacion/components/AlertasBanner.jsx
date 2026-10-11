@@ -28,15 +28,19 @@ export default function AlertasBanner({
           </>
         )}
       </span>
-      <button
-        onClick={onFiltrar}
-        style={ctaSubrayada
-          ? { marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--warn)', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', padding: 0 }
-          : { marginLeft: 'auto', background: 'var(--warn)', border: 'none', color: 'var(--bg-base)', cursor: 'pointer', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)' }
-        }
-      >
-        {ctaLabel}
-      </button>
+      {/* Sin `onFiltrar` el aviso queda sin botón (Revisión lo usa cuando la
+          persona no puede abrir la pantalla a la que lleva). */}
+      {onFiltrar && (
+        <button
+          onClick={onFiltrar}
+          style={ctaSubrayada
+            ? { marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--warn)', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', padding: 0 }
+            : { marginLeft: 'auto', background: 'var(--warn)', border: 'none', color: 'var(--bg-base)', cursor: 'pointer', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-sm)' }
+          }
+        >
+          {ctaLabel}
+        </button>
+      )}
     </div>
   )
 }

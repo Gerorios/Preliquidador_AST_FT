@@ -17,7 +17,7 @@ import Icono from '../../../core/ui/iconos'
 import { formatoQuincena } from './formatoQuincena'
 import PanelPorConcepto from './PanelPorConcepto'
 import useAuthStore from '../../../core/authStore'
-import { tienePermiso } from '../../../core/permisos'
+import { puedeVerAlguna } from '../../../core/permisos'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
 import { useEstadoPantalla } from '../estadoPantallas'
@@ -778,12 +778,15 @@ function PanelPrecioRow({ fila, seleccionada, onToggleSeleccion, onGuardarPrecio
 
 export default function Conceptos() {
   const qc = useQueryClient()
-  // El gerente opera esta pantalla igual que admin/operador (el backend ya le
-  // permite las mutaciones). Lo único vedado es /api/preliquidacion/... (403),
-  // así que su selector de quincenas no puede salir de listarPreliquidaciones:
-  // usamos /gerencial/quincenas en su lugar (ver más abajo).
+  // El selector de quincenas sale del listado de preliquidaciones
+  // (/api/preliquidacion/) sólo si la persona puede pedirlo: el backend lo
+  // protege con `ver_quincenas` (app/modulos/preliquidacion/permisos.py), que
+  // pide ver Inicio, Revisión, Verificación o Mantenimiento. Son las mismas
+  // pantallas de acá: si cambian allá, cambian acá. Quien ve Conceptos sin
+  // ninguna de ellas recibiría 403, así que su selector sale de
+  // /gerencial/quincenas, que también se abre con Conceptos (ver más abajo).
   const { usuario } = useAuthStore()
-  const esGerente = !tienePermiso(usuario, 'preliquidacion', ['operador'])
+  const usaListado = puedeVerAlguna(usuario, 'preliquidacion', ['inicio', 'revision', 'verificacion', 'mantenimiento'])
   const [tab, setTab] = useEstadoPantalla('conceptos.solapa', 1)        // 0=faltantes 1=comunes 2=por cliente 3=por finca 4=por supervisor 5=panel de precios
   // Solapamiento por cliente pendiente de decisión: el POST respondió 409 y
   // guardamos lo necesario para reintentar (confirmando o como específica).
@@ -862,9 +865,9 @@ export default function Conceptos() {
     // quincena en el Dashboard no llegaba a este selector hasta el F5.
     queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
-    // El endpoint de preliquidaciones le da 403 al gerente: para ese rol el
-    // selector sale de /gerencial/quincenas (ver query de abajo).
-    enabled: !esGerente,
+    // Sin ver ninguna de esas pantallas el endpoint responde 403: el selector
+    // sale de /gerencial/quincenas (ver query de abajo).
+    enabled: usaListado,
   })
 
   const {
@@ -874,14 +877,14 @@ export default function Conceptos() {
   } = useQuery({
     queryKey: ['gerencial-quincenas'],
     queryFn: listarQuincenasGerencial,
-    enabled: esGerente,
+    enabled: !usaListado,
   })
 
-  // Carga y error de la lista que corresponde al rol (la query deshabilitada no
+  // Carga y error de la lista que corresponde a la persona (la query deshabilitada no
   // cuenta): sin esto, un F5 o una caída del backend se leen como "no hay
   // quincenas" y "no hay conceptos" (GUIA-MODULOS regla 21).
-  const cargandoQuincenas = esGerente ? cargandoQuincenasGerencial : cargandoPreliquidaciones
-  const errorQuincenas = esGerente ? errorQuincenasGerencial : errorPreliquidaciones
+  const cargandoQuincenas = usaListado ? cargandoPreliquidaciones : cargandoQuincenasGerencial
+  const errorQuincenas = usaListado ? errorPreliquidaciones : errorQuincenasGerencial
   // Sin quincena elegida y la lista cargando o caída: el contenido de las solapas
   // se reemplaza por el aviso (más abajo).
   const avisoQuincenas = !quincena && (cargandoQuincenas || errorQuincenas)
@@ -893,7 +896,7 @@ export default function Conceptos() {
 
   // Quincenas realmente generadas (deduplicadas, más reciente primero).
   const quincenasGeneradas = useMemo(() => {
-    if (esGerente) {
+    if (!usaListado) {
       return [...quincenasGerencial]
         .sort((a, b) => b.localeCompare(a))
         .map(q => ({ value: q, label: formatQuincenaLabel(q) }))
@@ -908,7 +911,7 @@ export default function Conceptos() {
     }
     lista.sort((a, b) => b.value.localeCompare(a.value))
     return lista
-  }, [preliquidaciones, quincenasGerencial, esGerente])
+  }, [preliquidaciones, quincenasGerencial, usaListado])
 
   // Arranca en la quincena generada más reciente apenas llega la data.
   useEffect(() => {

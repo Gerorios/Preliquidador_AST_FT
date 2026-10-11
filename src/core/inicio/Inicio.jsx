@@ -64,7 +64,7 @@ export default function Inicio() {
         {tarjetas.length === 0 ? (
           <div className={styles.vacio}>
             <p>
-              Tu usuario no tiene módulos asignados. Pedile al administrador que te habilite uno.
+              Tu usuario todavía no tiene acceso a ninguna pantalla. Pedile al administrador las que necesitás.
             </p>
           </div>
         ) : (

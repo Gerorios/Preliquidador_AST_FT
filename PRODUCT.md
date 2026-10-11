@@ -8,12 +8,22 @@ web
 
 ## Users
 
-- **Preliquidador** (rol `operador` en el código): personal de liquidación de sueldos y
-  contadores. Prepara cada quincena: genera la preliquidación, resuelve las líneas
-  incompletas o con alerta, carga conceptos y precios, controla y exporta.
+Lo que cada persona puede hacer lo dan sus roles. Un rol es un conjunto de permisos con
+nombre que arma el admin desde Administración, y cada permiso es Ver o Editar una pantalla.
+Una persona puede tener varios roles y sus permisos se suman. Nadie ve sus roles: ve las
+pantallas que tiene y, en las que sólo puede ver, no encuentra los botones de cambiar.
+
+Los tres roles iniciales copian el acceso de antes:
+
+- **Preliquidador**: personal de liquidación de sueldos y contadores. Prepara cada
+  quincena: genera la preliquidación, resuelve las líneas incompletas o con alerta, carga
+  conceptos y precios, controla y exporta.
 - **Gerente**: mira la Vista gerencial (sólo lectura) y maneja el maestro de Conceptos,
   porque muchas veces es quien decide un cambio de precios.
-- **Admin**: rol global; administra usuarios. El usuario es el CUIL.
+- **Liquidador de terceros**: trabaja en el módulo Terceros.
+
+Aparte de los roles, el **Admin** es una marca global: ve y edita todo y administra
+usuarios y roles. El usuario es el CUIL.
 
 Hoy son hasta 5 personas, personal administrativo en oficina, con PC de escritorio. Son
 usuarios que necesitan señales claras; el sistema se pensó para gente mayor y poco
