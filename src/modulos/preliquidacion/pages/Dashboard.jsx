@@ -9,6 +9,8 @@ import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import { desgloseAlertas } from './desgloseAlertas'
 import Icono from '../../../core/ui/iconos'
+import useAuthStore from '../../../core/authStore'
+import { puedeEditar, puedeVer } from '../../../core/permisos'
 import styles from './Dashboard.module.css'
 
 const QUINCENAS = () => {
@@ -28,6 +30,14 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [elegida, setQuincena] = useState(null)
+  // Generar es la escritura de esta pantalla (el backend la protege con Editar
+  // Inicio) y abrir una quincena lleva a Revisión, que es otra pantalla. Con
+  // sólo Ver, el Inicio queda como historial: sin panel de generación y, si
+  // tampoco ve Revisión, sin filas que se abran.
+  const { usuario } = useAuthStore()
+  const puedeGenerar = puedeEditar(usuario, 'preliquidacion', 'inicio')
+  const puedeAbrir = puedeVer(usuario, 'preliquidacion', 'revision')
+  const abrir = (id) => navigate(`/preliquidacion/revision/${id}`)
 
   const { data: preliquidaciones = [], isLoading } = useQuery({
     queryKey: claves.preliquidaciones,
@@ -66,45 +76,55 @@ export default function Dashboard() {
       <header className={styles.header}>
         <div>
           <h1>Preliquidaciones</h1>
-          <p className={styles.sub}>Seleccioná una quincena para generar o continuar</p>
+          <p className={styles.sub}>
+            {puedeGenerar && puedeAbrir
+              ? 'Seleccioná una quincena para generar o continuar'
+              : puedeGenerar
+                ? 'Seleccioná una quincena para generar'
+                : puedeAbrir
+                  ? 'Abrí una quincena del historial para revisarla'
+                  : 'Historial de quincenas generadas'}
+          </p>
         </div>
       </header>
 
-      {/* Panel de generación */}
-      <div className={styles.genPanel}>
-        <div className={styles.genLabel}>NUEVA QUINCENA</div>
-        <div className={styles.genRow}>
-          {/* Mientras carga el listado, la quincena elegida todavía es la del mes en
-              curso (la última generada llega con el listado): un clic temprano
-              generaría la quincena equivocada. Por eso el selector y el botón esperan. */}
-          <select
-            className="input"
-            value={quincena}
-            onChange={e => setQuincena(e.target.value)}
-            disabled={isLoading}
-            style={{ width: 280 }}
-          >
-            {opciones.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-          <button
-            className="btn btn-primary"
-            onClick={() => generar()}
-            disabled={isPending || isLoading}
-          >
-            {isPending
-              ? <><span className="spinner" /> Procesando...</>
-              : <><Icono nombre="generar" size={14} enTexto /> Generar / Actualizar</>
-            }
-          </button>
-        </div>
-        {isPending && (
-          <div className={styles.procesando}>
-            Consultando datos de campo y aplicando reglas... esto puede tardar unos segundos.
+      {/* Panel de generación: sólo con Editar Inicio. */}
+      {puedeGenerar && (
+        <div className={styles.genPanel}>
+          <div className={styles.genLabel}>NUEVA QUINCENA</div>
+          <div className={styles.genRow}>
+            {/* Mientras carga el listado, la quincena elegida todavía es la del mes en
+                curso (la última generada llega con el listado): un clic temprano
+                generaría la quincena equivocada. Por eso el selector y el botón esperan. */}
+            <select
+              className="input"
+              value={quincena}
+              onChange={e => setQuincena(e.target.value)}
+              disabled={isLoading}
+              style={{ width: 280 }}
+            >
+              {opciones.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <button
+              className="btn btn-primary"
+              onClick={() => generar()}
+              disabled={isPending || isLoading}
+            >
+              {isPending
+                ? <><span className="spinner" /> Procesando...</>
+                : <><Icono nombre="generar" size={14} enTexto /> Generar / Actualizar</>
+              }
+            </button>
           </div>
-        )}
-      </div>
+          {isPending && (
+            <div className={styles.procesando}>
+              Consultando datos de campo y aplicando reglas... esto puede tardar unos segundos.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabla de preliquidaciones */}
       <div className={styles.tableSection}>
@@ -122,7 +142,7 @@ export default function Dashboard() {
                   <th>TOTAL LÍNEAS</th>
                   <th>ALERTAS</th>
                   <th></th>
-                  <th></th>
+                  {puedeAbrir && <th></th>}
                 </tr>
               </thead>
               <tbody>
@@ -131,7 +151,10 @@ export default function Dashboard() {
                   const estaAbierta = abierta === p.id
                   return (
                     <Fragment key={p.id}>
-                      <tr onClick={() => navigate(`/preliquidacion/revision/${p.id}`)}>
+                      <tr
+                        onClick={puedeAbrir ? () => abrir(p.id) : undefined}
+                        className={puedeAbrir ? undefined : styles.filaSinAbrir}
+                      >
                         <td className="mono">{formatQuincena(p.quincena)}</td>
                         <td className="mono">{p.total_lineas}</td>
                         <td>
@@ -161,18 +184,20 @@ export default function Dashboard() {
                             </button>
                           )}
                         </td>
-                        <td>
-                          <button
-                            className="btn btn-sm"
-                            onClick={e => { e.stopPropagation(); navigate(`/preliquidacion/revision/${p.id}`) }}
-                          >
-                            Abrir →
-                          </button>
-                        </td>
+                        {puedeAbrir && (
+                          <td>
+                            <button
+                              className="btn btn-sm"
+                              onClick={e => { e.stopPropagation(); abrir(p.id) }}
+                            >
+                              Abrir →
+                            </button>
+                          </td>
+                        )}
                       </tr>
                       {estaAbierta && (
                         <tr className={styles.filaDetalle}>
-                          <td colSpan={5}>
+                          <td colSpan={puedeAbrir ? 5 : 4}>
                             <ul className={styles.detalle}>
                               {desglose.map(d => (
                                 <li key={d.clave}>

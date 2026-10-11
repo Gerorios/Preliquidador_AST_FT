@@ -87,6 +87,14 @@
 .falta:hover, .falta:focus-visible { outline: 2px solid var(--danger); outline-offset: 1px; }
 .sinPrecio { display: inline-block; color: var(--warn); background: var(--warn-dim); border-radius: var(--radius-sm); padding: 2px 8px; font-size: 12px; font-weight: 500; cursor: pointer; }
 .na { color: var(--text-muted); }
+/* Con sólo Ver: los mismos datos, sin el color ni el puntero de lo que se edita. */
+.precioFijo { display: inline-flex; align-items: center; padding: 0 4px; }
+.fijo { cursor: default; }
+/* Fila sin nada que tocar: sin el puntero ni el fondo del :hover global de tbody tr. */
+.filaSoloVer,
+.filaSoloVer:hover { cursor: default; background: none; }
+.tabla tbody tr.filaSoloVer:hover .alcance { background: var(--bg-surface); }
+.faltaFija { display: inline-block; color: var(--danger); background: var(--danger-dim); border-radius: var(--radius-sm); padding: 2px 8px; font-size: 12px; font-weight: 500; }
 .estado { white-space: nowrap; font-size: 12px; }
 .ok { color: var(--accent); }
 .bad { color: var(--danger); font-weight: 500; }

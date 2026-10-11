@@ -142,3 +142,8 @@
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* Sin Ver Revisión la fila no se abre: no tiene que parecer clicable
+   (la tabla global pone puntero y fondo al pasar el mouse). */
+.filaSinAbrir,
+.filaSinAbrir:hover { cursor: default; background: none; }

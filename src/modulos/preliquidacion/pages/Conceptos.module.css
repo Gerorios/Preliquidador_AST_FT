@@ -234,6 +234,11 @@
   cursor: pointer;
 }
 
+/* Con sólo Ver la fila es un dato: no tiene que parecer clicable
+   (la tabla global pone puntero y fondo al pasar el mouse). */
+.filaSoloVer,
+.filaSoloVer:hover { cursor: default; background: none; }
+
 .faltanteChevron {
   font-size: 10px;
   color: var(--text-muted);
@@ -294,6 +299,11 @@
 
 .panelPrecioValor:hover {
   text-decoration: underline;
+}
+
+/* Con sólo Ver: el precio es un dato, sin el color ni el puntero de lo que se edita. */
+.panelPrecioFijo {
+  font-family: var(--font-mono);
 }
 
 .panelPrecioEdit {

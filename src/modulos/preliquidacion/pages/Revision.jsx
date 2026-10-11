@@ -20,7 +20,7 @@ import { filtrarLineas, pasaBusquedaYAlertas, CAMPOS_LINEAS } from './filtrarLin
 import AlertasBanner from '../components/AlertasBanner'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import useAuthStore from '../../../core/authStore'
-import { puedeVer } from '../../../core/permisos'
+import { accionesRevision, avisoIncompletas } from './revisionSoloLectura'
 import { alertaDe, siguienteOrden, ordenarLineas } from './ordenarLineas'
 import { totalesLineas } from './totalesLineas'
 import styles from './Revision.module.css'
@@ -420,10 +420,12 @@ function RevisionQuincena() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  // "Ir a Conceptos" sólo si la persona puede abrir Conceptos: si no, la guarda
-  // de la ruta la mandaría al Inicio. El aviso de incompletas se muestra igual.
+  // Con sólo Ver Revisión no hay liquidación masiva y el panel de la línea es
+  // de lectura (revisionSoloLectura.js). El aviso de incompletas se muestra
+  // igual, con un texto y un "Ir a Conceptos" según lo que la persona puede
+  // hacer en Conceptos: si no la puede abrir, la guarda la mandaría al Inicio.
   const { usuario } = useAuthStore()
-  const veConceptos = puedeVer(usuario, 'preliquidacion', 'conceptos')
+  const acciones = accionesRevision(usuario)
 
   const [filtros, setFiltros] = useEstadoPantalla('revision.filtros', {})
   const [lineaSeleccionada, setLineaSeleccionada] = useState(null)
@@ -600,9 +602,11 @@ function RevisionQuincena() {
             </>
           )}
         </div>
-        <button className="btn btn-sm" onClick={() => { setModoLiquidacion(m => !m); setLineaSeleccionada(null) }}>
-          {modoLiquidacion ? '← Volver a tabla' : <><Icono nombre="grilla" size={14} enTexto /> Liquidación masiva</>}
-        </button>
+        {acciones.liquidacionMasiva && (
+          <button className="btn btn-sm" onClick={() => { setModoLiquidacion(m => !m); setLineaSeleccionada(null) }}>
+            {modoLiquidacion ? '← Volver a tabla' : <><Icono nombre="grilla" size={14} enTexto /> Liquidación masiva</>}
+          </button>
+        )}
         <button className="btn btn-primary btn-sm" onClick={handleExportarExcel} disabled={!id || exportando}>
           {exportando ? 'Exportando…' : <><Icono nombre="descargar" size={14} enTexto /> Exportar Excel</>}
         </button>
@@ -610,14 +614,17 @@ function RevisionQuincena() {
 
       {/* Banners */}
       <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        {stats?.incompletas > 0 && (
-          <AlertasBanner
-            mensaje={<><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</>}
-            ctaLabel="Ir a Conceptos →"
-            ctaSubrayada={false}
-            onFiltrar={veConceptos ? () => navigate('/preliquidacion/conceptos') : undefined}
-          />
-        )}
+        {stats?.incompletas > 0 && (() => {
+          const aviso = avisoIncompletas(stats.incompletas, usuario)
+          return (
+            <AlertasBanner
+              mensaje={<><strong>{aviso.titulo}</strong> — {aviso.detalle}</>}
+              ctaLabel="Ir a Conceptos →"
+              ctaSubrayada={false}
+              onFiltrar={aviso.irAConceptos ? () => navigate('/preliquidacion/conceptos') : undefined}
+            />
+          )
+        })()}
         {stats?.lineas_con_alerta > 0 && stats?.incompletas === 0 && (
           <AlertasBanner
             total={stats.lineas_con_alerta}
@@ -630,7 +637,7 @@ function RevisionQuincena() {
         )}
       </div>
 
-      {modoLiquidacion && (
+      {modoLiquidacion && acciones.liquidacionMasiva && (
         <LiquidacionPersona
           lineas={lineas}
           onCambio={refrescarYSincronizarPanel}
@@ -638,7 +645,7 @@ function RevisionQuincena() {
         />
       )}
 
-      <div className={styles.layout} style={{ display: modoLiquidacion ? 'none' : undefined }}>
+      <div className={styles.layout} style={{ display: modoLiquidacion && acciones.liquidacionMasiva ? 'none' : undefined }}>
         {/* Tabla */}
         <div className={styles.tablePane}>
           <FiltrosBar
@@ -780,6 +787,7 @@ function RevisionQuincena() {
             onEliminarConcepto={(conceptoId) => delConcepto(conceptoId)}
             onCerrar={() => setLineaSeleccionada(null)}
             guardando={guardando}
+            soloLectura={acciones.panelSoloLectura}
           />
         )}
       </div>

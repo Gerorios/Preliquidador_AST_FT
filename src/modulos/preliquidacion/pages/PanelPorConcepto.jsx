@@ -9,7 +9,8 @@ const fmt = (p) => `$${Number(p).toLocaleString('es-AR')}`
 
 // ─── CeldaPrecio: precio editable en el lugar (mismo comportamiento que la
 // tabla plana). Muestra "ant. $X" solo si difiere y el badge heredado.
-function CeldaPrecio({ regla, onGuardarPrecio, guardando }) {
+// Con sólo Ver (`editable` en false) el precio es texto y no se edita.
+function CeldaPrecio({ regla, editable, onGuardarPrecio, guardando }) {
   const [editando, setEditando] = useState(false)
   const [precio, setPrecio] = useState(regla.precio ?? '')
 
@@ -38,9 +39,13 @@ function CeldaPrecio({ regla, onGuardarPrecio, guardando }) {
   const difiere = tiene && regla.precio_anterior != null && Number(regla.precio_anterior) !== Number(regla.precio)
   return (
     <span>
-      {tiene
-        ? <span className={styles.precio} onClick={() => setEditando(true)} title="Clic para editar">{fmt(regla.precio)}</span>
-        : <span className={styles.sinPrecio} onClick={() => setEditando(true)} title="Clic para cargar el precio">sin precio</span>}
+      {!editable
+        ? (tiene
+          ? <span className={styles.precioFijo}>{fmt(regla.precio)}</span>
+          : <span className={`${styles.sinPrecio} ${styles.fijo}`}>sin precio</span>)
+        : tiene
+          ? <span className={styles.precio} onClick={() => setEditando(true)} title="Clic para editar">{fmt(regla.precio)}</span>
+          : <span className={styles.sinPrecio} onClick={() => setEditando(true)} title="Clic para cargar el precio">sin precio</span>}
       {difiere && <span className={styles.ant}>ant. {fmt(regla.precio_anterior)}</span>}
       {regla.heredado && <span className={styles.heredado} title="Copiado de otra quincena, sin confirmar">heredado</span>}
     </span>
@@ -48,10 +53,12 @@ function CeldaPrecio({ regla, onGuardarPrecio, guardando }) {
 }
 
 // ─── Celda: una regla, varias por categoría (apiladas) o "falta".
-function Celda({ fila, codigo, onGuardarPrecio, guardando, onAbrirAlta }) {
+function Celda({ fila, codigo, editable, onGuardarPrecio, guardando, onAbrirAlta }) {
   const reglas = fila.celdas[codigo]
   if (!reglas) {
     if (!fila.controlada) return <span className={styles.na}>—</span>
+    // Con sólo Ver el faltante se informa, pero no abre el alta.
+    if (!editable) return <span className={styles.faltaFija}>falta</span>
     return (
       <button type="button" className={styles.falta} onClick={onAbrirAlta}
         title={`Crear ${codigo} para ${etiquetaAlcance(fila).titulo}`}>
@@ -60,22 +67,22 @@ function Celda({ fila, codigo, onGuardarPrecio, guardando, onAbrirAlta }) {
     )
   }
   if (reglas.length === 1 && reglas[0].categoria == null) {
-    return <CeldaPrecio regla={reglas[0]} onGuardarPrecio={onGuardarPrecio} guardando={guardando} />
+    return <CeldaPrecio regla={reglas[0]} editable={editable} onGuardarPrecio={onGuardarPrecio} guardando={guardando} />
   }
   return (
     <span className={styles.cat}>
       {reglas.map(r => (
-        <FragmentoCategoria key={r.id} regla={r} onGuardarPrecio={onGuardarPrecio} guardando={guardando} />
+        <FragmentoCategoria key={r.id} regla={r} editable={editable} onGuardarPrecio={onGuardarPrecio} guardando={guardando} />
       ))}
     </span>
   )
 }
 
-function FragmentoCategoria({ regla, onGuardarPrecio, guardando }) {
+function FragmentoCategoria({ regla, editable, onGuardarPrecio, guardando }) {
   return (
     <>
       <span className={styles.catK}>{regla.categoria != null ? `cat ${regla.categoria}` : 'sin cat.'}</span>
-      <CeldaPrecio regla={regla} onGuardarPrecio={onGuardarPrecio} guardando={guardando} />
+      <CeldaPrecio regla={regla} editable={editable} onGuardarPrecio={onGuardarPrecio} guardando={guardando} />
     </>
   )
 }
@@ -142,7 +149,7 @@ const TEXTO_ESTADO = (fila) => {
   return <span className={styles.ok}><Icono nombre="tilde" size={12} enTexto /> completo</span>
 }
 
-export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtros, onGuardarPrecio, guardando, onCrearRegla }) {
+export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtros, editable, onGuardarPrecio, guardando, onCrearRegla }) {
   const [soloIncompletos, setSoloIncompletos] = useState(false)
   const [altaAbierta, setAltaAbierta] = useState(null) // { tarea, clave, codigo }
   const [abiertas, setAbiertas] = useState(() => new Set()) // tareas expandidas por el usuario
@@ -236,6 +243,7 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
                           <FilaConAlta key={fila.clave}
                             fila={fila} titulo={titulo} subtitulo={subtitulo} claseFila={claseFila}
                             codigos={b.codigos} tarea={b.tareaLabel} quincena={quincena}
+                            editable={editable}
                             onGuardarPrecio={onGuardarPrecio} guardando={guardando}
                             altaCodigo={altaAca ? altaAbierta.codigo : null}
                             onAbrirAlta={(codigo) => setAltaAbierta({ tarea: b.tarea, clave: fila.clave, codigo })}
@@ -257,20 +265,20 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
 }
 
 // Fila de alcance + (opcional) fila de alta desplegada debajo.
-function FilaConAlta({ fila, titulo, subtitulo, claseFila, codigos, tarea, quincena, onGuardarPrecio, guardando, altaCodigo, onAbrirAlta, onCerrarAlta, onCrearRegla }) {
+function FilaConAlta({ fila, titulo, subtitulo, claseFila, codigos, tarea, quincena, editable, onGuardarPrecio, guardando, altaCodigo, onAbrirAlta, onCerrarAlta, onCrearRegla }) {
   return (
     <>
-      <tr className={claseFila}>
+      <tr className={editable ? claseFila : [claseFila, styles.filaSoloVer].filter(Boolean).join(' ')}>
         <td className={styles.alcance}>{titulo}<span className={styles.alcanceSub}>{subtitulo}</span></td>
         {codigos.map(c => (
           <td key={c} className={styles.cel}>
-            <Celda fila={fila} codigo={c} onGuardarPrecio={onGuardarPrecio} guardando={guardando}
+            <Celda fila={fila} codigo={c} editable={editable} onGuardarPrecio={onGuardarPrecio} guardando={guardando}
               onAbrirAlta={() => onAbrirAlta(c)} />
           </td>
         ))}
         <td className={styles.estado}>{TEXTO_ESTADO(fila)}</td>
       </tr>
-      {altaCodigo != null && (
+      {editable && altaCodigo != null && (
         <FormAltaCodigo tarea={tarea} fila={fila} codigo={altaCodigo} codigos={codigos} quincena={quincena}
           onCrearRegla={onCrearRegla} onCerrar={onCerrarAlta} />
       )}
