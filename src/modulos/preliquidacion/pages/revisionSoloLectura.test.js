@@ -10,16 +10,16 @@ const conPermisos = (preliquidacion) => ({ rol: 'usuario', permisos: { preliquid
 
 test('con Editar Revisión hay liquidación masiva y el panel de línea se edita', () => {
   const a = accionesRevision(conPermisos({ inicio: 'ver', revision: 'editar' }))
-  assert.deepEqual(a, { liquidacionMasiva: true, panelSoloLectura: false, exportar: true })
+  assert.deepEqual(a, { liquidacionMasiva: true, panelSoloLectura: false })
 })
 
-test('con sólo Ver Revisión no hay liquidación masiva, el panel es de lectura y se exporta', () => {
+test('con sólo Ver Revisión no hay liquidación masiva, el panel es de lectura', () => {
   const a = accionesRevision(conPermisos({ inicio: 'ver', revision: 'ver' }))
-  assert.deepEqual(a, { liquidacionMasiva: false, panelSoloLectura: true, exportar: true })
+  assert.deepEqual(a, { liquidacionMasiva: false, panelSoloLectura: true })
 })
 
 test('el admin edita Revisión', () => {
-  assert.deepEqual(accionesRevision(ADMIN), { liquidacionMasiva: true, panelSoloLectura: false, exportar: true })
+  assert.deepEqual(accionesRevision(ADMIN), { liquidacionMasiva: true, panelSoloLectura: false })
 })
 
 test('Editar en otra pantalla no da Editar Revisión', () => {
@@ -31,7 +31,7 @@ test('Editar en otra pantalla no da Editar Revisión', () => {
 test('incompletas, con Editar Conceptos: dice qué falta, dónde cargarlo y ofrece ir', () => {
   assert.deepEqual(avisoIncompletas(3, conPermisos({ revision: 'ver', conceptos: 'editar' })), {
     titulo: '3 líneas incompletas',
-    detalle: 'falta el código o el precio. Cargalos en Conceptos.',
+    detalle: 'falta el código o el precio. Cargá lo que falta en Conceptos.',
     irAConceptos: true,
   })
 })
@@ -61,7 +61,7 @@ test('una sola incompleta va en singular', () => {
 test('el admin recibe el aviso completo', () => {
   assert.deepEqual(avisoIncompletas(2, ADMIN), {
     titulo: '2 líneas incompletas',
-    detalle: 'falta el código o el precio. Cargalos en Conceptos.',
+    detalle: 'falta el código o el precio. Cargá lo que falta en Conceptos.',
     irAConceptos: true,
   })
 })

@@ -268,7 +268,7 @@ export default function PanelPorConcepto({ reglas, quincena, filtroCodigo, filtr
 function FilaConAlta({ fila, titulo, subtitulo, claseFila, codigos, tarea, quincena, editable, onGuardarPrecio, guardando, altaCodigo, onAbrirAlta, onCerrarAlta, onCrearRegla }) {
   return (
     <>
-      <tr className={claseFila}>
+      <tr className={editable ? claseFila : [claseFila, styles.filaSoloVer].filter(Boolean).join(' ')}>
         <td className={styles.alcance}>{titulo}<span className={styles.alcanceSub}>{subtitulo}</span></td>
         {codigos.map(c => (
           <td key={c} className={styles.cel}>
