@@ -53,6 +53,11 @@
   width: 130px;
 }
 
+/* Con sólo Ver la fila es un dato: no tiene que parecer clicable
+   (la tabla global pone puntero y fondo al pasar el mouse). */
+.filaSoloVer,
+.filaSoloVer:hover { cursor: default; background: none; }
+
 .filaSinCategoria td:first-child {
   border-left: 2px solid var(--warn);
 }

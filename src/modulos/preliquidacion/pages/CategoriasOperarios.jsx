@@ -142,7 +142,10 @@ export default function CategoriasOperarios() {
                   </thead>
                   <tbody>
                     {operariosFiltrados.map(op => (
-                      <tr key={op.cuil} className={op.categoria == null ? styles.filaSinCategoria : ''}>
+                      <tr key={op.cuil} className={[
+                        op.categoria == null ? styles.filaSinCategoria : '',
+                        editable ? '' : styles.filaSoloVer,
+                      ].filter(Boolean).join(' ')}>
                         <td>{op.nombre_empleado || '—'}</td>
                         <td className="mono">{op.legajo || '—'}</td>
                         <td className="mono">{op.cuil || '—'}</td>

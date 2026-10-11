@@ -590,7 +590,7 @@ function FilaFaltante({ f, clave, quincena, todasFaltantes, editable, mutCrearSi
   return (
     <>
       {/* Con sólo Ver la fila es un dato: no se despliega el alta. */}
-      <tr className={editable ? styles.faltanteRow : undefined}
+      <tr className={editable ? styles.faltanteRow : styles.filaSoloVer}
         onClick={editable ? () => { if (reglaCreada != null) { terminarEncadenado(); return } setAbierta(o => !o) } : undefined}>
         <td>
           {editable && <span className={styles.faltanteChevron}><Icono nombre={abierta ? 'arriba' : 'abajo'} size={14} enTexto /></span>}
@@ -721,7 +721,7 @@ function PanelPrecioRow({ fila, editable, seleccionada, onToggleSeleccion, onGua
   const unidadLabel = UNIDADES.find(u => u.value === fila.unidad_base)?.label || fila.unidad_base
 
   return (
-    <tr className={!editable || seleccionada ? undefined : styles.filaExcluida}>
+    <tr className={!editable ? styles.filaSoloVer : seleccionada ? undefined : styles.filaExcluida}>
       {editable && (
         <td>
           <input type="checkbox" checked={seleccionada}

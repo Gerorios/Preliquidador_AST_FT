@@ -76,15 +76,15 @@ export default function Dashboard() {
       <header className={styles.header}>
         <div>
           <h1>Preliquidaciones</h1>
-          {(puedeGenerar || puedeAbrir) && (
-            <p className={styles.sub}>
-              {puedeGenerar && puedeAbrir
-                ? 'Seleccioná una quincena para generar o continuar'
-                : puedeGenerar
-                  ? 'Seleccioná una quincena para generar'
-                  : 'Abrí una quincena del historial para revisarla'}
-            </p>
-          )}
+          <p className={styles.sub}>
+            {puedeGenerar && puedeAbrir
+              ? 'Seleccioná una quincena para generar o continuar'
+              : puedeGenerar
+                ? 'Seleccioná una quincena para generar'
+                : puedeAbrir
+                  ? 'Abrí una quincena del historial para revisarla'
+                  : 'Historial de quincenas generadas'}
+          </p>
         </div>
       </header>
 
