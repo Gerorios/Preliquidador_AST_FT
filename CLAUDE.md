@@ -25,6 +25,11 @@ lo que existe en Claude Code.
   porque es de cada máquina o puede traer datos reales de `testing` (capturas, informes
   de `/impeccable critique`, sesiones). Para actualizarla, se reemplaza la carpeta
   entera por la de un commit nuevo del original, en un PR.
+- **Agentes en Haiku 5.5**: `Explore` (búsqueda de sólo lectura; reemplaza al integrado,
+  que corre en el modelo de la sesión) y `corredor-tests` (corre la suite o el build y
+  devuelve sólo el resumen y los fallos), en `.claude/agents/`, idénticos en los dos repos.
+  Cuándo se usa cada uno lo dice `flujo-preliquidacion`. Lo que escribe o juzga código
+  (`planificador`, `ejecutor`, revisores, `verificador-review`) no va en Haiku.
 - **Bitácora**: el agente `bitacora` y `/bitacora` viven en el repo del backend y se corren
   desde allá; el agente también actualiza `docs/estado.md` del backend, y los dos se
   commitean juntos a `main` del backend. Desde acá sólo se pregunta. Dos respaldos
