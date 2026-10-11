@@ -12,6 +12,8 @@ import AvisoError from '../components/AvisoError'
 import SelectorQuincena from '../components/SelectorQuincena'
 import styles from './CategoriasOperarios.module.css'
 import { useEstadoPantalla } from '../estadoPantallas'
+import useAuthStore from '../../../core/authStore'
+import { puedeEditar } from '../../../core/permisos'
 
 const CATEGORIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
@@ -19,6 +21,11 @@ export default function CategoriasOperarios() {
   const qc = useQueryClient()
   const [elegida, setElegida] = useEstadoPantalla('mantenimiento.quincena', null)
   const [busqueda, setBusqueda] = useEstadoPantalla('mantenimiento.busqueda', '')
+  // Cambiar y heredar categorías son las escrituras de esta pantalla (el backend
+  // las protege con Editar Mantenimiento). Con sólo Ver, la categoría va como
+  // texto y no aparece "Heredar".
+  const { usuario } = useAuthStore()
+  const editable = puedeEditar(usuario, 'preliquidacion', 'mantenimiento')
 
   const {
     data: preliquidaciones = [],
@@ -105,13 +112,15 @@ export default function CategoriasOperarios() {
       ) : (
         <>
           <div className={styles.toolbar}>
-            <button
-              className="btn btn-sm"
-              onClick={() => mutHeredar.mutate()}
-              disabled={mutHeredar.isPending}
-            >
-              {mutHeredar.isPending ? <><span className="spinner" /> Heredando...</> : 'Heredar de quincena anterior'}
-            </button>
+            {editable && (
+              <button
+                className="btn btn-sm"
+                onClick={() => mutHeredar.mutate()}
+                disabled={mutHeredar.isPending}
+              >
+                {mutHeredar.isPending ? <><span className="spinner" /> Heredando...</> : 'Heredar de quincena anterior'}
+              </button>
+            )}
             <span className={styles.count}>{operariosFiltrados.length} operario(s)</span>
           </div>
 
@@ -138,19 +147,25 @@ export default function CategoriasOperarios() {
                         <td className="mono">{op.legajo || '—'}</td>
                         <td className="mono">{op.cuil || '—'}</td>
                         <td>
-                          <select
-                            className={`input ${styles.categoriaSelect}`}
-                            value={op.categoria ?? ''}
-                            onChange={e => {
-                              const v = e.target.value
-                              mutCategoria.mutate({ cuil: op.cuil, categoria: v === '' ? null : parseInt(v) })
-                            }}
-                          >
-                            <option value="">— Sin categoría —</option>
-                            {CATEGORIAS.map(c => (
-                              <option key={c} value={c}>Categoría {c}</option>
-                            ))}
-                          </select>
+                          {editable ? (
+                            <select
+                              className={`input ${styles.categoriaSelect}`}
+                              value={op.categoria ?? ''}
+                              onChange={e => {
+                                const v = e.target.value
+                                mutCategoria.mutate({ cuil: op.cuil, categoria: v === '' ? null : parseInt(v) })
+                              }}
+                            >
+                              <option value="">— Sin categoría —</option>
+                              {CATEGORIAS.map(c => (
+                                <option key={c} value={c}>Categoría {c}</option>
+                              ))}
+                            </select>
+                          ) : op.categoria == null ? (
+                            <span className={styles.sinCategoria}>Sin categoría</span>
+                          ) : (
+                            `Categoría ${op.categoria}`
+                          )}
                         </td>
                       </tr>
                     ))}

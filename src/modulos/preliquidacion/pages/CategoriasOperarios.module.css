@@ -56,3 +56,9 @@
 .filaSinCategoria td:first-child {
   border-left: 2px solid var(--warn);
 }
+
+/* Con sólo Ver, la categoría va como texto: la falta se lee apagada,
+   y la fila ya la marca con el borde de aviso. */
+.sinCategoria {
+  color: var(--text-muted);
+}
