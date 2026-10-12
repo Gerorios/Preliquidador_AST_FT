@@ -1,0 +1,154 @@
+/* Misma estructura que las pantallas de lista del sistema: título, una barra
+   y la tabla, que es lo único que se desplaza. */
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.explicacion {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 72ch;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.busqueda {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 300px;
+}
+
+.busquedaIcono {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.busquedaInput {
+  padding-left: 32px;
+  font-size: 13px;
+}
+
+/* El resumen dice cuánto falta con texto e ícono, no sólo con color. */
+.resumen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.resumen strong {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.resumenIconoFalta { color: var(--warn); }
+.resumenIconoOk { color: var(--accent); }
+
+.conteo {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* La fila no se abre: lo único que se toca es el select. Se conserva el fondo
+   al pasar el mouse para seguir la fila con la vista. */
+.tabla tbody tr { cursor: default; }
+
+.unidad {
+  width: 190px;
+}
+
+/* La falta va dicha en el select ("Sin definir") y marcada en la fila con el
+   borde de aviso global (tr.alerta); el borde del select la repite. */
+.unidadSinDefinir {
+  border-color: var(--warn);
+}
+
+/* Foco de teclado visible. `.input` del núcleo saca el outline y sólo pasa el
+   borde a --accent, que sobre el borde --warn de una fila Sin definir casi no
+   cambia: el anillo va aparte, sin tocar el núcleo. */
+.unidad:focus-visible,
+.busquedaInput:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sinDato {
+  color: var(--text-muted);
+}
+
+/* Con sólo Ver: la falta se lee en el tono de aviso y lo No facturable,
+   apagado, porque es una decisión tomada y no algo pendiente. */
+.textoSinDefinir {
+  color: var(--warn);
+  font-weight: 500;
+}
+
+.textoNoFacturable {
+  color: var(--text-muted);
+}
+
+.vacio {
+  padding: 50px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Error de carga: estilo propio, distinto del vacío, para que una caída del
+   sistema de campo no se lea como "no hay tareas" (GUIA-MODULOS regla 21). */
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--danger-dim);
+  border: 1px solid rgba(192, 64, 56, 0.35);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.avisoIcono {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+
+.avisoTexto {
+  flex: 1;
+}

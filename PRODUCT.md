@@ -25,22 +25,42 @@ Los tres roles iniciales copian el acceso de antes:
 Aparte de los roles, el **Admin** es una marca global: ve y edita todo y administra
 usuarios y roles. El usuario es el CUIL.
 
-Hoy son hasta 5 personas, personal administrativo en oficina, con PC de escritorio. Son
-usuarios que necesitan señales claras; el sistema se pensó para gente mayor y poco
-habituada a apps modernas.
+En el módulo Facturación operan las **contadoras**: personal administrativo, en PC de
+escritorio, que necesita señales claras. Registran los comprobantes que emiten en el
+sistema contable y controlan que lo trabajado en el campo esté facturado. El **gerente**
+sólo consulta.
+
+Hoy son hasta 5 personas, y pueden ser más; personal administrativo en oficina, con PC de
+escritorio. Son usuarios que necesitan señales claras; el sistema se pensó para gente
+mayor y poco habituada a apps modernas. Dos personas pueden estar cargando a la vez en la
+misma pantalla (por ejemplo, dos contadoras en Facturación): lo que una guarda no puede
+romper ni esconder lo que guarda la otra.
 
 A futuro, sin fecha ni decisión: la app podría abrirse a gente de campo para cargar
 tareas, y entonces tendría que funcionar en celular. Hoy no.
 
 ## Product Purpose
 
-Toma las tareas de campo de la quincena (pulverizadas, maquinaria, tareas manuales,
-cosecha), las cruza con el maestro de sueldos, les aplica los conceptos y precios que
-define el liquidador y entrega un Excel que alimenta la liquidación formal en el área de
-sueldos. Reemplaza el trabajo a mano sobre planillas.
+El sistema tiene tres módulos sobre un núcleo común: Preliquidación, Liquidación Terceros
+y Facturación.
+
+**Preliquidación** toma las tareas de campo de la quincena (pulverizadas, maquinaria,
+tareas manuales, cosecha), las cruza con el maestro de sueldos, les aplica los conceptos y
+precios que define el liquidador y entrega un Excel que alimenta la liquidación formal en
+el área de sueldos. Reemplaza el trabajo a mano sobre planillas.
 
 Éxito: una quincena se prepara sin perder líneas, sin pagar dos veces y sin contar a mano,
 y el Excel sale correcto.
+
+**Facturación** registra cada comprobante que el grupo le emite a un cliente, lo traduce a
+tareas del sistema de campo y lo cruza contra lo que efectivamente se trabajó, para saber
+qué falta facturar y dónde se facturó de más o de menos. Cubre las tareas agrícolas; la
+cosecha queda fuera. Reemplaza una planilla y un informe que hoy hacen ese control. No
+emite facturas: eso sigue en el sistema contable.
+
+Éxito: a fin de mes ningún cliente queda sin facturar, cada diferencia se explica o se
+corrige y cada comprobante tiene su adjunto. La prueba: el Cruce da los mismos números que
+el informe que hoy hace ese control.
 
 ## Positioning
 
@@ -50,7 +70,7 @@ compite con un producto de mercado; su valor es que conoce las reglas de la empr
 
 ## Operating Context
 
-El trabajo gira alrededor de la quincena ("1ra/2da MAY 2026"):
+En Preliquidación, el trabajo gira alrededor de la quincena ("1ra/2da MAY 2026"):
 
 1. En el Inicio del módulo se elige la quincena y se toca "Generar / Actualizar".
 2. Revisión: tabla de líneas con alertas (duplicado, posible duplicado, incompleta, sin
@@ -68,6 +88,19 @@ que la app parezca colgada si no avisa.
 Lo que hoy más duele, según el dueño: encontrar qué falta en una quincena, entender y usar
 Conceptos, y una interfaz que se ve vieja y poco clara.
 
+En Facturación, el trabajo es mensual y sobre **meses cerrados**: las alertas se evalúan
+sobre el último mes cerrado, y el mes en curso no se evalúa. Las contadoras emiten cada
+comprobante en el sistema contable y lo registran en el módulo, copiando sus líneas
+mirando el PDF o importando la orden de facturación que algunos clientes publican en su
+portal. El control va de lo general al detalle: pendientes, cruce del cliente, tarea,
+finca y parte de campo; cada nivel responde "¿por qué no cierra?". El rango del Cruce
+arranca en el mes completo, porque una diferencia de una quincena puede compensarse en la
+siguiente. La lectura del sistema de campo es lenta.
+
+Su primera pantalla es **Unidad de medida por defecto**: la lista de tareas del sistema de
+campo, cada una con su Unidad sugerida o la marca No facturable, con las que no tienen
+nada primero.
+
 ## Capabilities and Constraints
 
 - Vocabulario del dominio, a usar tal cual: Quincena, Línea (no "registro" ni "fila"),
@@ -77,6 +110,11 @@ Conceptos, y una interfaz que se ve vieja y poco clara.
   Tancada, Categoría de operario, Grupo de pago, Grupo de tareas, Empresa, Legajo, CUIL,
   Mensualizados. Glosario completo en el repo del backend
   (`docs/modulos/preliquidacion/CONTEXT-preliquidacion.md`).
+- Vocabulario de Facturación, a usar tal cual: Comprobante (una Factura o una Nota de
+  crédito; no "factura" para hablar de los dos), Línea de comprobante, Unidad de
+  facturación (no "grupo de facturación"), Unidad sugerida, No facturable, Cruce,
+  Diferencia y Alerta de facturación (no "verificación", que es de Terceros). Glosario
+  completo en el repo del backend (`docs/modulos/facturacion/CONTEXT-facturacion.md`).
 - Feedback siempre visible, pedido explícito de los usuarios: toda escritura muestra un
   overlay bloqueante "Procesando...", toda carga inicial un indicador de carga y todo
   resultado un aviso.
@@ -85,9 +123,14 @@ Conceptos, y una interfaz que se ve vieja y poco clara.
 - El Excel de exportación no cambia: lo lee el área de sueldos.
 - Stack fijo: React 18 + Vite, CSS Modules con tokens en `src/index.css`, sin Tailwind ni
   librería de componentes; dependencias nuevas (fuentes incluidas) se aprueban antes.
-- El sistema tiene un segundo módulo, Liquidación Terceros, que comparte el núcleo (Inicio,
-  menú, login, tokens) y hereda su estética. Sus pantallas no se rediseñan acá.
-- Sin decidir: modo oscuro; cierre formal de una quincena (hoy no existe).
+- Los tres módulos comparten el núcleo (Inicio, menú, login, tokens) y su estética.
+  Liquidación Terceros y Facturación la heredan; el trabajo en uno no rediseña las
+  pantallas de los otros.
+- Facturación no lee el sistema contable ni emite comprobantes, y no maneja la cosecha: lo
+  facturado en una unidad de cosecha queda fuera del Cruce y de las alertas.
+- Sin decidir: modo oscuro; cierre formal de una quincena (hoy no existe); pegar varias
+  filas desde Excel en la carga de líneas de un comprobante (se agrega si las contadoras lo
+  piden).
 
 ## Brand Commitments
 
