@@ -1,8 +1,9 @@
 # Sistema de gestión La Asturiana — frontend
 
 React + Vite. Núcleo compartido (`src/core/`) + módulos autocontenidos
-(`src/modulos/<m>/`), espejo de la estructura del backend. Módulos:
-**Preliquidación** (activo, en producción) y **Liquidación Terceros** (molde, inactivo).
+(`src/modulos/<m>/`), espejo de la estructura del backend. Módulos, los tres activos y en
+producción: **Preliquidación**, **Liquidación Terceros** (en construcción, lo construye
+Pitu) y **Facturación** (en construcción por etapas).
 
 **El backend es otro repo**: `backend_preliquidacion` (FastAPI). Casi todo cambio de módulo
 necesita PRs hermanos en los dos.
