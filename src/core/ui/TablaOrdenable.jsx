@@ -1,5 +1,5 @@
-import Icono from '../../../core/ui/iconos'
-import { ordenarFilas, siguienteOrden } from '../pages/ordenarFilas'
+import Icono from './iconos'
+import { ordenarFilas, siguienteOrden } from './ordenarFilas'
 import styles from './TablaOrdenable.module.css'
 
 // Encabezado de columna que ordena, para tablas con estructura propia (por
@@ -22,7 +22,7 @@ export function EncabezadoOrdenable({ columna, orden, onOrden }) {
   )
 }
 
-// Tabla de Verificación: cada encabezado ordena (de mayor a menor en números,
+// Tabla ordenable (nació en Verificación): cada encabezado ordena (de mayor a menor en números,
 // de A a Z en texto; un segundo click invierte y un tercero vuelve al orden
 // original) y cada fila abre su detalle. `columnas`: { clave, label, valor
 // (fila → valor para ordenar), mostrar? (fila → lo que se ve), numerica?,

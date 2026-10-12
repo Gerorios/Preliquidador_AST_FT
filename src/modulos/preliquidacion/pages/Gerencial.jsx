@@ -9,9 +9,9 @@ import {
   obtenerControlPlantasGerencial, obtenerControlTancadasGerencial,
 } from '../services/gerencial'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
-import FiltrosBar from '../components/FiltrosBar'
+import FiltrosBar from '../../../core/ui/FiltrosBar'
 import AvisoError from '../components/AvisoError'
-import { useEstadoPantalla } from '../estadoPantallas'
+import { useEstadoPantalla } from '../../../core/estadoPantallas'
 import { formatoQuincena } from './formatoQuincena'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import Icono from '../../../core/ui/iconos'

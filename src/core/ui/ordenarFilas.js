@@ -1,4 +1,4 @@
-// Orden de las tablas de Verificación por cualquier columna. `columnas` trae,
+// Orden de las tablas ordenables (TablaOrdenable) por cualquier columna. `columnas` trae,
 // por cada clave, cómo leer el valor de una fila (`valor`). Los números se
 // comparan como números y el resto como texto en español; lo vacío va siempre
 // al final, en los dos sentidos. Sin orden elegido, las filas quedan como

@@ -1,9 +1,9 @@
 import { useCallback, useRef } from 'react'
 import { create } from 'zustand'
-import useAuthStore from '../../core/authStore'
-import { conectarCierreDeSesion, resolverValor } from './pages/estadoGuardado'
+import useAuthStore from './authStore'
+import { conectarCierreDeSesion, resolverValor } from './estadoGuardado'
 
-// Estado de cada pantalla del módulo (filtros, búsqueda, quincena elegida,
+// Estado de cada pantalla de los módulos (filtros, búsqueda, quincena elegida,
 // solapa, sección, orden) que sobrevive al ir y volver entre pantallas: si se
 // filtra Revisión, se pasa a Conceptos y se vuelve, Revisión sigue filtrada.
 // Vive en memoria: recargar la página, cerrar sesión o entrar con otro usuario

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import styles from '../pages/Verificacion.module.css'
-import { EncabezadoOrdenable } from './TablaOrdenable'
-import { ordenarFilas } from '../pages/ordenarFilas'
+import { EncabezadoOrdenable } from '../../../core/ui/TablaOrdenable'
+import { ordenarFilas } from '../../../core/ui/ordenarFilas'
 
 // Columnas de cada control: cómo se lee el valor de cada fila para ordenar.
 const COLS_PLANTAS = [

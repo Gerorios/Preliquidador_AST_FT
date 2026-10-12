@@ -11,7 +11,7 @@ import {
 import { listarQuincenasGerencial } from '../services/gerencial'
 import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
-import FiltrosBar from '../components/FiltrosBar'
+import FiltrosBar from '../../../core/ui/FiltrosBar'
 import AvisoError from '../components/AvisoError'
 import Icono from '../../../core/ui/iconos'
 import { formatoQuincena } from './formatoQuincena'
@@ -20,7 +20,7 @@ import useAuthStore from '../../../core/authStore'
 import { puedeVerAlguna, puedeEditar } from '../../../core/permisos'
 import styles from './Conceptos.module.css'
 import { UNIDADES, TIPOS, CATEGORIAS, precioPositivo, MSG_PRECIO } from './conceptosConstantes'
-import { useEstadoPantalla } from '../estadoPantallas'
+import { useEstadoPantalla } from '../../../core/estadoPantallas'
 import { columnasDelPanel, textoSinConceptos, conteoPanel } from './conceptosSoloLectura'
 
 // Descriptores de filtro para el Panel de precios y la tab Específicos
