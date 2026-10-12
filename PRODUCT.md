@@ -97,9 +97,9 @@ finca y parte de campo; cada nivel responde "¿por qué no cierra?". El rango de
 arranca en el mes completo, porque una diferencia de una quincena puede compensarse en la
 siguiente. La lectura del sistema de campo es lenta.
 
-Su primera pantalla es **Unidad de medida por defecto**: la lista de tareas del sistema de
-campo, cada una con su Unidad sugerida o la marca No facturable, con las que no tienen
-nada primero.
+La Unidad sugerida y la marca No facturable de cada tarea se definen en el sistema de
+campo; el módulo las lee y no las cambia. La primera pantalla de uso llega con la etapa 2:
+Comprobantes.
 
 ## Capabilities and Constraints
 
