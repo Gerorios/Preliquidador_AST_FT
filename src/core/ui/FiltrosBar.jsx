@@ -1,25 +1,23 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import Icono from '../../../core/ui/iconos'
-import { CAMPOS_LINEAS } from '../pages/filtrarLineas'
-import { opcionesCascada } from '../pages/opcionesCascada'
+import Icono from './iconos'
+import { opcionesCascada } from './opcionesCascada'
 import styles from './FiltrosBar.module.css'
 
-const ALERTAS = [
-  { value: 'incompleta', label: 'Incompleta', tono: 'warn' },
-  { value: 'alerta_legajo', label: 'Legajo inválido', tono: 'warn' },
-  { value: 'alerta_empresa', label: 'Empresa a verificar', tono: 'warn' },
-  { value: 'es_duplicado', label: 'Duplicado', tono: 'danger' },
-  { value: 'es_posible_duplicado', label: 'Posible duplicado', tono: 'warn' },
-]
+// Defaults estables: un `[]` literal sería otro arreglo en cada render y
+// rompería el useMemo de las opciones.
+const SIN_CAMPOS = []
+const SIN_ALERTAS = []
 
-// Barra de filtros común a todas las pantallas de Preliquidación. Siempre en
-// el mismo orden: quincena, búsqueda, filtros de la pantalla, alertas (si la
-// pantalla las usa) y Limpiar. Debajo, lo que está filtrando en ese momento,
-// cada cosa con su botón para sacarla.
+// Barra de filtros común a las pantallas de los módulos. Siempre en el mismo
+// orden: quincena, búsqueda, filtros de la pantalla, alertas (si la pantalla
+// las usa) y Limpiar. Debajo, lo que está filtrando en ese momento, cada cosa
+// con su botón para sacarla. Los campos (`campos`: { key, label, field }) y las
+// alertas (`alertas`: { value, label, tono }) los pasa cada pantalla.
 export default function FiltrosBar({
   lineas = [],
   datos,
-  campos,
+  campos = SIN_CAMPOS,
+  alertas = SIN_ALERTAS,
   filtros,
   onChange,
   busqueda,
@@ -50,7 +48,7 @@ export default function FiltrosBar({
   }, [textoBusqueda])
 
   const datosEfectivos = datos ?? lineas
-  const camposEfectivos = campos ?? CAMPOS_LINEAS
+  const camposEfectivos = campos
 
   const toggle = (k, valor) => onChange(f => {
     const actual = f[k] || []
@@ -73,7 +71,7 @@ export default function FiltrosBar({
   const activos = [
     ...(busqueda ? [{ id: 'busqueda', texto: `Búsqueda: “${busqueda}”`, quitar: () => { setTextoBusqueda(''); onBusqueda?.('') } }] : []),
     ...(filtros.solo_alertas ? [{ id: 'solo_alertas', texto: 'Sólo líneas con alerta', quitar: () => sacar('solo_alertas') }] : []),
-    ...(filtros.alerta ? [{ id: 'alerta', texto: `Alerta: ${ALERTAS.find(a => a.value === filtros.alerta)?.label ?? filtros.alerta}`, quitar: () => sacar('alerta') }] : []),
+    ...(filtros.alerta ? [{ id: 'alerta', texto: `Alerta: ${alertas.find(a => a.value === filtros.alerta)?.label ?? filtros.alerta}`, quitar: () => sacar('alerta') }] : []),
     ...camposEfectivos.flatMap(c => (filtros[c.key] || []).map(v => ({
       id: `${c.key}:${v}`, texto: `${c.label}: ${v}`, quitar: () => quitar(c.key, v),
     }))),
@@ -125,9 +123,9 @@ export default function FiltrosBar({
           </button>
         )}
 
-        {mostrarAlertas && (
+        {mostrarAlertas && alertas.length > 0 && (
           <div className={styles.alertas} role="group" aria-label="Alertas">
-            {ALERTAS.map(a => (
+            {alertas.map(a => (
               <button
                 key={a.value}
                 type="button"

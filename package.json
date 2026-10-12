@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "node --test \"src/core/*.test.js\" \"src/core/administracion/*.test.js\" \"src/modulos/preliquidacion/*.test.js\" \"src/modulos/preliquidacion/pages/*.test.js\" \"src/modulos/facturacion/*.test.js\""
+    "test": "node --test \"src/core/*.test.js\" \"src/core/ui/*.test.js\" \"src/core/administracion/*.test.js\" \"src/modulos/preliquidacion/*.test.js\" \"src/modulos/preliquidacion/pages/*.test.js\" \"src/modulos/facturacion/*.test.js\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.1",

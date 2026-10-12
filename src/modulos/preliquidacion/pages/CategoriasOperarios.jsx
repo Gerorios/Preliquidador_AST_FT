@@ -7,11 +7,11 @@ import {
 } from '../services/preliquidacion'
 import { claves } from '../services/claves'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
-import FiltrosBar from '../components/FiltrosBar'
+import FiltrosBar from '../../../core/ui/FiltrosBar'
 import AvisoError from '../components/AvisoError'
 import SelectorQuincena from '../components/SelectorQuincena'
 import styles from './CategoriasOperarios.module.css'
-import { useEstadoPantalla } from '../estadoPantallas'
+import { useEstadoPantalla } from '../../../core/estadoPantallas'
 import useAuthStore from '../../../core/authStore'
 import { puedeEditar } from '../../../core/permisos'
 

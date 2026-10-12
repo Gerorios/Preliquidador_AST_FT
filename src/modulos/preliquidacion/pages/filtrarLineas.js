@@ -13,6 +13,16 @@ export const CAMPOS_LINEAS = [
   { key: 'supervisor',  label: 'Supervisor',     field: 'nombre_supervisor' },
 ]
 
+// Botones de alerta de la barra de filtros (FiltrosBar del núcleo), en Revisión.
+// Cada `value` es una clave de ALERTA, más abajo.
+export const ALERTAS_LINEAS = [
+  { value: 'incompleta', label: 'Incompleta', tono: 'warn' },
+  { value: 'alerta_legajo', label: 'Legajo inválido', tono: 'warn' },
+  { value: 'alerta_empresa', label: 'Empresa a verificar', tono: 'warn' },
+  { value: 'es_duplicado', label: 'Duplicado', tono: 'danger' },
+  { value: 'es_posible_duplicado', label: 'Posible duplicado', tono: 'warn' },
+]
+
 const ALERTA = {
   incompleta: l => l.linea_incompleta,
   alerta_legajo: l => l.alerta_legajo,

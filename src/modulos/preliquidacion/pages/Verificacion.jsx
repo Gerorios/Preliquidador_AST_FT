@@ -6,20 +6,20 @@ import {
   obtenerControlTancadasJornal, setValorHoraPulv, setValorHoraTractorista,
 } from '../services/preliquidacion'
 import { claves } from '../services/claves'
-import FiltrosBar from '../components/FiltrosBar'
+import FiltrosBar from '../../../core/ui/FiltrosBar'
 import AvisoError from '../components/AvisoError'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
 import SelectorQuincena from '../components/SelectorQuincena'
-import TablaOrdenable from '../components/TablaOrdenable'
+import TablaOrdenable from '../../../core/ui/TablaOrdenable'
 import ModalDetalle from '../components/ModalDetalle'
 import Icono from '../../../core/ui/iconos'
-import { filtrarLineas } from './filtrarLineas'
+import { filtrarLineas, CAMPOS_LINEAS } from './filtrarLineas'
 import { agruparPosiblesDuplicados } from './posiblesDuplicados'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import useAuthStore from '../../../core/authStore'
 import { puedeEditar } from '../../../core/permisos'
 import styles from './Verificacion.module.css'
-import { useEstadoPantalla } from '../estadoPantallas'
+import { useEstadoPantalla } from '../../../core/estadoPantallas'
 
 const SECCIONES = [
   { key: 'horas',          icono: 'reloj',     label: 'Horas excedidas',      umbral: '> 13 hs/día' },
@@ -220,6 +220,7 @@ export default function Verificacion() {
       <FiltrosBar
         key={preliqId}
         lineas={lineas}
+        campos={CAMPOS_LINEAS}
         filtros={filtros}
         onChange={setFiltros}
         busqueda={busqueda}

@@ -14,9 +14,9 @@ import {
 import { claves } from '../services/claves'
 import PanelLinea from '../components/PanelLinea'
 import DialogoOpcionExtra from '../components/DialogoOpcionExtra'
-import FiltrosBar from '../components/FiltrosBar'
+import FiltrosBar from '../../../core/ui/FiltrosBar'
 import SelectorQuincena from '../components/SelectorQuincena'
-import { filtrarLineas, pasaBusquedaYAlertas, CAMPOS_LINEAS } from './filtrarLineas'
+import { filtrarLineas, pasaBusquedaYAlertas, CAMPOS_LINEAS, ALERTAS_LINEAS } from './filtrarLineas'
 import AlertasBanner from '../components/AlertasBanner'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import useAuthStore from '../../../core/authStore'
@@ -25,7 +25,7 @@ import { alertaDe, siguienteOrden, ordenarLineas } from './ordenarLineas'
 import { totalesLineas } from './totalesLineas'
 import styles from './Revision.module.css'
 import Icono from '../../../core/ui/iconos'
-import { useEstadoPantalla } from '../estadoPantallas'
+import { useEstadoPantalla } from '../../../core/estadoPantallas'
 
 // En Revisión no se filtra por empresa: no se usa.
 const CAMPOS_REVISION = CAMPOS_LINEAS.filter(c => c.key !== 'empresa')
@@ -651,6 +651,7 @@ function RevisionQuincena() {
           <FiltrosBar
             lineas={lineas}
             campos={CAMPOS_REVISION}
+            alertas={ALERTAS_LINEAS}
             filtros={filtros}
             onChange={setFiltros}
             busqueda={busqueda}
