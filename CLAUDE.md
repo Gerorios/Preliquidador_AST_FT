@@ -27,8 +27,8 @@ lo que existe en Claude Code.
   entera por la de un commit nuevo del original, en un PR.
 - **Bitácora**: el agente `bitacora` y `/bitacora` viven en el repo del backend y se corren
   desde allá; el agente también actualiza `docs/estado.md` del backend, y los dos se
-  commitean juntos a `main` del backend. Desde acá sólo se pregunta. Dos respaldos
-  recuerdan preguntar después de un merge: un hook PostToolUse sobre `gh pr merge` y el
+  commitean juntos a `main` del backend. Desde acá se despacha sobre el backend, sin
+  preguntar. Dos respaldos recuerdan anotar después de un merge: un hook PostToolUse sobre `gh pr merge` y el
   `post-merge` de git.
 - **Memoria de Claude**: no guarda el estado de las tareas, que vive en `docs/estado.md` del
   backend. Queda para las preferencias del usuario y las trampas de las herramientas. Vive
