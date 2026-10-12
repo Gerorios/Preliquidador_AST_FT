@@ -1,9 +1,10 @@
 import { modulo as preliquidacion } from './preliquidacion/rutas'
 import { modulo as terceros } from './terceros/rutas'
+import { modulo as facturacion } from './facturacion/rutas'
 import { tarjetasDe } from '../core/accesos'
 
 // Agregar un módulo = una línea acá. Los inactivos no montan rutas ni tarjeta.
-export const TODOS = [preliquidacion, terceros]
+export const TODOS = [preliquidacion, terceros, facturacion]
 export const MODULOS = TODOS.filter(m => m.activo)
 
 export const moduloDeRuta = (pathname) => MODULOS.find(m => pathname.startsWith(m.prefijo)) ?? null
