@@ -7,6 +7,7 @@ import Icono from '../../../core/ui/iconos'
 import useAuthStore from '../../../core/authStore'
 import { puedeEditar } from '../../../core/permisos'
 import GrillaLineas from '../components/GrillaLineas'
+import Adjuntos from '../components/Adjuntos'
 import {
   CLAVE_COMPROBANTES, claveComprobante, obtenerComprobante, crearComprobante,
   editarComprobante, borrarComprobante, listarClientes, listarFincas,
@@ -134,7 +135,9 @@ function Dato({ etiqueta, children }) {
   )
 }
 
-function Vista({ detalle, aviso }) {
+// `editable`: quien puede Editar sube y quita adjuntos aunque el Comprobante se
+// vea en sólo lectura (un histórico, o con el sistema de campo caído).
+function Vista({ detalle, aviso, editable }) {
   const fila = filaDelListado(detalle)
   const apagado = texto => <span className={styles.apagado}>{texto}</span>
   return (
@@ -144,8 +147,10 @@ function Vista({ detalle, aviso }) {
       <div className={styles.cuerpo}>
         {detalle.es_historico && (
           <p className={styles.nota}>
-            Comprobante histórico, migrado de la planilla: no se edita ni se borra.
-            Sus importes son los de la planilla, tal cual.
+            {editable
+              ? 'Comprobante histórico, migrado de la planilla: no se edita ni se borra, pero sí se le pueden subir y quitar adjuntos.'
+              : 'Comprobante histórico, migrado de la planilla: no se edita ni se borra.'}
+            {' '}Sus importes son los de la planilla, tal cual.
           </p>
         )}
         <dl className={styles.cabecera}>
@@ -162,6 +167,7 @@ function Vista({ detalle, aviso }) {
           <h2 id="titulo-lineas" className={styles.subtitulo}>Líneas</h2>
           <GrillaLineas soloLectura lineas={detalle.lineas ?? []} tipo={detalle.tipo} />
         </section>
+        <Adjuntos comprobante={detalle} editable={editable} />
       </div>
     </Pagina>
   )
@@ -421,7 +427,10 @@ function Formulario({ detalle, clientes, empresas, tareas }) {
       qc.invalidateQueries({ queryKey: CLAVE_COMPROBANTES })
       // El detalle nuevo vuelve a montar el formulario con lo guardado.
       qc.setQueryData(claveComprobante(guardado.id), guardado)
-      toast.success(`${TIPOS[guardado.tipo] ?? 'Comprobante'} ${esNuevo ? 'guardada' : 'actualizada'}`)
+      // En el alta, el aviso guía al paso que sigue: los adjuntos, abajo.
+      toast.success(esNuevo
+        ? `${TIPOS[guardado.tipo] ?? 'Comprobante'} guardada. Ahora adjuntá el comprobante, abajo.`
+        : `${TIPOS[guardado.tipo] ?? 'Comprobante'} actualizada`)
       if (esNuevo) {
         // Lo cargado ya está guardado: pasar al detalle no tiene nada que avisar.
         setSaliendo(true)
@@ -702,6 +711,10 @@ function Formulario({ detalle, clientes, empresas, tareas }) {
           />
         </section>
 
+        {/* El formulario sólo se muestra a quien puede Editar. En el alta
+            (sin detalle) avisa que se adjunta después de guardar. */}
+        <Adjuntos comprobante={detalle} editable />
+
         {!esNuevo && (
           <div className={styles.zonaBorrar}>
             {confirmandoBorrar ? (
@@ -857,10 +870,10 @@ export default function Comprobante() {
         </Pagina>
       )
     }
-    return <Vista detalle={detalle} aviso={error} />
+    return <Vista detalle={detalle} aviso={error} editable={editable} />
   }
 
-  if (!usaCampo) return <Vista detalle={detalle} />
+  if (!usaCampo) return <Vista detalle={detalle} editable={editable} />
 
   return (
     <Formulario
