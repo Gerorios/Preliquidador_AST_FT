@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import Icono from './iconos'
-import { opcionesCascada } from './opcionesCascada'
+import { opcionesCascada, opcionesConElegidos } from './opcionesCascada'
 import styles from './FiltrosBar.module.css'
 
 // Defaults estables: un `[]` literal sería otro arreglo en cada render y
@@ -11,8 +11,9 @@ const SIN_ALERTAS = []
 // Barra de filtros común a las pantallas de los módulos. Siempre en el mismo
 // orden: quincena, búsqueda, filtros de la pantalla, alertas (si la pantalla
 // las usa) y Limpiar. Debajo, lo que está filtrando en ese momento, cada cosa
-// con su botón para sacarla. Los campos (`campos`: { key, label, field }) y las
-// alertas (`alertas`: { value, label, tono }) los pasa cada pantalla.
+// con su botón para sacarla. Los campos (`campos`: { key, label, field }, y
+// un `orden` opcional para sus opciones, ver opcionesCascada) y las alertas
+// (`alertas`: { value, label, tono }) los pasa cada pantalla.
 export default function FiltrosBar({
   lineas = [],
   datos,
@@ -154,6 +155,7 @@ export default function FiltrosBar({
               key={c.key}
               label={c.label}
               opciones={opciones[c.key]}
+              orden={c.orden}
               valores={filtros[c.key] || []}
               onToggle={v => toggle(c.key, v)}
               onQuitar={v => quitar(c.key, v)}
@@ -183,7 +185,7 @@ export default function FiltrosBar({
 // Dropdown multi-select: un botón que muestra los valores elegidos (o "Todas"
 // si no hay ninguno), y una lista con checkboxes que se abre debajo. Se cierra
 // al hacer click afuera.
-function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQuitar, onSetTodos }) {
+function FiltroMultiSelect({ label, opciones = [], valores = [], orden, onToggle, onQuitar, onSetTodos }) {
   const [abierto, setAbierto] = useState(false)
   const ref = useRef(null)
 
@@ -198,10 +200,10 @@ function FiltroMultiSelect({ label, opciones = [], valores = [], onToggle, onQui
 
   // Un valor elegido que la cascada ya no ofrece se sigue mostrando, para no
   // perder la selección de golpe.
-  const todasOpciones = useMemo(() => {
-    const faltantes = valores.filter(v => !opciones.includes(v))
-    return faltantes.length ? [...faltantes, ...opciones].sort() : opciones
-  }, [opciones, valores])
+  const todasOpciones = useMemo(
+    () => opcionesConElegidos(opciones, valores, orden),
+    [opciones, valores, orden],
+  )
 
   return (
     <div className={styles.multi} ref={ref}>
