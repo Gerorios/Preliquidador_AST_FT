@@ -213,7 +213,7 @@ export default function Adjuntos({ comprobante, editable }) {
           {cantidad} de {MAXIMO_POR_COMPROBANTE}
         </span>
         {editable && (
-          <span className={styles.ayuda}>PDF, PNG o JPG, de hasta 10 MB.</span>
+          <span className={styles.ayuda}>PDF, PNG o JPG, de hasta 10 MB. Se guardan al subirlos.</span>
         )}
         {editable && (
           <div className={styles.accion}>
@@ -256,7 +256,17 @@ export default function Adjuntos({ comprobante, editable }) {
         </p>
       )}
 
-      {cantidad === 0 ? (
+      {/* Sin adjunto, un Comprobante lo marca con el tono de aviso; un histórico
+          no, igual que en el listado, donde nunca dice "Sin adjunto". */}
+      {cantidad === 0 && !comprobante.es_historico ? (
+        <p className={`${styles.vacio} ${styles.vacioAviso}`}>
+          <Icono nombre="alerta" size={14} enTexto className={styles.vacioIcono} />
+          <span>
+            Falta el adjunto.
+            {editable && ' Subí el PDF o la imagen del comprobante.'}
+          </span>
+        </p>
+      ) : cantidad === 0 ? (
         <p className={styles.vacio}>
           Sin adjuntos.
           {editable && ' Subí el PDF o la imagen del comprobante.'}

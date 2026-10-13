@@ -139,6 +139,23 @@
   max-width: 80ch;
 }
 
+/* Un Comprobante sin adjunto: el tono de aviso de `.badge-warn`, con borde
+   lleno en vez del punteado del vacío neutro. */
+.vacioAviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--text-primary);
+  background: var(--warn-dim);
+  border: 1px solid var(--warn);
+}
+
+.vacioIcono {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--warn);
+}
+
 /* ─── Lista ─── */
 
 .tabla {

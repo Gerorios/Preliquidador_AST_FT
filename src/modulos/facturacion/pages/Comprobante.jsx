@@ -147,8 +147,10 @@ function Vista({ detalle, aviso, editable }) {
       <div className={styles.cuerpo}>
         {detalle.es_historico && (
           <p className={styles.nota}>
-            Comprobante histórico, migrado de la planilla: no se edita ni se borra.
-            Sus importes son los de la planilla, tal cual.
+            {editable
+              ? 'Comprobante histórico, migrado de la planilla: no se edita ni se borra, pero sí se le pueden subir y quitar adjuntos.'
+              : 'Comprobante histórico, migrado de la planilla: no se edita ni se borra.'}
+            {' '}Sus importes son los de la planilla, tal cual.
           </p>
         )}
         <dl className={styles.cabecera}>
@@ -425,7 +427,10 @@ function Formulario({ detalle, clientes, empresas, tareas }) {
       qc.invalidateQueries({ queryKey: CLAVE_COMPROBANTES })
       // El detalle nuevo vuelve a montar el formulario con lo guardado.
       qc.setQueryData(claveComprobante(guardado.id), guardado)
-      toast.success(`${TIPOS[guardado.tipo] ?? 'Comprobante'} ${esNuevo ? 'guardada' : 'actualizada'}`)
+      // En el alta, el aviso guía al paso que sigue: los adjuntos, abajo.
+      toast.success(esNuevo
+        ? `${TIPOS[guardado.tipo] ?? 'Comprobante'} guardada. Ahora adjuntá el comprobante, abajo.`
+        : `${TIPOS[guardado.tipo] ?? 'Comprobante'} actualizada`)
       if (esNuevo) {
         // Lo cargado ya está guardado: pasar al detalle no tiene nada que avisar.
         setSaliendo(true)
