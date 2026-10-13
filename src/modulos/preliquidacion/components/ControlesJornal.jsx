@@ -26,6 +26,7 @@ const COLS_TANCADAS = [
   { clave: 'tancadas', label: 'Tancadas', valor: f => f.tancadas, numerica: true },
   { clave: 'hsjornal', label: 'Hs jornal', valor: f => f.hsjornal, numerica: true },
   { clave: 'hsmaquina', label: 'Hs máquina', valor: f => f.hsmaquina, numerica: true },
+  { clave: 'minTancada', label: 'Min/tancada', valor: f => f.minutos_por_tancada, numerica: true },
   { clave: 'precio', label: 'Precio tancada', valor: f => f.precio, numerica: true },
   { clave: 'importe', label: 'Importe pagado', valor: f => f.importe_pagado, numerica: true },
   { clave: 'valorHora', label: 'Valor hs/máquina pulv', valor: f => f.valor_hora_maquina, numerica: true },
@@ -176,6 +177,9 @@ export function TancadasJornal({ data, onGuardar, guardando, orden: ordenPantall
   // La variación viene como ratio crudo; se muestra en %. Positivo = el valor
   // hora pagado por hora de máquina supera la referencia (valor hora pulv × 1,3).
   const fmtPct = (d) => d == null ? '—' : `${d > 0 ? '+' : ''}${(d * 100).toLocaleString('es-AR', { maximumFractionDigits: 1 })}%`
+  // Minutos de máquina por tancada: el back lo calcula; sin hs máquina o sin
+  // tancadas llega null (o falta, con un back anterior) y se muestra '—'.
+  const fmtMin = (n) => n == null ? '—' : n.toLocaleString('es-AR', { maximumFractionDigits: 1 })
   const filasSinHsMaquina = totales?.filas_sin_hs_maquina ?? 0
 
   return (
@@ -213,6 +217,7 @@ export function TancadasJornal({ data, onGuardar, guardando, orden: ordenPantall
                         <span className="badge badge-muted" style={{ marginLeft: 6 }}>sin hs máquina</span>
                       )}
                     </td>
+                    <td className="mono">{fmtMin(f.minutos_por_tancada)}</td>
                     <td className="mono">{fmtMoney(f.precio)}</td>
                     <td className="mono">{fmtMoney(f.importe_pagado)}</td>
                     <td className="mono">{fmtMoney(f.valor_hora_maquina)}</td>
@@ -228,6 +233,7 @@ export function TancadasJornal({ data, onGuardar, guardando, orden: ordenPantall
                     <td className="mono">{fmt(totales.tancadas)}</td>
                     <td className="mono">{fmt(totales.hsjornal)}</td>
                     <td className="mono">{fmt(totales.hsmaquina)}</td>
+                    <td className="mono">{fmtMin(totales.minutos_por_tancada)}</td>
                     <td className="mono">{fmtMoney(totales.precio)}</td>
                     <td className="mono">{fmtMoney(totales.importe_pagado)}</td>
                     <td className="mono">{fmtMoney(totales.valor_hora_maquina)}</td>
@@ -241,8 +247,8 @@ export function TancadasJornal({ data, onGuardar, guardando, orden: ordenPantall
           {filasSinHsMaquina > 0 && (
             <p className={styles.pjNota}>
               {filasSinHsMaquina === 1
-                ? '1 fila sin hs máquina no entra en la variación'
-                : `${filasSinHsMaquina} filas sin hs máquina no entran en la variación`}
+                ? '1 fila sin hs máquina no entra en la variación ni en los minutos por tancada'
+                : `${filasSinHsMaquina} filas sin hs máquina no entran en la variación ni en los minutos por tancada`}
             </p>
           )}
         </>
