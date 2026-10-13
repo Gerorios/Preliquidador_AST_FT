@@ -1,25 +1,37 @@
+import { lazy } from 'react'
+
 // Rutas y menú del módulo Facturación. El núcleo (App.jsx, Layout.jsx) las
 // consume sin conocer las pantallas.
 //
 // El backend declara cinco pantallas (Pendientes, Cruce, Comprobantes,
 // Equivalencias y Panel) para que sus claves queden fijas en el editor de roles
-// desde el principio. Hoy no hay ninguna construida: la de la E1 (Unidad de
-// medida por defecto) se retiró el 2026-10-12, porque la Unidad sugerida se lee
-// del sistema de campo. Cada pantalla suma su ruta con su etapa; una página "en
-// construcción" llenaría el menú de entradas vacías. Sin rutas no hay menú ni
-// Tarjeta del Inicio para nadie, y una URL tipeada vuelve al Inicio. Ver, en el
-// repo backend, docs/superpowers/plans/2026-10-11-facturacion-e1.md (D2) y
-// docs/superpowers/plans/2026-10-12-unidad-desde-campo.md.
+// desde el principio. La primera construida es Comprobantes (E2); la de la E1
+// (Unidad de medida por defecto) se retiró el 2026-10-12, porque la Unidad
+// sugerida se lee del sistema de campo. Cada pantalla suma su ruta con su etapa;
+// una página "en construcción" llenaría el menú de entradas vacías. Ver, en el
+// repo backend, docs/superpowers/plans/2026-10-11-facturacion-e1.md (D2),
+// docs/superpowers/plans/2026-10-12-unidad-desde-campo.md y
+// docs/superpowers/plans/2026-10-11-facturacion-e2.md.
+const Comprobantes = lazy(() => import('./pages/Comprobantes'))
+const Comprobante = lazy(() => import('./pages/Comprobante'))
 
 export const PREFIJO = '/facturacion'
 export const MODULO = 'facturacion'
 
-// icono: nombre para <Icono/> (src/core/ui/iconos.jsx). La tarjeta reusa
-// 'conceptos' del núcleo; el ícono del menú se elige con la primera pantalla.
-// Un ícono propio sería un PR aparte del núcleo.
+// icono: nombre para <Icono/> (src/core/ui/iconos.jsx). La tarjeta y el menú
+// reusan 'conceptos' del núcleo; un ícono propio sería un PR aparte del núcleo.
+// pantalla: clave de la pantalla en el esquema de permisos (ADR-0020), la misma
+// que declara el backend en app/modulos/facturacion/permisos.py.
 // Las rutas nuevas se insertan en el orden de las pantallas del backend, para
 // que la primera entrada visible del menú sea donde aterriza la tarjeta.
-export const rutas = []
+// El alta y el detalle de un Comprobante no van al menú: se llega desde el
+// listado. Las dos piden la pantalla `comprobantes`; quien sólo puede Ver la
+// abre en sólo lectura.
+export const rutas = [
+  { path: `${PREFIJO}/comprobantes`,       element: <Comprobantes />, modulo: MODULO, pantalla: 'comprobantes', label: 'Comprobantes', icono: 'conceptos', menu: true },
+  { path: `${PREFIJO}/comprobantes/nuevo`, element: <Comprobante />,  modulo: MODULO, pantalla: 'comprobantes', menu: false },
+  { path: `${PREFIJO}/comprobantes/:id`,   element: <Comprobante />,  modulo: MODULO, pantalla: 'comprobantes', menu: false },
+]
 
 // El menú se deriva de rutas para que nav, modulo y pantalla no puedan divergir.
 export const nav = rutas
@@ -28,8 +40,13 @@ export const nav = rutas
 
 export const redirecciones = []
 
-// Pantallas para el asistente de ayuda (src/core/asistente/AsistenteChat.jsx).
-export const pantallas = {}
+// Pantallas para el asistente de ayuda (src/core/asistente/AsistenteChat.jsx):
+// nombres para el modelo, no permisos. La clave 'prefijo/*' la resuelve
+// registro.js/resolverPantalla por prefijo (el alta y cada Comprobante).
+export const pantallas = {
+  '/facturacion/comprobantes': 'Comprobantes: las Facturas y Notas de crédito emitidas a los clientes',
+  '/facturacion/comprobantes/*': 'Un Comprobante: alta o edición de una Factura o Nota de crédito, con sus Líneas',
+}
 
 export const modulo = {
   clave: MODULO,
