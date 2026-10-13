@@ -44,6 +44,34 @@ export const editarComprobante = (id, datos) =>
 export const borrarComprobante = (id) =>
   api.delete(`/facturacion/comprobantes/${id}`).then(r => r.data)
 
+// ─── Adjuntos ───────────────────────────────────────────────────────────────
+// PDF, PNG o JPG, hasta 5 por Comprobante; también en los históricos. Subir y
+// quitar no cambian la cabecera ni el `actualizado_en` del Comprobante. Los
+// mensajes de error los arma `mensajeDeAdjunto` (adjuntos.js).
+
+// Devuelve el Adjunto creado: {id, nombre_original, tipo_contenido,
+// tamano_bytes, subido_en}. El Content-Type va explícito: la instancia de
+// core/api.js manda JSON por defecto, y con ese header axios convierte el
+// FormData en JSON (el archivo no viajaría). Con multipart, el navegador lo
+// reemplaza por el suyo, con el boundary.
+export const subirAdjunto = (comprobanteId, archivo) => {
+  const cuerpo = new FormData()
+  cuerpo.append('archivo', archivo)
+  return api.post(`/facturacion/comprobantes/${comprobanteId}/adjuntos`, cuerpo, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(r => r.data)
+}
+
+// El archivo como Blob, con el tipo que detectó el backend al subirlo: la
+// sesión viaja en un header, así que un enlace directo no la llevaría. Si
+// falla, el `detail` llega como Blob y no se lee: el error trae sólo `status`.
+export const verAdjunto = (comprobanteId, adjuntoId) =>
+  api.get(`/facturacion/comprobantes/${comprobanteId}/adjuntos/${adjuntoId}`, { responseType: 'blob' })
+     .then(r => r.data)
+
+export const quitarAdjunto = (comprobanteId, adjuntoId) =>
+  api.delete(`/facturacion/comprobantes/${comprobanteId}/adjuntos/${adjuntoId}`).then(r => r.data)
+
 // ─── Lecturas del campo y de sueldos ────────────────────────────────────────
 // El backend las guarda 10 minutos en caché. Si el sistema de campo no
 // responde, 503.

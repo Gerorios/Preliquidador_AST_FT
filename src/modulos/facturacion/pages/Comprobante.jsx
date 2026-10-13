@@ -7,6 +7,7 @@ import Icono from '../../../core/ui/iconos'
 import useAuthStore from '../../../core/authStore'
 import { puedeEditar } from '../../../core/permisos'
 import GrillaLineas from '../components/GrillaLineas'
+import Adjuntos from '../components/Adjuntos'
 import {
   CLAVE_COMPROBANTES, claveComprobante, obtenerComprobante, crearComprobante,
   editarComprobante, borrarComprobante, listarClientes, listarFincas,
@@ -134,7 +135,9 @@ function Dato({ etiqueta, children }) {
   )
 }
 
-function Vista({ detalle, aviso }) {
+// `editable`: quien puede Editar sube y quita adjuntos aunque el Comprobante se
+// vea en sólo lectura (un histórico, o con el sistema de campo caído).
+function Vista({ detalle, aviso, editable }) {
   const fila = filaDelListado(detalle)
   const apagado = texto => <span className={styles.apagado}>{texto}</span>
   return (
@@ -162,6 +165,7 @@ function Vista({ detalle, aviso }) {
           <h2 id="titulo-lineas" className={styles.subtitulo}>Líneas</h2>
           <GrillaLineas soloLectura lineas={detalle.lineas ?? []} tipo={detalle.tipo} />
         </section>
+        <Adjuntos comprobante={detalle} editable={editable} />
       </div>
     </Pagina>
   )
@@ -702,6 +706,10 @@ function Formulario({ detalle, clientes, empresas, tareas }) {
           />
         </section>
 
+        {/* El formulario sólo se muestra a quien puede Editar. En el alta
+            (sin detalle) avisa que se adjunta después de guardar. */}
+        <Adjuntos comprobante={detalle} editable />
+
         {!esNuevo && (
           <div className={styles.zonaBorrar}>
             {confirmandoBorrar ? (
@@ -857,10 +865,10 @@ export default function Comprobante() {
         </Pagina>
       )
     }
-    return <Vista detalle={detalle} aviso={error} />
+    return <Vista detalle={detalle} aviso={error} editable={editable} />
   }
 
-  if (!usaCampo) return <Vista detalle={detalle} />
+  if (!usaCampo) return <Vista detalle={detalle} editable={editable} />
 
   return (
     <Formulario
