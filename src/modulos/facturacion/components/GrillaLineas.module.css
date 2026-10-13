@@ -1,0 +1,247 @@
+/* La grilla de Líneas: la tabla global del sistema (encabezado gris, filas
+   separadas por una línea), con campos en las celdas. Sin overflow propio: la
+   lista del autocompletar tiene que poder salir de la tabla. */
+.grilla {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tabla {
+  table-layout: fixed;
+  min-width: 980px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--bg-base);
+}
+
+/* La tarea toma el ancho que sobra: es el texto más largo de la fila. */
+.colNumero { width: 34px; }
+.colFecha { width: 136px; }
+.colTarea { width: auto; }
+.colUnidad { width: 146px; }
+.colFinca { width: 160px; }
+.colCantidad { width: 104px; }
+.colPrecio { width: 112px; }
+.colImporte { width: 128px; }
+.colQuitar { width: 44px; }
+
+.tabla thead th {
+  padding: 8px 6px;
+}
+
+.tabla thead th:first-child { border-top-left-radius: var(--radius); }
+.tabla thead th:last-child { border-top-right-radius: var(--radius); }
+
+.tabla td {
+  padding: 5px 6px;
+  white-space: normal;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Las filas son de carga, no se abren: sin puntero ni fondo al pasar. */
+.fila,
+.fila:hover {
+  cursor: default;
+  background: none;
+}
+
+/* La fila con avisos sigue en la de los mensajes, sin línea en el medio. */
+.filaConMensajes td {
+  border-bottom: none;
+}
+
+.numeroFila {
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.numerica {
+  text-align: right;
+}
+
+.tabla thead th.numerica {
+  text-align: right;
+}
+
+/* Los campos ocupan la celda; 13 px, uno más que los de las barras, porque
+   acá se lee y se compara contra el PDF. */
+.campo {
+  font-size: 13px;
+  padding: 6px 8px;
+}
+
+select.campo {
+  padding-right: 26px;
+  background-position: right 8px center;
+}
+
+.campoNumero {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+/* Un campo con error: borde y fondo del tono de error, además del mensaje
+   debajo de la fila (no sólo el color). */
+.grilla [aria-invalid='true'] {
+  border-color: var(--danger);
+  background-color: var(--danger-dim);
+}
+
+.importe {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.importeInvalido {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.celdaQuitar {
+  text-align: center;
+}
+
+/* El botón de quitar es chico de dibujo pero de 32 px de blanco, y se pone
+   rojo recién al apuntarlo: no compite con los datos de la fila. */
+.quitar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.quitar:hover {
+  color: var(--danger);
+  background: var(--danger-dim);
+  border-color: rgba(192, 64, 56, 0.35);
+}
+
+.quitar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.filaMensajes,
+.filaMensajes:hover {
+  cursor: default;
+  background: none;
+}
+
+.filaMensajes td {
+  padding-top: 0;
+  padding-bottom: 8px;
+}
+
+.mensajes {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mensajeError,
+.mensajeAviso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mensajeError {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.iconoError {
+  flex-shrink: 0;
+}
+
+.mensajeAviso {
+  color: var(--text-secondary);
+}
+
+.tabla td.vacia {
+  padding: 20px 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.vacia strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* El pie: el total, alineado con la columna del importe. */
+.pie,
+.pie:hover {
+  cursor: default;
+  background: var(--bg-surface);
+}
+
+.pie td {
+  border-bottom: none;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.pie td:first-child { border-bottom-left-radius: var(--radius); }
+.pie td:last-child { border-bottom-right-radius: var(--radius); }
+
+.pieEtiqueta {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pieCuenta {
+  margin-left: 10px;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pieTotal {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* En sólo lectura cada dato es texto, con el alto de una fila de la tabla. */
+.tabla td.dato {
+  padding-top: 9px;
+  padding-bottom: 9px;
+  font-size: 13px;
+}
+
+.apagado {
+  color: var(--text-muted);
+}
+
+.agregar {
+  display: flex;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
