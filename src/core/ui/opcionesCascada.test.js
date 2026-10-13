@@ -4,7 +4,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { opcionesCascada } from './opcionesCascada.js'
+import { opcionesCascada, opcionesConElegidos } from './opcionesCascada.js'
 
 const CAMPOS = [
   { key: 'cliente', field: 'nombre_cliente' },
@@ -81,4 +81,37 @@ test('con prefiltro null se usan todas las filas', () => {
     finca: ['Las Tunas', 'San Pedro'],
     tarea: ['Poda', 'Riego'],
   })
+})
+
+// ─── Orden propio de un campo (plan Facturación E2, FA3b) ───────────────────
+// Un campo puede traer `orden`, un comparador de valores; sin él, las opciones
+// siguen saliendo en orden de texto, como en Preliquidación.
+
+// Comparador de prueba: por largo del texto, del más largo al más corto.
+const porLargoDesc = (a, b) => b.length - a.length
+
+test('un campo con `orden` ofrece sus opciones en ese orden; los demás, como texto', () => {
+  const campos = [
+    { key: 'cliente', field: 'nombre_cliente', orden: porLargoDesc },
+    { key: 'finca', field: 'nombre_finca' },
+  ]
+  const op = opcionesCascada(DATOS, {}, campos)
+  assert.deepEqual(op.cliente, ['Olivares Sur', 'Bodega Este', 'Agro Norte'])
+  assert.deepEqual(op.finca, ['El Bajo', 'La Loma', 'Las Tunas', 'San Pedro'])
+})
+
+test('opcionesConElegidos: sin elegidos fuera de las opciones, devuelve las mismas opciones', () => {
+  const opciones = ['Agro Norte', 'Olivares Sur']
+  assert.equal(opcionesConElegidos(opciones, ['Agro Norte']), opciones)
+  assert.equal(opcionesConElegidos(opciones, [], porLargoDesc), opciones)
+})
+
+test('opcionesConElegidos: un elegido que ya no está se suma, y sin `orden` todo va como texto', () => {
+  const op = opcionesConElegidos(['Olivares Sur', 'Agro Norte'], ['Bodega Este'])
+  assert.deepEqual(op, ['Agro Norte', 'Bodega Este', 'Olivares Sur'])
+})
+
+test('opcionesConElegidos: con `orden`, el elegido que ya no está se ordena con el comparador', () => {
+  const op = opcionesConElegidos(['Olivares Sur', 'Agro Norte'], ['Bodega Este'], porLargoDesc)
+  assert.deepEqual(op, ['Olivares Sur', 'Bodega Este', 'Agro Norte'])
 })
