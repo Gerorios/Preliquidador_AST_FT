@@ -121,8 +121,9 @@ function aEscalado(texto) {
 }
 
 // Suma los textos con la escala más larga de los que suma ("0.25" + "120.5"
-// da "120.75"). Lo que no es un decimal no suma; sin nada, "0".
-function sumarDecimales(textos) {
+// da "120.75"). Lo que no es un decimal no suma; sin nada, "0". La usa
+// también el total de los partes del Detalle (detalle.js, plan E3, FA4).
+export function sumarDecimales(textos) {
   const numeros = textos.map(aEscalado).filter(Boolean)
   const escala = Math.max(0, ...numeros.map(n => n.escala))
   let total = 0n
