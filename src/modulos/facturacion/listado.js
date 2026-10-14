@@ -21,8 +21,9 @@ function claveMes(texto) {
   return indice < 0 ? -1 : Number(partes[2]) * 12 + indice
 }
 
-// Del mes más nuevo al más viejo; lo que no es un mes va al final.
-const delMesMasNuevo = (a, b) => claveMes(b) - claveMes(a)
+// Del mes más nuevo al más viejo; lo que no es un mes va al final. La usa
+// también el campo Mes del Resumen (resumen.js, plan E3, FA3).
+export const delMesMasNuevo = (a, b) => claveMes(b) - claveMes(a)
 
 export const CAMPOS_COMPROBANTES = [
   { key: 'cliente', label: 'Cliente', field: 'cliente_nombre' },
