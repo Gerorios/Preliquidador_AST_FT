@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -14,12 +14,21 @@ import {
 import { claves } from '../services/claves'
 import PanelLinea from '../components/PanelLinea'
 import DialogoOpcionExtra from '../components/DialogoOpcionExtra'
-import FiltrosBar from '../components/FiltrosBar'
+import FiltrosBar from '../../../core/ui/FiltrosBar'
+import SelectorQuincena from '../components/SelectorQuincena'
+import { filtrarLineas, pasaBusquedaYAlertas, CAMPOS_LINEAS, ALERTAS_LINEAS } from './filtrarLineas'
 import AlertasBanner from '../components/AlertasBanner'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import useAuthStore from '../../../core/authStore'
+import { accionesRevision, avisoIncompletas } from './revisionSoloLectura'
 import { alertaDe, siguienteOrden, ordenarLineas } from './ordenarLineas'
 import { totalesLineas } from './totalesLineas'
 import styles from './Revision.module.css'
+import Icono from '../../../core/ui/iconos'
+import { useEstadoPantalla } from '../../../core/estadoPantallas'
+
+// En Revisión no se filtra por empresa: no se usa.
+const CAMPOS_REVISION = CAMPOS_LINEAS.filter(c => c.key !== 'empresa')
 
 function fmt(v) {
   if (v === null || v === undefined || v === '' || Number(v) === 0) return '—'
@@ -30,6 +39,7 @@ function fmt(v) {
 // el orden por la columna de alerta), acá sólo se elige el color.
 const BADGE_ALERTA = {
   DUPLICADO:  'badge-danger',
+  'POSIBLE DUPLICADO': 'badge-warn',
   INCOMPLETA: 'badge-warn',
   LEGAJO:     'badge-warn',
   EMPRESA:    'badge-info',
@@ -301,13 +311,13 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginLeft: 8 }}>
               {conceptosEnSeleccion.map(c => (
                 <button key={`quitar-${c.codigo}`} className="btn btn-sm btn-danger" onClick={() => eliminar(c.codigo)} disabled={eliminando}>
-                  {eliminando ? <span className="spinner" /> : `✕ Quitar cód. ${c.codigo} (${c.count})`}
+                  {eliminando ? <span className="spinner" /> : <><Icono nombre="cerrar" size={14} enTexto /> Quitar cód. {c.codigo} ({c.count})</>}
                 </button>
               ))}
             </div>
           )}
           <button className="btn btn-sm" onClick={() => abrirReasignar()} disabled={cargandoGrupos}>
-            {cargandoGrupos ? <span className="spinner" /> : '⇄ Reasignar empresa'}
+            {cargandoGrupos ? <span className="spinner" /> : <><Icono nombre="intercambiar" size={14} enTexto /> Reasignar empresa</>}
           </button>
         </div>
       )}
@@ -317,7 +327,7 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--info)' }}>Reasignar empresa — un bloque por persona (CUIL)</span>
           {gruposCuil.sin_cuil.length > 0 && (
             <span style={{ fontSize: 11, color: 'var(--warn)' }}>
-              ⚠ {gruposCuil.sin_cuil.length} línea{gruposCuil.sin_cuil.length > 1 ? 's' : ''} sin CUIL — no se pueden reasignar así, editalas a mano.
+              <Icono nombre="alerta" size={14} enTexto /> {gruposCuil.sin_cuil.length} línea{gruposCuil.sin_cuil.length > 1 ? 's' : ''} sin CUIL — no se pueden reasignar así, editalas a mano.
             </span>
           )}
           {gruposCuil.grupos.map(g => (
@@ -396,19 +406,36 @@ function LiquidacionPersona({ lineas, onCambio, quincena }) {
   )
 }
 
+// El selector de quincena navega dentro de esta misma ruta y React Router no
+// vuelve a montar la página: sin `key`, la línea abierta en el panel y el modo
+// de liquidación masiva seguirían siendo de la quincena anterior ("Guardar"
+// editaría esa línea). Filtros, búsqueda y orden viven en useEstadoPantalla y
+// se conservan igual.
 export default function Revision() {
+  const { id } = useParams()
+  return <RevisionQuincena key={id} />
+}
+
+function RevisionQuincena() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  // Con sólo Ver Revisión no hay liquidación masiva y el panel de la línea es
+  // de lectura (revisionSoloLectura.js). El aviso de incompletas se muestra
+  // igual, con un texto y un "Ir a Conceptos" según lo que la persona puede
+  // hacer en Conceptos: si no la puede abrir, la guarda la mandaría al Inicio.
+  const { usuario } = useAuthStore()
+  const acciones = accionesRevision(usuario)
 
-  const [filtros, setFiltros] = useState({})
+  const [filtros, setFiltros] = useEstadoPantalla('revision.filtros', {})
   const [lineaSeleccionada, setLineaSeleccionada] = useState(null)
-  const [busqueda, setBusqueda] = useState('')
+  const [busqueda, setBusqueda] = useEstadoPantalla('revision.busqueda', '')
   const [modoLiquidacion, setModoLiquidacion] = useState(false)
   const [exportando, setExportando] = useState(false)
-  // Orden por columna: { clave, dir } o null (orden del server). Vive sólo
-  // mientras se está en la pantalla.
-  const [orden, setOrden] = useState(null)
+  // Orden por columna: { clave, dir } o null (orden del server). Como los
+  // filtros y la búsqueda, se guarda al ir y volver entre pantallas
+  // (estadoPantallas) y vuelve a cero al recargar o al cerrar sesión.
+  const [orden, setOrden] = useEstadoPantalla('revision.orden', null)
 
   const { data: preliqData } = useQuery({
     // Comparte el caché de la lista con Dashboard y el resto: `select` elige
@@ -417,6 +444,10 @@ export default function Revision() {
     queryKey: claves.preliquidaciones,
     queryFn: listarPreliquidaciones,
     select: list => list.find(p => String(p.id) === String(id)),
+  })
+  const { data: preliquidaciones = [] } = useQuery({
+    queryKey: claves.preliquidaciones,
+    queryFn: listarPreliquidaciones,
   })
 
   const { data: stats } = useQuery({
@@ -430,9 +461,9 @@ export default function Revision() {
   })
 
   // La queryKey NO incluye `filtros`: todo el filtrado se hace en cliente
-  // (ver lineasFiltradas) para no re-pegarle al server ni perder el caché
-  // cada vez que cambia un filtro. `placeholderData: keepPreviousData`
-  // evita el parpadeo a "cargando" entre refetchs.
+  // (`lineasFiltradas`, con `filtrarLineas`) para no re-pegarle al server ni
+  // perder el caché cada vez que cambia un filtro. `placeholderData:
+  // keepPreviousData` evita el parpadeo a "cargando" entre refetchs.
   // La clave es compartida con Verificación (mismo endpoint, sin filtros):
   // `placeholderData` es opción de este observer, no del caché, así que no
   // afecta a lo que ve Verificación.
@@ -444,41 +475,15 @@ export default function Revision() {
 
   // `busqueda` llega ya debounceada desde FiltrosBar (que es dueño del input):
   // tipear no re-renderiza esta página hasta que el valor se asienta.
-  const lineasFiltradas = useMemo(() => {
-    let resultado = lineas
-    if (busqueda) {
-      const q = busqueda.toLowerCase()
-      resultado = resultado.filter(l =>
-        l.nombre_empleado?.toLowerCase().includes(q) ||
-        l.legajo_campo?.toLowerCase().includes(q) ||
-        l.legajo_asignado?.toLowerCase().includes(q) ||
-        l.nombre_tarea?.toLowerCase().includes(q) ||
-        l.nombre_cliente?.toLowerCase().includes(q) ||
-        l.nombre_finca?.toLowerCase().includes(q)
-      )
-    }
-    if (filtros.cliente?.length)    resultado = resultado.filter(l => filtros.cliente.includes(l.nombre_cliente))
-    if (filtros.finca?.length)      resultado = resultado.filter(l => filtros.finca.includes(l.nombre_finca))
-    if (filtros.tarea?.length)      resultado = resultado.filter(l => filtros.tarea.includes(l.nombre_tarea))
-    if (filtros.empresa?.length)    resultado = resultado.filter(l => filtros.empresa.includes(l.empresa_asignada))
-    if (filtros.grupo_pago?.length) resultado = resultado.filter(l => filtros.grupo_pago.includes(l.grupo_pago_aplicado))
-    if (filtros.supervisor?.length) resultado = resultado.filter(l => filtros.supervisor.includes(l.nombre_supervisor))
-    if (filtros.alerta === 'incompleta')     resultado = resultado.filter(l => l.linea_incompleta)
-    if (filtros.alerta === 'alerta_legajo')  resultado = resultado.filter(l => l.alerta_legajo)
-    if (filtros.alerta === 'alerta_empresa') resultado = resultado.filter(l => l.alerta_empresa)
-    if (filtros.alerta === 'es_duplicado')   resultado = resultado.filter(l => l.es_duplicado)
-    // Estos dos filtros antes iban al server (listarLineas); ahora que la
-    // queryKey ya no incluye `filtros` y siempre se trae todo, se replican
-    // en cliente para no perder funcionalidad. `solo_alertas` reproduce
-    // exactamente la condición de preliquidacion_service.listar_lineas
-    // (es_duplicado | alerta_legajo | linea_incompleta — sin alerta_empresa).
-    if (filtros.solo_alertas) resultado = resultado.filter(l => l.es_duplicado || l.alerta_legajo || l.linea_incompleta)
-    if (filtros.nombre_empleado) {
-      const qn = filtros.nombre_empleado.toLowerCase()
-      resultado = resultado.filter(l => l.nombre_empleado?.toLowerCase().includes(qn))
-    }
-    return resultado
-  }, [lineas, busqueda, filtros])
+  const lineasFiltradas = useMemo(
+    () => filtrarLineas(lineas, busqueda, filtros, CAMPOS_REVISION),
+    [lineas, busqueda, filtros],
+  )
+  // Las opciones de la barra salen de lo que ya pasa la búsqueda y las alertas.
+  const prefiltro = useCallback(
+    l => pasaBusquedaYAlertas(l, busqueda, filtros),
+    [busqueda, filtros],
+  )
 
   // El orden va encima del filtrado: al filtrar o al editar una línea se
   // recalcula y el orden elegido se mantiene.
@@ -572,6 +577,7 @@ export default function Revision() {
 
   const claseLinea = (linea) => {
     if (linea.es_duplicado) return 'duplicado'
+    if (linea.es_posible_duplicado) return 'alerta'
     if (linea.linea_incompleta) return 'alerta'
     if (linea.alerta_legajo || linea.alerta_empresa) return 'alerta'
     return ''
@@ -596,36 +602,42 @@ export default function Revision() {
             </>
           )}
         </div>
-        <button className="btn btn-sm" onClick={() => { setModoLiquidacion(m => !m); setLineaSeleccionada(null) }}>
-          {modoLiquidacion ? '← Volver a tabla' : '⊞ Liquidación masiva'}
-        </button>
+        {acciones.liquidacionMasiva && (
+          <button className="btn btn-sm" onClick={() => { setModoLiquidacion(m => !m); setLineaSeleccionada(null) }}>
+            {modoLiquidacion ? '← Volver a tabla' : <><Icono nombre="grilla" size={14} enTexto /> Liquidación masiva</>}
+          </button>
+        )}
         <button className="btn btn-primary btn-sm" onClick={handleExportarExcel} disabled={!id || exportando}>
-          {exportando ? 'Exportando…' : '↓ Exportar Excel'}
+          {exportando ? 'Exportando…' : <><Icono nombre="descargar" size={14} enTexto /> Exportar Excel</>}
         </button>
       </div>
 
       {/* Banners */}
       <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        {stats?.incompletas > 0 && (
-          <AlertasBanner
-            mensaje={<><strong>{stats.incompletas} líneas incompletas</strong> — cargá los conceptos y precios en el maestro</>}
-            ctaLabel="Ir a Conceptos →"
-            ctaSubrayada={false}
-            onFiltrar={() => navigate('/preliquidacion/conceptos')}
-          />
-        )}
+        {stats?.incompletas > 0 && (() => {
+          const aviso = avisoIncompletas(stats.incompletas, usuario)
+          return (
+            <AlertasBanner
+              mensaje={<><strong>{aviso.titulo}</strong> — {aviso.detalle}</>}
+              ctaLabel="Ir a Conceptos →"
+              ctaSubrayada={false}
+              onFiltrar={aviso.irAConceptos ? () => navigate('/preliquidacion/conceptos') : undefined}
+            />
+          )
+        })()}
         {stats?.lineas_con_alerta > 0 && stats?.incompletas === 0 && (
           <AlertasBanner
             total={stats.lineas_con_alerta}
             incompletas={stats.incompletas}
             duplicados={stats.duplicados}
+            posiblesDuplicados={stats.posibles_duplicados}
             alertaLegajo={stats.alerta_legajo}
             onFiltrar={() => setFiltros(f => ({ ...f, solo_alertas: true }))}
           />
         )}
       </div>
 
-      {modoLiquidacion && (
+      {modoLiquidacion && acciones.liquidacionMasiva && (
         <LiquidacionPersona
           lineas={lineas}
           onCambio={refrescarYSincronizarPanel}
@@ -633,15 +645,25 @@ export default function Revision() {
         />
       )}
 
-      <div className={styles.layout} style={{ display: modoLiquidacion ? 'none' : undefined }}>
+      <div className={styles.layout} style={{ display: modoLiquidacion && acciones.liquidacionMasiva ? 'none' : undefined }}>
         {/* Tabla */}
         <div className={styles.tablePane}>
           <FiltrosBar
             lineas={lineas}
+            campos={CAMPOS_REVISION}
+            alertas={ALERTAS_LINEAS}
             filtros={filtros}
             onChange={setFiltros}
             busqueda={busqueda}
             onBusqueda={setBusqueda}
+            prefiltro={prefiltro}
+            quincena={(
+              <SelectorQuincena
+                preliquidaciones={preliquidaciones}
+                value={Number(id)}
+                onChange={nuevo => nuevo && navigate(`/preliquidacion/revision/${nuevo}`)}
+              />
+            )}
           />
 
           {isLoading ? (
@@ -665,7 +687,7 @@ export default function Revision() {
                         >
                           {c.label}
                           <span className={styles.flecha} aria-hidden="true">
-                            {activa ? (orden.dir === 'asc' ? '▲' : '▼') : ''}
+                            {activa ? <Icono nombre={orden.dir === 'asc' ? 'arriba' : 'abajo'} size={12} enTexto /> : ''}
                           </span>
                         </th>
                       )
@@ -723,7 +745,7 @@ export default function Revision() {
                         {linea.conceptos?.length > 0
                           ? <span className="badge badge-info">+{linea.conceptos.length}</span>
                           : '—'}
-                        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 12 }} aria-hidden="true">›</span>
+                        <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', display: 'inline-flex' }} aria-hidden="true"><Icono nombre="derecha" size={13} enTexto /></span>
                       </td>
                     </tr>
                     )
@@ -766,6 +788,7 @@ export default function Revision() {
             onEliminarConcepto={(conceptoId) => delConcepto(conceptoId)}
             onCerrar={() => setLineaSeleccionada(null)}
             guardando={guardando}
+            soloLectura={acciones.panelSoloLectura}
           />
         )}
       </div>

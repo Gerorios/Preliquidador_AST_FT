@@ -3,12 +3,17 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { listarEmpresas, agregarConceptoPorCodigo, buscarConceptosParaCombo, obtenerLegajosDisponibles } from '../services/preliquidacion'
 import { claves } from '../services/claves'
 import DialogoOpcionExtra from './DialogoOpcionExtra'
+import Icono from '../../../core/ui/iconos'
 import styles from './PanelLinea.module.css'
 
 // Las empresas se cargan dinámicamente desde nuempleados
 
+// `soloLectura` (sólo Ver Revisión, ADR-0020): la asignación y la observación
+// se muestran como texto, sin quitar ni agregar conceptos y sin Guardar. Tampoco
+// se piden empresas ni legajos, que sólo sirven para editar la asignación.
 export default function PanelLinea({
-  linea, quincena, onGuardar, onEliminarConcepto, onCerrar, onConceptoAgregado, guardando
+  linea, quincena, onGuardar, onEliminarConcepto, onCerrar, onConceptoAgregado, guardando,
+  soloLectura = false,
 }) {
   const [form, setForm] = useState({})
   const [codigoConcepto, setCodigoConcepto] = useState('')
@@ -31,6 +36,7 @@ export default function PanelLinea({
     queryKey: ['empresas'],
     queryFn: listarEmpresas,
     staleTime: Infinity,
+    enabled: !soloLectura,
   })
 
   // Pares (empresa, legajo) reales de esta persona. Si viene vacío (línea sin
@@ -38,7 +44,7 @@ export default function PanelLinea({
   const { data: legajosData } = useQuery({
     queryKey: ['legajos-disponibles', linea.id],
     queryFn: () => obtenerLegajosDisponibles(linea.id),
-    enabled: !!linea.id,
+    enabled: !!linea.id && !soloLectura,
     staleTime: 5 * 60 * 1000,
   })
   const legajosDisponibles = legajosData?.legajos_disponibles || []
@@ -180,17 +186,18 @@ export default function PanelLinea({
         {linea.fecha_tarea && (
           <div className={styles.panelFecha}>{linea.fecha_tarea}</div>
         )}
-        <button className={styles.closeBtn} onClick={onCerrar}>✕</button>
+        <button className={styles.closeBtn} onClick={onCerrar} aria-label="Cerrar"><Icono nombre="cerrar" size={16} enTexto /></button>
       </div>
 
       <div className={styles.panelBody}>
 
         {/* Alertas */}
-        {(linea.es_duplicado || linea.alerta_legajo || linea.linea_incompleta) && (
+        {(linea.es_duplicado || linea.es_posible_duplicado || linea.alerta_legajo || linea.linea_incompleta) && (
           <div className={styles.alertaBox}>
-            {linea.es_duplicado     && <div className={styles.alertaItem}>⚠ Línea duplicada</div>}
-            {linea.alerta_legajo    && <div className={styles.alertaItem}>⚠ Legajo no validado</div>}
-            {linea.linea_incompleta && <div className={styles.alertaItem}>⚠ Línea incompleta: falta código o precio</div>}
+            {linea.es_duplicado     && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Línea duplicada</div>}
+            {linea.es_posible_duplicado && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Posible duplicado: otra línea igual con distintas horas</div>}
+            {linea.alerta_legajo    && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Legajo no validado</div>}
+            {linea.linea_incompleta && <div className={styles.alertaItem}><Icono nombre="alerta" size={14} enTexto /> Línea incompleta: falta código o precio</div>}
           </div>
         )}
 
@@ -215,7 +222,12 @@ export default function PanelLinea({
         {/* Asignación */}
         <div className={styles.section}>
           <div className={styles.sectionTitle}>ASIGNACIÓN</div>
-          {tienePares ? (
+          {soloLectura ? (
+            <div className={styles.dataGrid}>
+              <DataRow label="Empresa"         value={linea.empresa_asignada || null} />
+              <DataRow label="Legajo asignado" value={linea.legajo_asignado || linea.legajo_campo || null} mono />
+            </div>
+          ) : tienePares ? (
             <>
               <div className="field-label">Empresa / Legajo</div>
               <select
@@ -285,7 +297,9 @@ export default function PanelLinea({
                   <span className={styles.conceptoImporte}>
                     ${Number(c.importe).toLocaleString('es-AR')}
                   </span>
-                  <button className={styles.conceptoDel} onClick={() => onEliminarConcepto(c.id)}>✕</button>
+                  {!soloLectura && (
+                    <button className={styles.conceptoDel} onClick={() => onEliminarConcepto(c.id)} aria-label="Quitar concepto"><Icono nombre="cerrar" size={13} enTexto /></button>
+                  )}
                 </div>
               ))}
             </div>
@@ -293,7 +307,7 @@ export default function PanelLinea({
             <div className={styles.conceptoEmpty}>Sin conceptos de liquidación</div>
           )}
 
-          {mostrarConcepto ? (
+          {soloLectura ? null : mostrarConcepto ? (
             <div className={styles.conceptoForm}>
               <div className="field-label">Buscar por código o tipo</div>
               <select
@@ -356,21 +370,29 @@ export default function PanelLinea({
         {/* Observación */}
         <div className={styles.section}>
           <div className="field-label">Observación</div>
-          <input
-            className="input"
-            placeholder="Opcional..."
-            value={form.observacion || ''}
-            onChange={e => set('observacion', e.target.value)}
-          />
+          {soloLectura ? (
+            <div className={linea.observacion ? styles.observacionTexto : styles.observacionVacia}>
+              {linea.observacion || 'Sin observación'}
+            </div>
+          ) : (
+            <input
+              className="input"
+              placeholder="Opcional..."
+              value={form.observacion || ''}
+              onChange={e => set('observacion', e.target.value)}
+            />
+          )}
         </div>
       </div>
 
       {/* Footer */}
-      <div className={styles.panelFooter}>
-        <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleGuardar} disabled={guardando}>
-          {guardando ? <span className="spinner" /> : 'Guardar'}
-        </button>
-      </div>
+      {!soloLectura && (
+        <div className={styles.panelFooter}>
+          <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleGuardar} disabled={guardando}>
+            {guardando ? <span className="spinner" /> : 'Guardar'}
+          </button>
+        </div>
+      )}
 
       {pedidoExtra && pedidoExtra.lineaId === linea.id && (
         <DialogoOpcionExtra

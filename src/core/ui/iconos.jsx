@@ -1,6 +1,8 @@
 // Íconos vectoriales del sistema (etapa 0, PR 4). Reemplazan los emojis de
 // rutas.jsx y del menú por SVG consistentes con el resto de la UI. Un nombre
 // desconocido cae en 'modulos' y avisa por consola solo en desarrollo.
+import styles from './Icono.module.css'
+
 const PATHS = {
   preliquidacion: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>,
   gerencial: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
@@ -19,14 +21,32 @@ const PATHS = {
   chat: <path d="M21 12a8 8 0 0 1-8 8H8l-5 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z" />,
   cerrar: <path d="M18 6 6 18M6 6l12 12" />,
   llave: <><circle cx="8" cy="16" r="4" /><path d="M10.8 13.2 20 4M16.5 7.5l2.5 2.5M14.5 9.5l2.5 2.5" /></>,
+  filtro: <path d="M3 5h18l-7 8v6l-4 2v-8z" />,
+  buscar: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
+  abajo: <path d="m6 9 6 6 6-6" />,
+  arriba: <path d="m6 15 6-6 6 6" />,
+  derecha: <path d="m9 6 6 6-6 6" />,
+  tilde: <path d="m5 12 5 5 9-10" />,
+  intercambiar: <path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />,
+  descargar: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
+  grilla: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18M15 3v18" /></>,
+  generar: <path d="M7 5v14l11-7z" />,
+  reloj: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  gota: <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />,
+  planta: <><path d="M12 21v-9" /><path d="M12 12c0-4 3-7 7-7 0 4-3 7-7 7z" /><path d="M12 15c0-3-2.5-5.5-6-5.5 0 3 2.5 5.5 6 5.5z" /></>,
+  persona: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
+  alerta: <><path d="M12 3 2 20h20z" /><path d="M12 10v4M12 17h.01" /></>,
 }
 
-export default function Icono({ nombre, size = 18, className }) {
+// `enTexto`: el ícono va dentro de un texto o un botón y se alinea con la línea
+// de base del texto. Es un CSS Module del núcleo para no sumar CSS global.
+export default function Icono({ nombre, size = 18, className, enTexto = false }) {
   let clave = nombre
   if (!PATHS[clave]) {
     if (import.meta.env.DEV) console.warn(`Icono desconocido: "${nombre}", se usa "modulos"`)
     clave = 'modulos'
   }
+  const clases = [enTexto && styles.enTexto, className].filter(Boolean).join(' ') || undefined
   return (
     <svg
       viewBox="0 0 24 24"
@@ -37,7 +57,7 @@ export default function Icono({ nombre, size = 18, className }) {
       strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
+      className={clases}
       aria-hidden="true"
     >
       {PATHS[clave]}

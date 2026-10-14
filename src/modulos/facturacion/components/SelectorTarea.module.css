@@ -1,0 +1,61 @@
+/* La lista se abre debajo del campo y por encima de las filas siguientes; el
+   ancho mínimo deja leer los nombres largos aunque la columna sea angosta. */
+.selector {
+  position: relative;
+}
+
+.campo {
+  font-size: 13px;
+}
+
+.lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  width: max-content;
+  max-width: 460px;
+  max-height: 288px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 4px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(34, 31, 28, 0.14);
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* La marcada, con el teclado o el mouse: el mismo tono que una fila elegida. */
+.opcionActiva {
+  background: var(--accent-glow);
+}
+
+.nombre {
+  flex: 1;
+  min-width: 0;
+}
+
+.grupo {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sinResultados {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

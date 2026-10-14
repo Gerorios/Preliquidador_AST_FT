@@ -1,0 +1,2 @@
+/* Ícono dentro de un texto o botón: alineado con la línea de base del texto. */
+.enTexto { display: inline-block; vertical-align: -2px; flex: none; }

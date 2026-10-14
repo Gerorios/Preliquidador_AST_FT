@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../ui/CargandoContenido'
 import Icono from '../ui/iconos'
-import { ROLES_GLOBALES, buscarPadron, crearUsuarios } from './adminApi'
+import { ROLES_GLOBALES, buscarPadron, crearUsuarios, listarRoles } from './adminApi'
+import { quedaSinAcceso } from './roles'
 import styles from './Administracion.module.css'
 
 const MINIMO = 3
@@ -25,7 +26,7 @@ const motivoDeshabilitada = (p) => {
 // Bloque "Dar de alta": se busca en el padrón de empleados (solo lectura), se
 // marcan personas y se crean todas con los mismos roles. Nada se tipea a mano:
 // la identidad de la persona es su CUIL, y el CUIL es su contraseña inicial.
-export default function AltaDesdePadron({ modulos }) {
+export default function AltaDesdePadron() {
   const qc = useQueryClient()
   const [texto, setTexto] = useState('')
   const [q, setQ] = useState('')
@@ -33,7 +34,8 @@ export default function AltaDesdePadron({ modulos }) {
   // cambiar la búsqueda: el lote puede salir de varias búsquedas.
   const [seleccion, setSeleccion] = useState([])
   const [rolGlobal, setRolGlobal] = useState('usuario')
-  const [rolesModulo, setRolesModulo] = useState({})
+  // Ids de los roles marcados para el lote.
+  const [rolesLote, setRolesLote] = useState([])
   const [resultado, setResultado] = useState(null)
 
   useEffect(() => {
@@ -64,13 +66,21 @@ export default function AltaDesdePadron({ modulos }) {
       : [...prev, { cuil: persona.cuil, apellido_nombre: persona.apellido_nombre }])
   }
 
-  const rolesDelLote = () =>
-    Object.fromEntries(Object.entries(rolesModulo).filter(([, rol]) => rol))
+  const roles = useQuery({ queryKey: ['admin-roles'], queryFn: listarRoles })
+  const listaRoles = roles.data ?? []
 
-  // Un usuario con rol 'usuario' y sin ningún módulo asignado no tiene con qué
-  // entrar (Login lo rechaza por falta de módulos): un admin sí, porque ve
-  // todo sin necesitar accesos por módulo.
-  const sinAccesoAlguno = rolGlobal !== 'admin' && Object.keys(rolesDelLote()).length === 0
+  const alternarRol = (rolId) => setRolesLote(prev => prev.includes(rolId)
+    ? prev.filter(id => id !== rolId)
+    : [...prev, rolId])
+
+  // Los marcados que siguen existiendo (otra pestaña pudo borrar un rol), en
+  // el orden de la lista.
+  const rolesDelLote = () => listaRoles.map(r => r.id).filter(id => rolesLote.includes(id))
+
+  // Una persona que no es administrador y no tiene roles no tiene con qué
+  // entrar (el Login no la deja pasar sin tarjetas): un administrador sí,
+  // porque ve todo sin roles.
+  const sinAccesoAlguno = quedaSinAcceso({ rol: rolGlobal }, rolesDelLote())
 
   const mutCrear = useMutation({
     mutationFn: () => crearUsuarios(marcados, rolGlobal, rolesDelLote()),
@@ -78,6 +88,8 @@ export default function AltaDesdePadron({ modulos }) {
       setResultado(respuesta)
       setSeleccion([])
       qc.invalidateQueries({ queryKey: ['admin-usuarios'] })
+      // La solapa Roles cuenta quién tiene cada rol.
+      qc.invalidateQueries({ queryKey: ['admin-roles'] })
       // El padrón marca quién ya tiene usuario: hay que volver a pedirlo.
       qc.invalidateQueries({ queryKey: ['admin-padron'] })
       const creados = respuesta.creados?.length ?? 0
@@ -108,7 +120,7 @@ export default function AltaDesdePadron({ modulos }) {
       {cortoParaBuscar ? (
         <div className={styles.vacio}>{AYUDA_BUSQUEDA}</div>
       ) : isError && !esperandoBusqueda ? (
-        <div className={styles.error}>No se pudo buscar en el padrón: {error.message}</div>
+        <div className={styles.error} role="alert">No se pudo buscar en el padrón: {error.message}</div>
       ) : (isFetching || esperandoBusqueda) && personas.length === 0 ? (
         <CargandoContenido texto="Buscando en el padrón…" />
       ) : personas.length === 0 ? (
@@ -185,8 +197,9 @@ export default function AltaDesdePadron({ modulos }) {
 
       <div className={styles.roles}>
         <div className={styles.campo}>
-          <div className="field-label">Rol en el sistema</div>
+          <label className="field-label" htmlFor="alta-tipo-usuario">Tipo de usuario</label>
           <select
+            id="alta-tipo-usuario"
             className={`input ${styles.selectRol}`}
             value={rolGlobal}
             onChange={e => setRolGlobal(e.target.value)}
@@ -197,21 +210,32 @@ export default function AltaDesdePadron({ modulos }) {
           </select>
         </div>
 
-        {modulos.map(m => (
-          <div key={m.clave} className={styles.campo}>
-            <div className="field-label">{m.nombre}</div>
-            <select
-              className={`input ${styles.selectRol}`}
-              value={rolesModulo[m.clave] ?? ''}
-              onChange={e => setRolesModulo(prev => ({ ...prev, [m.clave]: e.target.value }))}
-            >
-              <option value="">— Sin acceso —</option>
-              {Object.entries(m.etiquetas_rol ?? {}).map(([rol, etiqueta]) => (
-                <option key={rol} value={rol}>{etiqueta}</option>
+        <fieldset className={`${styles.campo} ${styles.grupoRoles}`}>
+          <legend className="field-label">Roles</legend>
+          {roles.isLoading ? (
+            <span className={styles.cargandoRoles}><span className="spinner" /> Cargando roles…</span>
+          ) : roles.isError ? (
+            <div className={styles.error} role="alert">
+              No se pudieron cargar los roles: {roles.error.message}
+            </div>
+          ) : listaRoles.length === 0 ? (
+            <span className={styles.nota}>Todavía no hay roles: armalos en la solapa Roles.</span>
+          ) : (
+            <div className={styles.casillasRoles}>
+              {listaRoles.map(r => (
+                <label key={r.id} className={styles.opcionRol}>
+                  <input
+                    type="checkbox"
+                    className={styles.casilla}
+                    checked={rolesLote.includes(r.id)}
+                    onChange={() => alternarRol(r.id)}
+                  />
+                  {r.nombre}
+                </label>
               ))}
-            </select>
-          </div>
-        ))}
+            </div>
+          )}
+        </fieldset>
       </div>
 
       <div className={styles.piePadron}>
@@ -249,7 +273,7 @@ export default function AltaDesdePadron({ modulos }) {
           </button>
           {sinAccesoAlguno && (
             <span className={styles.nota}>
-              Elegí al menos un módulo: sin acceso a ninguno, la persona no va a poder entrar.
+              Marcá al menos un rol: sin roles, la persona no va a poder entrar.
             </span>
           )}
         </div>

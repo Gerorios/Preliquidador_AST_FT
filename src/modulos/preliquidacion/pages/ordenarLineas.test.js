@@ -158,3 +158,21 @@ test('alerta: por gravedad, sin alerta al final en asc y desc', () => {
   assert.deepEqual(ids(ordenarLineas(lineas, asc('alerta'))), [3, 6, 5, 4, 2, 1])
   assert.deepEqual(ids(ordenarLineas(lineas, desc('alerta'))), [2, 4, 5, 3, 6, 1])
 })
+
+test('alertaDe: POSIBLE DUPLICADO va después de DUPLICADO y antes de INCOMPLETA', () => {
+  assert.equal(alertaDe({ es_duplicado: true, es_posible_duplicado: true }), 'DUPLICADO')
+  assert.equal(alertaDe({ es_posible_duplicado: true, linea_incompleta: true }), 'POSIBLE DUPLICADO')
+  assert.equal(alertaDe({ es_posible_duplicado: true, alerta_legajo: true, alerta_empresa: true }), 'POSIBLE DUPLICADO')
+})
+
+test('alerta: POSIBLE DUPLICADO se ordena entre DUPLICADO e INCOMPLETA', () => {
+  const lineas = lineasDe([
+    { linea_incompleta: true },
+    {},
+    { es_posible_duplicado: true },
+    { es_duplicado: true },
+    { alerta_empresa: true },
+  ])
+  assert.deepEqual(ids(ordenarLineas(lineas, asc('alerta'))), [4, 3, 1, 5, 2])
+  assert.deepEqual(ids(ordenarLineas(lineas, desc('alerta'))), [5, 1, 3, 4, 2])
+})

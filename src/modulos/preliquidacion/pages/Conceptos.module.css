@@ -3,6 +3,9 @@
   flex-direction: column;
   height: 100%;
   padding: 20px 24px;
+  /* La barra de filtros va a todo el ancho y arranca donde el título. */
+  --filtros-margen: 24px;
+  --filtros-sangria: 24px;
   gap: 14px;
   overflow: hidden;
 }
@@ -49,6 +52,23 @@
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* Explicación de cómo se combinan las reglas, arriba de cada solapa. */
+.comoSeCombinan {
+  flex-shrink: 0;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--info-dim);
+  border-radius: var(--radius);
+}
+
+.comoSeCombinan strong {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 /* ── Barra búsqueda ───────────────────────────────────────────────── */
@@ -214,6 +234,11 @@
   cursor: pointer;
 }
 
+/* Con sólo Ver la fila es un dato: no tiene que parecer clicable
+   (la tabla global pone puntero y fondo al pasar el mouse). */
+.filaSoloVer,
+.filaSoloVer:hover { cursor: default; background: none; }
+
 .faltanteChevron {
   font-size: 10px;
   color: var(--text-muted);
@@ -274,6 +299,11 @@
 
 .panelPrecioValor:hover {
   text-decoration: underline;
+}
+
+/* Con sólo Ver: el precio es un dato, sin el color ni el puntero de lo que se edita. */
+.panelPrecioFijo {
+  font-family: var(--font-mono);
 }
 
 .panelPrecioEdit {

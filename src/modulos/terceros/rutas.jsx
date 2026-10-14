@@ -1,5 +1,4 @@
 import { lazy } from 'react'
-import { tienePermiso } from '../../core/permisos'
 
 // Rutas y menú del módulo Liquidación Terceros. El núcleo (App.jsx, Layout.jsx)
 // las consume sin conocer las pantallas.
@@ -29,22 +28,20 @@ export const MODULO = 'terceros'
 // Íconos propios para cada conjunto serían un PR aparte del núcleo (regla 4 de
 // GUIA-MODULOS: fuera de la carpeta del módulo no se toca nada).
 export const rutas = [
-  { path: `${PREFIJO}/inicio`,       element: <Inicio />,      modulo: MODULO, roles: ['operador'], label: 'Inicio',          icono: 'inicio',        menu: true },
-  { path: `${PREFIJO}/quincena`,     element: <Grilla />,      modulo: MODULO, roles: ['operador'], label: 'Quincena',         icono: 'gerencial',     menu: true },
-  { path: `${PREFIJO}/tarifario`,      element: <Tarifario />,      modulo: MODULO, roles: ['operador'], label: 'Tarifario',          icono: 'conceptos',     menu: true },
-  { path: `${PREFIJO}/estaciones`,     element: <Estaciones />,     modulo: MODULO, roles: ['operador'], label: 'Estaciones',         icono: 'conceptos',     menu: true },
-  { path: `${PREFIJO}/verificaciones`, element: <Verificaciones />, modulo: MODULO, roles: ['operador'], label: 'Verificaciones',     icono: 'verificacion',  menu: true },
-  { path: `${PREFIJO}/recibos`,        element: <Recibos />,        modulo: MODULO, roles: ['operador'], label: 'Órdenes de facturación', icono: 'gerencial',     menu: true },
-  // La hoja del recibo, para imprimir. No va en el menú: se abre desde Recibos.
-  { path: `${PREFIJO}/recibo`,         element: <Recibo />,         modulo: MODULO, roles: ['operador'], label: 'Orden de facturación', icono: 'gerencial',     menu: false },
+  { path: `${PREFIJO}/inicio`,       element: <Inicio />,      modulo: MODULO, pantalla: 'inicio', label: 'Inicio',          icono: 'inicio',        menu: true },
+  { path: `${PREFIJO}/quincena`,     element: <Grilla />,      modulo: MODULO, pantalla: 'quincena', label: 'Quincena',         icono: 'gerencial',     menu: true },
+  { path: `${PREFIJO}/tarifario`,      element: <Tarifario />,      modulo: MODULO, pantalla: 'tarifario', label: 'Tarifario',          icono: 'conceptos',     menu: true },
+  { path: `${PREFIJO}/estaciones`,     element: <Estaciones />,     modulo: MODULO, pantalla: 'estaciones', label: 'Estaciones',         icono: 'conceptos',     menu: true },
+  { path: `${PREFIJO}/verificaciones`, element: <Verificaciones />, modulo: MODULO, pantalla: 'verificaciones', label: 'Verificaciones',     icono: 'verificacion',  menu: true },
+  { path: `${PREFIJO}/recibos`,        element: <Recibos />,        modulo: MODULO, pantalla: 'recibos', label: 'Órdenes de facturación', icono: 'gerencial',     menu: true },
+  // La hoja de la orden, para imprimir. No va en el menú: se abre desde Órdenes de facturación.
+  { path: `${PREFIJO}/recibo`,         element: <Recibo />,         modulo: MODULO, pantalla: 'recibos', label: 'Orden de facturación', icono: 'gerencial',     menu: false },
 ]
 
-// El menú se deriva de rutas para que nav, modulo y roles no puedan divergir.
+// El menú se deriva de rutas para que nav, modulo y pantalla no puedan divergir.
 export const nav = rutas
   .filter(r => r.menu)
-  .map(({ path, label, icono, modulo, roles }) => ({ to: path, label, icono, modulo, roles }))
-
-export const home = (usuario) => (tienePermiso(usuario, MODULO, ['operador']) ? `${PREFIJO}/inicio` : null)
+  .map(({ path, label, icono, modulo, pantalla }) => ({ to: path, label, icono, modulo, pantalla }))
 
 export const redirecciones = []
 
@@ -66,9 +63,6 @@ export const modulo = {
   icono: 'terceros',
   activo: true,
   prefijo: PREFIJO,
-  etiquetasRol: { operador: 'Liquidador de terceros', gerente: 'Gerente' },
-  rolesTarjeta: ['operador', 'gerente'],
-  home,
   rutas,
   nav,
   redirecciones,

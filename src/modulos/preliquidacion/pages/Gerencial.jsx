@@ -9,7 +9,12 @@ import {
   obtenerControlPlantasGerencial, obtenerControlTancadasGerencial,
 } from '../services/gerencial'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
+import FiltrosBar from '../../../core/ui/FiltrosBar'
+import AvisoError from '../components/AvisoError'
+import { useEstadoPantalla } from '../../../core/estadoPantallas'
+import { formatoQuincena } from './formatoQuincena'
 import { PlantasJornal, TancadasJornal } from '../components/ControlesJornal'
+import Icono from '../../../core/ui/iconos'
 import styles from './Gerencial.module.css'
 
 const moneda = new Intl.NumberFormat('es-AR', {
@@ -22,10 +27,8 @@ const compacto = (n) => {
   return moneda.format(n)
 }
 
-const fmtQuincena = (iso) => {
-  const d = new Date(iso + 'T00:00:00')
-  return `${d.getDate() === 1 ? '1ra' : '2da'} ${format(d, 'MMM yyyy', { locale: es })}`
-}
+// El mismo formato de quincena que el resto de las pantallas.
+const fmtQuincena = formatoQuincena
 
 const fmtQuincenaCorta = (iso) => {
   const d = new Date(iso + 'T00:00:00')
@@ -38,11 +41,11 @@ const fmtMes = (yyyyMm) => {
 }
 
 export default function Gerencial() {
-  const [modo, setModo] = useState('quincena')          // 'quincena' | 'mes'
-  const [quincena, setQuincena] = useState(null)
-  const [mes, setMes] = useState(null)
-  const [empresa, setEmpresa] = useState('')
-  const [umbral, setUmbral] = useState(30)
+  const [modo, setModo] = useEstadoPantalla('gerencial.modo', 'quincena')   // 'quincena' | 'mes'
+  const [quincena, setQuincena] = useEstadoPantalla('gerencial.quincena', null)
+  const [mes, setMes] = useEstadoPantalla('gerencial.mes', null)
+  const [empresa, setEmpresa] = useEstadoPantalla('gerencial.empresa', '')
+  const [umbral, setUmbral] = useEstadoPantalla('gerencial.umbral', 30)
   const [grupoDrill, setGrupoDrill] = useState(null)
 
   const { data: quincenas = [], isLoading: cargandoQuincenas } = useQuery({
@@ -110,12 +113,20 @@ export default function Gerencial() {
   // quincena. Colapsados por defecto; la query recién dispara al abrirlos.
   const [controlAbierto, setControlAbierto] = useState({ plantas: false, tancadas: false })
   const enQuincena = modo === 'quincena' && Boolean(quincenaSel)
-  const { data: controlPlantas } = useQuery({
+  const {
+    data: controlPlantas,
+    isLoading: cargandoControlPlantas,
+    isError: errorControlPlantas,
+  } = useQuery({
     queryKey: ['gerencial-control-plantas', quincenaSel],
     queryFn: () => obtenerControlPlantasGerencial(quincenaSel),
     enabled: enQuincena && controlAbierto.plantas,
   })
-  const { data: controlTancadas } = useQuery({
+  const {
+    data: controlTancadas,
+    isLoading: cargandoControlTancadas,
+    isError: errorControlTancadas,
+  } = useQuery({
     queryKey: ['gerencial-control-tancadas', quincenaSel],
     queryFn: () => obtenerControlTancadasGerencial(quincenaSel),
     enabled: enQuincena && controlAbierto.tancadas,
@@ -137,7 +148,7 @@ export default function Gerencial() {
     : (mesSel ? fmtMes(mesSel) : '')
 
   return (
-    <div className={styles.page}>
+    <div className={styles.pantalla}>
       <header className={styles.header}>
         <div>
           <h1>Vista gerencial</h1>
@@ -145,8 +156,15 @@ export default function Gerencial() {
         </div>
       </header>
 
-      {/* Filtros */}
-      <div className={styles.filtros}>
+      {/* Barra común: período y empresa, en el mismo lugar que el resto. */}
+      <FiltrosBar
+        datos={[]}
+        campos={[]}
+        filtros={{}}
+        onChange={() => {}}
+        mostrarBusqueda={false}
+        mostrarAlertas={false}
+        quincena={<div className={styles.filtros}>
         <div className={styles.modoSwitch}>
           <button
             className={modo === 'quincena' ? styles.modoActivo : styles.modoBtn}
@@ -172,7 +190,10 @@ export default function Gerencial() {
           <option value="">Todas las empresas</option>
           {empresas.map(e2 => <option key={e2} value={e2}>{e2}</option>)}
         </select>
-      </div>
+        </div>}
+      />
+
+      <div className={styles.page}>
 
       {/* KPI row */}
       <div className={styles.kpiRow}>
@@ -183,7 +204,7 @@ export default function Gerencial() {
             <div className={styles.kpiDelta}>
               {resumen.variacion_pct != null && (
                 <span className={resumen.variacion_pct >= 0 ? styles.deltaUp : styles.deltaDown}>
-                  {resumen.variacion_pct >= 0 ? '▲' : '▼'} {Math.abs(resumen.variacion_pct).toLocaleString('es-AR')} %
+                  <Icono nombre={resumen.variacion_pct >= 0 ? 'arriba' : 'abajo'} size={14} enTexto /> {resumen.variacion_pct > 0 ? '+' : ''}{resumen.variacion_pct.toLocaleString('es-AR')} %
                 </span>
               )}
               <span className={styles.deltaRef}> vs {compacto(resumen.periodo_anterior.total)} del período anterior</span>
@@ -202,7 +223,7 @@ export default function Gerencial() {
           {indicadores?.variaciones?.costo_hora_pct != null && (
             <div className={styles.kpiDelta}>
               <span className={indicadores.variaciones.costo_hora_pct >= 0 ? styles.deltaUp : styles.deltaDown}>
-                {indicadores.variaciones.costo_hora_pct >= 0 ? '▲' : '▼'} {Math.abs(indicadores.variaciones.costo_hora_pct).toLocaleString('es-AR')} %
+                <Icono nombre={indicadores.variaciones.costo_hora_pct >= 0 ? 'arriba' : 'abajo'} size={14} enTexto /> {indicadores.variaciones.costo_hora_pct > 0 ? '+' : ''}{indicadores.variaciones.costo_hora_pct.toLocaleString('es-AR')} %
               </span>
               <span className={styles.deltaRef}> vs período anterior</span>
             </div>
@@ -290,29 +311,38 @@ export default function Gerencial() {
       {/* Controles de pago (por quincena, solo lectura) */}
       <section className={styles.panel}>
         <button className="btn btn-sm" onClick={() => setControlAbierto(a => ({ ...a, plantas: !a.plantas }))}>
-          {controlAbierto.plantas ? '▾' : '▸'} Control Plantas vs Jornal
+          <Icono nombre={controlAbierto.plantas ? 'abajo' : 'derecha'} size={14} enTexto /> Control Plantas vs Jornal
         </button>
+        {/* Carga y error visibles: si no, una caída se lee como "sin datos" o
+            "el liquidador no cargó el valor hora" (GUIA-MODULOS regla 21). */}
         {controlAbierto.plantas && (
-          enQuincena
-            ? <div style={{ marginTop: 12 }}><PlantasJornal data={controlPlantas} /></div>
-            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+          !enQuincena
+            ? <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+            : cargandoControlPlantas ? <CargandoContenido texto="Cargando el control…" />
+            : errorControlPlantas
+              ? <div style={{ marginTop: 12 }}><AvisoError>No se pudo cargar el control Plantas vs Jornal. Probá recargar la página.</AvisoError></div>
+              : <div style={{ marginTop: 12 }}><PlantasJornal data={controlPlantas} /></div>
         )}
       </section>
 
       <section className={styles.panel}>
         <button className="btn btn-sm" onClick={() => setControlAbierto(a => ({ ...a, tancadas: !a.tancadas }))}>
-          {controlAbierto.tancadas ? '▾' : '▸'} Control Tancadas vs Jornal
+          <Icono nombre={controlAbierto.tancadas ? 'abajo' : 'derecha'} size={14} enTexto /> Control Tancadas vs Jornal
         </button>
         {controlAbierto.tancadas && (
-          enQuincena
-            ? <div style={{ marginTop: 12 }}><TancadasJornal data={controlTancadas} /></div>
-            : <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+          !enQuincena
+            ? <div className={styles.empty}>Elegí una quincena para ver este control (no aplica al mes completo).</div>
+            : cargandoControlTancadas ? <CargandoContenido texto="Cargando el control…" />
+            : errorControlTancadas
+              ? <div style={{ marginTop: 12 }}><AvisoError>No se pudo cargar el control Tancadas vs Jornal. Probá recargar la página.</AvisoError></div>
+              : <div style={{ marginTop: 12 }}><TancadasJornal data={controlTancadas} /></div>
         )}
       </section>
 
       <p className={styles.nota}>
         La quincena en curso sigue en revisión: sus importes pueden cambiar hasta que el liquidador la cierre.
       </p>
+      </div>
     </div>
   )
 }
@@ -439,7 +469,7 @@ function TablaDesvios({ datos }) {
         <div className={styles.empty}>Ninguna persona con historial comparable en este período.</div>
       ) : !visibles.length ? (
         <div className={styles.empty}>
-          Ninguna persona supera el umbral de alerta en este período ✓
+          <Icono nombre="tilde" size={14} enTexto /> Ninguna persona supera el umbral de alerta en este período
         </div>
       ) : (
         <div className="table-wrap">
@@ -466,7 +496,7 @@ function TablaDesvios({ datos }) {
                     <span className={p.supera_umbral ? styles.desvioAlerta : styles.desvioNormal}>
                       {p.desvio_pct > 0 ? '+' : ''}{p.desvio_pct?.toLocaleString('es-AR')} %
                     </span>
-                    {p.supera_umbral && <span className={styles.badgeAlerta}>⚠ sobre umbral</span>}
+                    {p.supera_umbral && <span className={styles.badgeAlerta}><Icono nombre="alerta" size={12} enTexto /> sobre umbral</span>}
                   </td>
                   <td className={styles.tdBarra}>
                     <BarraDesvio pct={p.desvio_pct} maxAbs={maxAbs} alerta={p.supera_umbral} />
@@ -481,7 +511,7 @@ function TablaDesvios({ datos }) {
       {sinDesvio.length > 0 && (
         <div className={styles.sinHistorial}>
           <button className="btn btn-sm" onClick={() => setVerSinDesvio(v => !v)}>
-            {verSinDesvio ? '▾' : '▸'} {verSinDesvio
+            <Icono nombre={verSinDesvio ? 'abajo' : 'derecha'} size={14} enTexto /> {verSinDesvio
               ? 'Ver solo los que superan el umbral'
               : sinDesvio.length === 1
                 ? 'Ver la persona sin desvío sobre el umbral'
@@ -493,7 +523,7 @@ function TablaDesvios({ datos }) {
       {sinHistorial.length > 0 && (
         <div className={styles.sinHistorial}>
           <button className="btn btn-sm" onClick={() => setVerSinHistorial(v => !v)}>
-            {verSinHistorial ? '▾' : '▸'} {sinHistorial.length} personas sin historial comparable
+            <Icono nombre={verSinHistorial ? 'abajo' : 'derecha'} size={14} enTexto /> {sinHistorial.length} personas sin historial comparable
           </button>
           {verSinHistorial && (
             <div className={styles.sinHistorialLista}>
@@ -549,7 +579,7 @@ function TablaDesviosClientes({ datos }) {
                     <span className={c.supera_umbral ? styles.desvioAlerta : styles.desvioNormal}>
                       {c.desvio_pct > 0 ? '+' : ''}{c.desvio_pct?.toLocaleString('es-AR')} %
                     </span>
-                    {c.supera_umbral && <span className={styles.badgeAlerta}>⚠ sobre umbral</span>}
+                    {c.supera_umbral && <span className={styles.badgeAlerta}><Icono nombre="alerta" size={12} enTexto /> sobre umbral</span>}
                   </td>
                   <td className={styles.tdBarra}>
                     <BarraDesvio pct={c.desvio_pct} maxAbs={maxAbs} alerta={c.supera_umbral} />
@@ -564,7 +594,7 @@ function TablaDesviosClientes({ datos }) {
       {sinHistorial.length > 0 && (
         <div className={styles.sinHistorial}>
           <button className="btn btn-sm" onClick={() => setVerSinHistorial(v => !v)}>
-            {verSinHistorial ? '▾' : '▸'} {sinHistorial.length} clientes sin historial comparable
+            <Icono nombre={verSinHistorial ? 'abajo' : 'derecha'} size={14} enTexto /> {sinHistorial.length} clientes sin historial comparable
           </button>
           {verSinHistorial && (
             <div className={styles.sinHistorialLista}>

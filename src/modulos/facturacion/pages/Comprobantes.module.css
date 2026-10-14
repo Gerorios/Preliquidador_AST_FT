@@ -1,0 +1,119 @@
+/* Mismo armado que las pantallas de listado de Preliquidación (Verificación,
+   Mantenimiento): título arriba, la barra común a todo el ancho y la tabla. */
+.page {
+  padding: 24px 32px;
+  /* La barra de filtros va a todo el ancho y arranca donde el título. */
+  --filtros-margen: 32px;
+  --filtros-sangria: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+/* Es el h1 de la pantalla, con el tamaño de los títulos de las demás. */
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--text-primary);
+}
+
+.cuenta {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.nuevo { margin-left: auto; }
+
+/* Un Link con aspecto de botón: navega, así que se puede abrir en otra pestaña. */
+.enlaceBoton { text-decoration: none; }
+.enlaceBoton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Fechas, importes y cantidades alineados en columna. */
+.tabla {
+  min-height: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.numero {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Lo que falta o no aplica ("Sin fecha", "Sin número", "Sin empresa"): se lee,
+   pero queda por debajo de los datos. */
+.apagado { color: var(--text-muted); }
+
+/* Error de carga: el mismo tono que los avisos de error del sistema, con la
+   salida al lado. */
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--danger-dim);
+  border: 1px solid rgba(192, 64, 56, 0.35);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.errorIcono {
+  color: var(--danger);
+  margin-top: 2px;
+}
+
+.errorTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.errorTexto strong { font-weight: 600; }
+
+/* Listado vacío o sin coincidencias: un título que dice qué pasa y una línea
+   que dice qué hacer. */
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.vacioTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.vacioTexto {
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.vacioTexto strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.vacio .enlaceBoton { margin-top: 8px; }

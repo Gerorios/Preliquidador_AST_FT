@@ -1,4 +1,7 @@
 {
+  "env": {
+    "IMPECCABLE_HOME": ".impeccable"
+  },
   "permissions": {
     "ask": [
       "Bash(ssh *)",
@@ -18,6 +21,18 @@
           {
             "type": "command",
             "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/recordar-bitacora.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/ultimas-entregas.mjs\"",
+            "timeout": 10
           }
         ]
       }

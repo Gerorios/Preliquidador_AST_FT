@@ -139,6 +139,11 @@ h3 { font-size: 13px; font-weight: 500; }
   transition: border-color 0.15s;
 }
 .input:focus { border-color: var(--accent); }
+/* Anillo de teclado: el borde solo casi no cambia sobre un borde de aviso. */
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .input::placeholder { color: var(--text-muted); }
 
 .input-mono {
@@ -166,10 +171,12 @@ select.input {
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
 }
-.badge-green  { background: var(--accent-glow); color: var(--accent); border-color: var(--accent-dim); }
-.badge-warn   { background: var(--warn-dim); color: var(--warn); border-color: rgba(150,96,15,0.35); }
-.badge-danger { background: var(--danger-dim); color: var(--danger); border-color: rgba(192,64,56,0.35); }
-.badge-info   { background: var(--info-dim); color: var(--info); border-color: rgba(56,114,168,0.35); }
+/* Texto oscuro y el tono sólo en el fondo y el borde: el tono de aviso sobre su fondo pálido no
+   llegaba a AA con texto de 11 px. Mismo criterio que los chips del historial (R5 del refinamiento). */
+.badge-green  { background: var(--accent-glow); color: var(--text-primary); border-color: rgba(85, 112, 50, 0.35); }
+.badge-warn   { background: var(--warn-dim); color: var(--text-primary); border-color: rgba(150,96,15,0.35); }
+.badge-danger { background: var(--danger-dim); color: var(--text-primary); border-color: rgba(192,64,56,0.35); }
+.badge-info   { background: var(--info-dim); color: var(--text-primary); border-color: rgba(56,114,168,0.35); }
 .badge-muted  { background: var(--bg-elevated); color: var(--text-muted); border-color: var(--border); }
 
 /* Chips (filtros/tabs tipo pastilla — mismo patrón que los chips de alerta de FiltrosBar) */
