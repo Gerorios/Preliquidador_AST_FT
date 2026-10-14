@@ -10,8 +10,8 @@ import { comoFecha, comoNumero, comoPesos } from './formato'
 // Por lo mismo, en la vista de un concepto **no va la columna Concepto** —dice
 // lo mismo que el filtro de arriba— ni la de Unidad cuando es siempre la misma:
 // en Viajes todas las filas dicen "viaje". La única donde Unidad importa es
-// Horas de servicio, porque ahí la tarifa elige entre hora de máquina y
-// cantidad, y cuál eligió cambia lo que se cobra.
+// Horas de servicio, porque ahí la tarifa elige entre hora de máquina, jornal,
+// bins o toneladas, y cuál eligió cambia lo que se cobra.
 
 // El orden en que se lee una liquidación: primero lo que se le paga al tercero,
 // después lo que se le descuenta. Es el mismo del recibo
@@ -19,7 +19,7 @@ import { comoFecha, comoNumero, comoPesos } from './formato'
 // Seguros— y por eso es el de los botones de arriba. El orden en que aparecen
 // las filas es por fecha, que para elegir un concepto no significa nada.
 export const ORDEN_CONCEPTOS = [
-  'viajes', 'servicio', 'combustible', 'repuestos', 'reparacion', 'seguros',
+  'viajes', 'servicio', 'combustible', 'repuestos', 'reparacion', 'ajustes', 'seguros',
 ]
 
 const FECHA    = { clave: 'fecha', label: 'Fecha', formato: comoFecha, ancho: 92 }
@@ -36,7 +36,9 @@ const ESTADO   = { clave: 'estado', label: 'Estado', tipo: 'estado', ancho: 120 
 
 // Las unidades se muestran como se dicen. 'hsmaquina' es el valor que guarda
 // la base —el mismo que usa Preliquidación— y no algo para leer en una tabla.
-const UNIDADES = { hsmaquina: 'Hora máquina', unidades: 'Cantidad' }
+const UNIDADES = {
+  hsmaquina: 'Hora máquina', jornal: 'Jornal', bins: 'Bins', toneladas: 'Toneladas',
+}
 const comoUnidad = (v) => UNIDADES[v] ?? v ?? ''
 
 const comoFacturada = (v) => (v === null || v === undefined ? '' : v ? 'sí' : 'no')
@@ -106,9 +108,12 @@ export const COLUMNAS = {
     { clave: 'planilla', label: 'Planilla', ancho: 110 },
     CLIENTE, FINCA, TAREA,
     { clave: 'supervisor', label: 'Supervisor', ancho: 170 },
+    // Lo que contó la tarea, aunque se pague por otra medida: la carga de fruta
+    // se cuenta en bins y se paga por tonelada (400 kilos el bin).
+    { clave: 'bins', label: 'Bins', align: 'right', formato: comoNumero, ancho: 80 },
     cantidad('Cantidad'),
-    // Acá sí: la tarifa elige entre hora de máquina y cantidad, y cuál eligió
-    // es lo que explica el importe.
+    // Acá sí: la tarifa elige entre hora de máquina, jornal, bins o toneladas,
+    // y cuál eligió es lo que explica el importe.
     { clave: 'unidad', label: 'Se paga por', formato: comoUnidad, ancho: 110 },
     PRECIO, IMPORTE, ESTADO, DESTINO,
   ],
@@ -135,6 +140,17 @@ export const COLUMNAS = {
     PRECIO, IMPORTE, ESTADO, DESTINO,
   ],
 
+  // Las correcciones a mano sobre el recibo. Sin fecha ni precio: un ajuste
+  // es un importe con su motivo. Tampoco se mueven de quincena: se cargan en
+  // el recibo que corresponde.
+  ajustes: [
+    TERCERO,
+    { clave: 'ajuste_de_label', label: 'Concepto', ancho: 150 },
+    { clave: 'viene_de', label: 'De la quincena', formato: comoQuincena, ancho: 120 },
+    { clave: 'motivo', label: 'Motivo' },
+    IMPORTE,
+  ],
+
   seguros: [
     TERCERO,
     { clave: 'sujeto', label: 'Máquina o chofer', ancho: 220 },
@@ -150,8 +166,11 @@ const PARTES = {
   viajes: f => [f.patente, f.chofer, f.tipo_viaje],
   combustible: f => [f.patente, f.estacion, f.vale && `vale ${f.vale}`, f.observacion],
   servicio: f => [f.maquina, f.planilla],
-  repuestos: f => [f.maquina, f.repuesto, f.rubro],
+  // Máquina, tipo de insumo e insumo: así lo pidió el usuario para el recibo
+  // (2026-10-05). El rubro queda en su columna de la grilla.
+  repuestos: f => [f.maquina, f.tipo_insumo, f.repuesto],
   reparacion: f => [f.maquina, f.sub_rubro, f.estado_taller],
+  ajustes: f => [f.ajuste_de_label, f.motivo],
   seguros: f => [f.sujeto, f.referencia, f.tipo_seguro],
 }
 
@@ -196,6 +215,7 @@ export const FILTROS_POR_CONCEPTO = {
   reparacion: [
     ['finca', 'Finca'], ['maquina', 'Máquina'], ['estado', 'Estado'],
   ],
+  ajustes: [['ajuste_de_label', 'Concepto']],
   seguros: [
     ['sujeto', 'Máquina o chofer'], ['referencia', 'Patente o CUIL'],
     ['tipo_seguro', 'Tipo de póliza'],

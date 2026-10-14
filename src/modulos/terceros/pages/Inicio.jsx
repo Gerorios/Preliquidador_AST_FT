@@ -46,6 +46,8 @@ const RUBROS = [
   { clave: 'combustible', titulo: 'Combustible', signo: -1 },
   { clave: 'repuestos', titulo: 'Repuestos', signo: -1 },
   { clave: 'reparacion', titulo: 'Horas de reparación', signo: -1 },
+  // Los ajustes traen su propio signo: resta o suma según el valor.
+  { clave: 'ajustes', titulo: 'Ajustes', signo: 0 },
   { clave: 'seguros', titulo: 'Seguros', signo: -1 },
 ]
 
@@ -82,6 +84,11 @@ export default function Inicio() {
             ? 'Actualizada: no cambió nada en los orígenes'
             : `Actualizada: ${comoEntero(movidas)} fila(s) cambiaron`
       )
+      // La anterior se actualiza sola si tiene recibos emitidos. Si no se
+      // pudo, la pedida igual quedó: se avisa sin tapar el resultado.
+      if (d.anterior?.error) {
+        toast.error(`No se pudo actualizar la ${comoFechaQuincena(d.anterior.quincena)}: ${d.anterior.error}`)
+      }
       // Lo guardado cambió, así que lo que haya en caché del módulo ya no
       // necesariamente coincide.
       qc.invalidateQueries({ queryKey: ['terceros'] })
@@ -135,6 +142,21 @@ export default function Inicio() {
               )
             })}
           </div>
+          {/* Lo que les llegó tarde a los recibos ya emitidos de la anterior. */}
+          {detalle.anterior && !detalle.anterior.error && (
+            <div className={styles.detalleFila}>
+              <span className={styles.detalleNombre}>
+                {comoFechaQuincena(detalle.anterior.quincena)}
+              </span>
+              {detalle.anterior.llegadas > 0 ? (
+                <button className={styles.detalleAviso} onClick={() => navegar(`${PREFIJO}/recibos`)}>
+                  {comoEntero(detalle.anterior.llegadas)} línea(s) llegaron después de emitir → ver en Órdenes de facturación
+                </button>
+              ) : (
+                <span className={styles.detalleIgual}>se actualizó; nada llegó después de emitir</span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -153,6 +175,9 @@ export default function Inicio() {
             return (
               <button key={l.id} type="button"
                       className={`${styles.tarjeta} ${esActual ? styles.actual : ''}`}
+                      // La grilla toma la cantidad de rubros de la lista: con
+                      // un número fijo, sumar uno corría el total de lugar.
+                      style={{ '--rubros': RUBROS.length }}
                       onClick={() => abrir(l.quincena)}
                       title={`Abrir esta quincena. Generada ${fechaHora(l.generada_en)}`}>
                 <div className={styles.quincena}>
@@ -161,8 +186,9 @@ export default function Inicio() {
                 </div>
                 {RUBROS.map(r => {
                   const valor = l.importes?.[r.clave]
+                  const resta = r.signo < 0 || (r.signo === 0 && Number(valor) < 0)
                   const clases = [styles.rubro,
-                    !Number(valor) ? styles.cero : r.signo < 0 ? styles.resta : '']
+                    !Number(valor) ? styles.cero : resta ? styles.resta : '']
                   return (
                     <div key={r.clave} className={clases.join(' ')}>
                       <span className={styles.rubroTitulo}>{r.titulo}</span>

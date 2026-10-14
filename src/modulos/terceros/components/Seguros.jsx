@@ -22,6 +22,14 @@ import styles from '../pages/Tarifario.module.css'
 // lo filtrado**. Con 382 pólizas, cargar de a una es el mismo problema que las
 // 44 combinaciones de horas de servicio.
 
+// El seguro se cruza con su bien por el id del sistema de campo, que no cambia
+// cuando le cambian el nombre o el dueño. El del chofer va además con su dueño:
+// el mismo chofer aparece con cada dueño para el que manejó. Un seguro cargado
+// antes de guardar el id se cruza por nombre.
+const claveBien = (origen, id, tercero, tipo) =>
+  `${origen}|${id}|${origen === 'chofer' ? tercero : ''}|${tipo}`
+const claveNombre = (tercero, tipo, sujeto) => `${tercero}|${tipo}|${sujeto}`
+
 // Un bien lleva una póliza; una persona puede llevar dos.
 const TIPOS_POR_ORIGEN = {
   colectivo: [{ clave: 'AUTOMOTOR', label: 'Automotor' }],
@@ -68,6 +76,7 @@ function Importe({ fila, quincena, onListo }) {
       return crearTarifa('seguros', quincena, {
         tercero: fila.tercero, tipo_seguro: fila.tipo,
         sujeto: fila.sujeto, referencia: fila.referencia, importe: limpio,
+        origen: fila.origen, id_origen: fila.id_origen,
       })
     },
     onSuccess: () => { setValor(null); onListo() },
@@ -130,16 +139,19 @@ export default function Seguros({ quincena }) {
   // Cada entrada del padrón se expande en una fila por cada tipo de póliza que
   // le corresponde, y se le pega la tarifa que ya exista.
   const filas = useMemo(() => {
-    const porClave = new Map(
-      tarifas.map(t => [`${t.tercero}|${t.tipo_seguro}|${t.sujeto}`, t])
-    )
+    const porBien = new Map(tarifas.filter(t => t.id_origen).map(t => [
+      claveBien(t.origen, t.id_origen, t.tercero, t.tipo_seguro), t]))
+    const porNombre = new Map(
+      tarifas.map(t => [claveNombre(t.tercero, t.tipo_seguro, t.sujeto), t]))
     return padron
       .filter(b => b.tercero)
       .flatMap(b => (TIPOS_POR_ORIGEN[b.origen] ?? []).map(t => {
-        const tarifa = porClave.get(`${b.tercero}|${t.clave}|${b.nombre}`) ?? null
+        const tarifa = porBien.get(claveBien(b.origen, b.id_origen, b.tercero, t.clave))
+          ?? porNombre.get(claveNombre(b.tercero, t.clave, b.nombre)) ?? null
         return {
           clave: `${b.origen}-${b.id_origen}-${t.clave}`,
           origen: b.origen,
+          id_origen: b.id_origen,
           origenLabel: ETIQUETA_ORIGEN[b.origen],
           tercero: b.tercero,
           tipo: t.clave,
@@ -173,6 +185,7 @@ export default function Seguros({ quincena }) {
         partes.push(await crearTarifasEnLote('seguros', quincena, nuevas.map(f => ({
           tercero: f.tercero, tipo_seguro: f.tipo,
           sujeto: f.sujeto, referencia: f.referencia, importe,
+          origen: f.origen, id_origen: f.id_origen,
         }))))
       }
       if (existentes.length) {

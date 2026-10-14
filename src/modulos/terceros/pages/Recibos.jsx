@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import AccionesRecibo from '../components/AccionesRecibo'
@@ -10,28 +10,28 @@ import SelectorQuincena from '../components/SelectorQuincena'
 import useQuincenaStore from '../quincenaStore'
 import { bajarCsv, comoNumeroCsv } from '../exportar'
 import { opcionesCascada, pasaFiltros } from '../filtrar'
-import { listarRecibos } from '../services/terceros'
+import { elegirEmpresa, listarRecibos } from '../services/terceros'
 import { comoEntero, comoPesosEnteros } from '../formato'
-import { ESTADOS_RECIBO, estadoDe } from '../recibos'
+import { EMPRESAS, ESTADOS_RECIBO, estadoDe, sinNadaQueHacer } from '../recibos'
 import styles from './Recibos.module.css'
 
 // Un renglón por tercero de la quincena: qué hay que hacer con cada recibo.
 //
 // Se arma como la Quincena: filtros arriba, tarjetas que son atajos al mismo
 // filtro, y una sola tabla. El recibo en sí —lo que se imprime o se manda— es
-// otra pantalla; ésta es la de trabajo, y se lee por estado: qué falta emitir,
-// qué factura hay que revisar, qué hay que pagar.
+// otra pantalla; ésta es la de trabajo, y se lee por estado: qué tiene líneas
+// sin precio, qué falta emitir y qué falta pagar.
 
 const FILTROS = [
   ['tercero', 'Tercero'],
-  ['empresa', 'Empresa'],
+  ['empresa', 'Factura a'],
   ['estado', 'Estado'],
 ]
 const CLAVES = FILTROS.map(([c]) => c)
 
 const COLUMNAS = [
   { clave: 'tercero', label: 'Tercero' },
-  { clave: 'empresa', label: 'Empresa' },
+  { clave: 'empresa', label: 'Factura a' },
   { clave: 'total_a_facturar', label: 'Total a facturar', pesos: true },
   { clave: 'seguros', label: 'Seguros', pesos: true },
   { clave: 'total_a_pagar', label: 'Total a pagar', pesos: true },
@@ -49,14 +49,27 @@ export default function Recibos() {
   const [lote, setLote] = useState(false)
   const [saldos, setSaldos] = useState(false)
 
+  const qc = useQueryClient()
+  // A quién le factura se elige desde la tabla y queda guardado: no hay que
+  // abrir cada recibo, y el borrador ya lo muestra.
+  const guardarEmpresa = useMutation({
+    mutationFn: ({ tercero, empresa }) => elegirEmpresa(quincena, tercero, empresa),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['terceros', 'recibos'] }),
+    onError: err => toast.error(err.message),
+  })
+
   const { data = [], isLoading } = useQuery({
     queryKey: ['terceros', 'recibos', quincena],
     queryFn: () => listarRecibos(quincena),
     enabled: !!quincena,
   })
 
-  const filas = useMemo(() => data.map(r => ({
-    ...r, estado: estadoDe(r), empresa: r.empresa ?? '',
+  // Una orden repartida tiene varias empresas y varias facturas: en la tabla
+  // van juntas, para filtrar, ordenar y exportar como cualquier columna.
+  const filas = useMemo(() => data.filter(r => !sinNadaQueHacer(r)).map(r => ({
+    ...r, estado: estadoDe(r),
+    empresa: (r.facturas ?? []).map(f => f.empresa).join(' + '),
+    factura_numero: (r.facturas ?? []).map(f => f.numero).filter(Boolean).join(' · '),
   })), [data])
 
   const opciones = useMemo(() => opcionesCascada(filas, CLAVES, filtros), [filas, filtros])
@@ -88,12 +101,12 @@ export default function Recibos() {
     setOrden(o => (o.clave === clave ? { clave, asc: !o.asc } : { clave, asc: true }))
 
   const exportar = () => {
-    bajarCsv(`recibos-${quincena}`, COLUMNAS.map(c => ({
+    bajarCsv(`ordenes-de-facturacion-${quincena}`, COLUMNAS.map(c => ({
       label: c.label,
       valor: f => (c.pesos ? comoNumeroCsv(f[c.clave])
         : c.clave === 'estado' ? ESTADOS_RECIBO[f.estado]?.label : f[c.clave]),
     })), visibles)
-    toast.success(`${comoEntero(visibles.length)} recibos exportados`)
+    toast.success(`${comoEntero(visibles.length)} órdenes exportadas`)
   }
 
   const imprimir = (terceros) => {
@@ -105,13 +118,14 @@ export default function Recibos() {
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
-        <div className={styles.titulo}>Recibos</div>
+        <div className={styles.titulo}>Órdenes de facturación</div>
         <SelectorQuincena />
         <div className={styles.acciones}>
           <button className="btn btn-sm" onClick={() => setSaldos(true)}>Saldos iniciales</button>
           <button className="btn btn-sm" disabled={!emitidos.length}
+                  title="Un PDF por tercero, para mandar por WhatsApp"
                   onClick={() => imprimir(emitidos.map(f => f.tercero))}>
-            Imprimir emitidos ({comoEntero(emitidos.length)})
+            PDF de emitidas ({comoEntero(emitidos.length)})
           </button>
           <button className="btn btn-sm" disabled={!visibles.length} onClick={exportar}>
             Exportar
@@ -124,7 +138,7 @@ export default function Recibos() {
       </div>
 
       {!quincena && <div className={styles.vacio}>Elegí una quincena.</div>}
-      {quincena && isLoading && <CargandoContenido texto="Armando los recibos…" />}
+      {quincena && isLoading && <CargandoContenido texto="Armando las órdenes de facturación…" />}
 
       {quincena && !isLoading && (
         <>
@@ -145,7 +159,7 @@ export default function Recibos() {
           </div>
 
           <div className={styles.resumen}>
-            {Object.entries(ESTADOS_RECIBO).map(([clave, e]) => {
+            {Object.entries(ESTADOS_RECIBO).filter(([, e]) => !e.sinTarjeta).map(([clave, e]) => {
               const n = cuantas(clave)
               return (
                 <button key={clave} disabled={!n} onClick={() => elegir('estado', clave)}
@@ -186,6 +200,26 @@ export default function Recibos() {
                               {e?.label}
                             </span>
                             {f.en_revision && <span className={styles.marca}> · en revisión</span>}
+                            {f.llegadas > 0 && <span className={styles.marca}> · llegó tarde</span>}
+                          </td>
+                        )
+                      }
+                      // Emitido, la empresa ya se mandó así: se lee, no se cambia.
+                      // Repartida entre varias, se cambia en el diálogo, que
+                      // es donde están los importes.
+                      if (c.clave === 'empresa' && !f.emitido && f.estado !== 'vacio'
+                          && (f.facturas ?? []).length <= 1) {
+                        return (
+                          <td key={c.clave} onClick={e => e.stopPropagation()}>
+                            <select className={`input ${styles.selectEmpresa}`}
+                                    value={f.facturas?.[0]?.empresa ?? ''}
+                                    disabled={guardarEmpresa.isPending}
+                                    onChange={e => guardarEmpresa.mutate(
+                                      { tercero: f.tercero, empresa: e.target.value })}
+                                    aria-label={`Factura a, ${f.tercero}`}>
+                              <option value="">elegir…</option>
+                              {EMPRESAS.map(x => <option key={x} value={x}>{x}</option>)}
+                            </select>
                           </td>
                         )
                       }
@@ -213,7 +247,7 @@ export default function Recibos() {
               <div className={styles.vacio}>
                 {filas.length === 0
                   ? 'Esta quincena no tiene nada que liquidar todavía.'
-                  : 'Ningún recibo coincide con esos filtros.'}
+                  : 'Ninguna orden coincide con esos filtros.'}
               </div>
             )}
           </div>
@@ -226,8 +260,7 @@ export default function Recibos() {
                         onCerrar={() => setAbierto(null)} />
       )}
       {lote && (
-        <EmitirLote quincena={quincena} terceros={listos.map(f => f.tercero)}
-                    onCerrar={() => setLote(false)} />
+        <EmitirLote quincena={quincena} ordenes={listos} onCerrar={() => setLote(false)} />
       )}
       {saldos && <SaldosIniciales quincena={quincena} onCerrar={() => setSaldos(false)} />}
     </div>

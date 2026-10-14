@@ -193,3 +193,10 @@
   color: var(--warn);
   font-weight: 600;
 }
+
+/* El "Factura a" de la tabla: un select que no agranda la fila. */
+.selectEmpresa {
+  width: 150px;
+  padding: 2px 8px;
+  font-size: 12px;
+}

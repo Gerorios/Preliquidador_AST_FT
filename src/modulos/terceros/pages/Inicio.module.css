@@ -68,7 +68,11 @@
   padding: 10px 16px;
   box-shadow: 0 1px 2px rgba(34, 31, 28, 0.04);
   display: grid;
-  grid-template-columns: 150px repeat(6, minmax(0, 1fr)) 150px 20px;
+  /* Quincena, un casillero por rubro (la cantidad la pasa Inicio.jsx), el
+     total y la flecha. Cada casillero mide por lo menos lo que su importe:
+     en una pantalla angosta se achica el título, nunca se pisan los números. */
+  grid-template-columns:
+    150px repeat(var(--rubros, 7), minmax(max-content, 1fr)) minmax(max-content, 150px) 20px;
   align-items: center;
   gap: 12px;
   cursor: pointer;
@@ -129,7 +133,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  /* El título no empuja el ancho de su columna, la ocupa: así el que manda
+     es el importe y el título se corta con puntos suspensivos si no entra. */
+  width: 0;
+  min-width: 100%;
+  text-align: right;
 }
 
 .rubroValor {
@@ -223,3 +231,18 @@
 .detalleIgual {
   color: var(--text-muted);
 }
+
+/* Lo que llegó tarde a la quincena anterior: lleva a Recibos, donde se resuelve. */
+.detalleAviso {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn);
+  cursor: pointer;
+  text-align: left;
+}
+
+.detalleAviso:hover { text-decoration: underline; }
