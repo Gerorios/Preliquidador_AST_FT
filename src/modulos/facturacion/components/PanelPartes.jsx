@@ -1,7 +1,7 @@
 import Icono from '../../../core/ui/iconos'
 import { textoFecha } from '../formulario'
 import { ETIQUETAS } from '../unidades'
-import { medidaVacia, textoMedida } from '../vistaResumen'
+import { medidaIlegible, medidaVacia, textoMedida } from '../vistaResumen'
 import { signoDeDiferencia, textoDiferencia, textoPct, totalPartes } from '../detalle'
 import styles from './PanelPartes.module.css'
 
@@ -10,8 +10,11 @@ import styles from './PanelPartes.module.css'
 // campo de esa tarea en el mes, con su total. No se abre por finca: "Dónde"
 // es la finca de cada parte.
 
-function Medida({ valor }) {
-  return medidaVacia(valor) ? <span className={styles.vacia}>—</span> : textoMedida(valor)
+// Campo y Facturado de la comparación muestran el cero, como la tabla del
+// Detalle (conCero); los partes, no.
+function Medida({ valor, conCero = false }) {
+  const raya = conCero ? medidaIlegible(valor) : medidaVacia(valor)
+  return raya ? <span className={styles.vacia}>—</span> : textoMedida(valor, { conCero })
 }
 
 const partes_ = n => `${n} ${n === 1 ? 'parte' : 'partes'}`
@@ -37,8 +40,8 @@ export default function PanelPartes({ tarea, mesTexto, umbralTexto, onCerrar }) 
         <section className={styles.seccion} aria-labelledby="fact-panel-comparacion">
           <h3 id="fact-panel-comparacion" className={styles.seccionTitulo}>Comparación</h3>
           <dl className={styles.datos}>
-            <div className={styles.dato}><dt>Campo</dt><dd><Medida valor={tarea.campo} /></dd></div>
-            <div className={styles.dato}><dt>Facturado</dt><dd><Medida valor={tarea.facturado} /></dd></div>
+            <div className={styles.dato}><dt>Campo</dt><dd><Medida valor={tarea.campo} conCero /></dd></div>
+            <div className={styles.dato}><dt>Facturado</dt><dd><Medida valor={tarea.facturado} conCero /></dd></div>
             <div className={styles.dato}>
               <dt>Diferencia</dt>
               <dd className={signo ? styles[signo] : undefined}>

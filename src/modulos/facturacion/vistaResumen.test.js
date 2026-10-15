@@ -7,7 +7,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  horaDeLectura, textoMedida, medidaVacia, textoDeCuadro, textoUmbral,
+  horaDeLectura, textoMedida, medidaVacia, medidaIlegible, textoDeCuadro, textoUmbral,
   umbralParaEditar, leerConfiguracion, textoUltimoCambio, OTRO_PERIODO, periodoElegido,
 } from './vistaResumen.js'
 
@@ -51,14 +51,28 @@ test('textoMedida y medidaVacia: cero, vacío o ilegible es una raya', () => {
   assert.equal(medidaVacia('-3.00'), false)
 })
 
+test('En el Detalle (conCero) el cero se muestra: la raya queda para vacío o ilegible', () => {
+  assert.equal(textoMedida('0.00', { conCero: true }), '0')
+  assert.equal(textoMedida(0, { conCero: true }), '0')
+  assert.equal(textoMedida('120.50', { conCero: true }), '120,5')
+  for (const valor of [null, undefined, '', 'abc']) {
+    assert.equal(textoMedida(valor, { conCero: true }), '—', String(valor))
+    assert.equal(medidaIlegible(valor), true, String(valor))
+  }
+  assert.equal(medidaIlegible('0.00'), false)
+  assert.equal(medidaIlegible(0), false)
+})
+
 test('textoDeCuadro: el texto de cada Alerta en singular y en plural', () => {
-  assert.equal(textoDeCuadro('pendiente_de_facturar', 1), 'cliente pendiente de facturar')
-  assert.equal(textoDeCuadro('pendiente_de_facturar', 3), 'clientes pendientes de facturar')
-  assert.equal(textoDeCuadro('pendiente_de_facturar', 0), 'clientes pendientes de facturar')
-  assert.equal(textoDeCuadro('con_diferencia', 1), 'cliente con diferencia')
-  assert.equal(textoDeCuadro('con_diferencia', 4), 'clientes con diferencia')
-  assert.equal(textoDeCuadro('falta_comprobante', 1), 'factura sin comprobante (PDF)')
-  assert.equal(textoDeCuadro('falta_comprobante', 2), 'facturas sin comprobante (PDF)')
+  // Cada cuadro cuenta filas (mes y Cliente), y el texto lo dice: un Cliente
+  // pendiente en dos meses suma 2.
+  assert.equal(textoDeCuadro('pendiente_de_facturar', 1), 'mes de cliente pendiente de facturar')
+  assert.equal(textoDeCuadro('pendiente_de_facturar', 3), 'meses de cliente pendientes de facturar')
+  assert.equal(textoDeCuadro('pendiente_de_facturar', 0), 'meses de cliente pendientes de facturar')
+  assert.equal(textoDeCuadro('con_diferencia', 1), 'mes de cliente con diferencia')
+  assert.equal(textoDeCuadro('con_diferencia', 4), 'meses de cliente con diferencia')
+  assert.equal(textoDeCuadro('falta_comprobante', 1), 'mes de cliente con facturas sin PDF')
+  assert.equal(textoDeCuadro('falta_comprobante', 2), 'meses de cliente con facturas sin PDF')
 })
 
 test('textoUmbral: el Umbral del pie, sin ceros de más', () => {

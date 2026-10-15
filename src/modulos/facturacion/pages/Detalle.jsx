@@ -12,7 +12,7 @@ import {
 import { ESTADOS } from '../estados'
 import { ETIQUETAS } from '../unidades'
 import { formatoPesos } from '../numeros'
-import { medidaVacia, textoMedida, textoUmbral } from '../vistaResumen'
+import { medidaIlegible, textoMedida, textoUmbral } from '../vistaResumen'
 import {
   bannerDeDetalle, puedeRevisar, validarComentario, textoPct, claveDeFila, filasQueSuperan,
   revisadaEnFila, unidadesPorTarea, textoDiferencia, textoDiferenciaPesos, signoDeDiferencia,
@@ -33,8 +33,13 @@ import styles from './Detalle.module.css'
 
 const RESUMEN = '/facturacion/resumen'
 
+// En el Detalle el cero se muestra ("0"): una tarea trabajada y no facturada
+// tiene que decir de dónde sale su diferencia. La raya, sólo para lo vacío o
+// ilegible.
 function Medida({ valor }) {
-  return medidaVacia(valor) ? <span className={styles.vacia}>—</span> : textoMedida(valor)
+  return medidaIlegible(valor)
+    ? <span className={styles.vacia}>—</span>
+    : textoMedida(valor, { conCero: true })
 }
 
 const tareas_ = n => `${n} ${n === 1 ? 'tarea' : 'tareas'}`
@@ -268,7 +273,7 @@ export default function Detalle() {
     const total = data.total ?? {}
     const signoTotal = signoDeDiferencia(total.diferencia_pesos)
     contenido = (
-      <div className={styles.cuerpo}>
+      <div className={`${styles.cuerpo} ${panelAbierto ? styles.conPanel : ''}`}>
         <div className={styles.tabla}>
           <table>
             <caption className={styles.soloLector}>
@@ -310,6 +315,7 @@ export default function Detalle() {
                           type="button"
                           className={styles.tareaBoton}
                           aria-pressed={elegidaAhora}
+                          title={nombreDeTarea(t)}
                           onClick={e => { e.stopPropagation(); elegir(t, e.currentTarget) }}
                         >
                           {nombreDeTarea(t)}

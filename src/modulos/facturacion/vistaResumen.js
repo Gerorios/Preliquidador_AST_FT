@@ -42,10 +42,14 @@ export function horaDeLectura(leidoEn, zona) {
   return fecha ? partes(fecha, zona).hora : null
 }
 
+/** Si una medida no se lee como número: vacía o ilegible. El cero sí se lee. */
+export function medidaIlegible(valor) {
+  return !DECIMAL.test(String(valor ?? '').trim())
+}
+
 /** Si una medida o el neto no tienen nada que mostrar: cero, vacío o ilegible. */
 export function medidaVacia(valor) {
-  const texto = String(valor ?? '').trim()
-  return !DECIMAL.test(texto) || CERO.test(texto)
+  return medidaIlegible(valor) || CERO.test(String(valor).trim())
 }
 
 // Con un texto, Intl formatea el decimal exacto, sin pasar por un Number (como
@@ -55,18 +59,22 @@ const MEDIDA = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 })
 /**
  * Una medida del campo en es-AR, hasta dos decimales y sin ceros de más:
  * "1739.00" da "1.739" y "120.50" da "120,5". Lo que no tiene nada que
- * mostrar (medidaVacia) es una raya.
+ * mostrar (medidaVacia) es una raya. Con `conCero` (el Detalle, que compara
+ * Campo contra Facturado) el cero se muestra, "0", y la raya queda sólo para
+ * lo vacío o ilegible (medidaIlegible).
  */
-export function textoMedida(valor) {
-  return medidaVacia(valor) ? '—' : MEDIDA.format(String(valor).trim())
+export function textoMedida(valor, { conCero = false } = {}) {
+  const raya = conCero ? medidaIlegible(valor) : medidaVacia(valor)
+  return raya ? '—' : MEDIDA.format(String(valor).trim())
 }
 
-// El texto de cada cuadro de Alertas, del boceto F0 aprobado. Cada cuadro
-// cuenta filas (mes y Cliente).
+// El texto de cada cuadro de Alertas. Cada cuadro cuenta filas (mes y
+// Cliente), y el texto lo dice: con varios meses, un Cliente pendiente en dos
+// meses suma 2 (revisión de la E3a; el boceto F0 decía "clientes").
 const TEXTOS_CUADRO = {
-  pendiente_de_facturar: ['cliente pendiente de facturar', 'clientes pendientes de facturar'],
-  con_diferencia: ['cliente con diferencia', 'clientes con diferencia'],
-  falta_comprobante: ['factura sin comprobante (PDF)', 'facturas sin comprobante (PDF)'],
+  pendiente_de_facturar: ['mes de cliente pendiente de facturar', 'meses de cliente pendientes de facturar'],
+  con_diferencia: ['mes de cliente con diferencia', 'meses de cliente con diferencia'],
+  falta_comprobante: ['mes de cliente con facturas sin PDF', 'meses de cliente con facturas sin PDF'],
 }
 
 /** El texto junto al número de un cuadro, en singular sólo con 1. */
