@@ -10,7 +10,8 @@ import { listarLineas } from '../services/terceros'
 import { ORDEN_CONCEPTOS, columnasDe, filtrosDe, valorDe } from '../columnasGrilla'
 import { opcionesCascada, pasaFiltros } from '../filtrar'
 import { bajarCsv, comoNumeroCsv } from '../exportar'
-import { comoEntero, comoPesos, comoPesosEnteros } from '../formato'
+import { comoEntero, comoNumero, comoPesos, comoPesosEnteros } from '../formato'
+import { totalesGrilla } from '../totalesGrilla'
 import styles from './Grilla.module.css'
 
 // La quincena entera en una sola pantalla, con los seis conceptos mezclados.
@@ -167,6 +168,9 @@ export default function Grilla() {
       aPagar: paga - descuenta - seguros,
     }
   }, [visibles])
+
+  // La fila Total al pie de la tabla: la suma de las columnas de lo que se ve.
+  const sumas = useMemo(() => totalesGrilla(visibles), [visibles])
 
   // Los botones van en el orden del recibo, no en el que las filas aparecen por
   // fecha. Y la cuenta de cada uno **respeta el tercero elegido**: cada botón
@@ -372,6 +376,29 @@ export default function Grilla() {
                   </tr>
                 ))}
               </tbody>
+              {visibles.length > 0 && (
+                <tfoot>
+                  <tr className={styles.filaTotal}>
+                    {columnas.map((c, i) => {
+                      if (c.tipo === 'importe') {
+                        return (
+                          <td key={c.clave} style={{ textAlign: 'right' }}
+                              className={sumas.importe < 0 ? styles.descuenta : styles.paga}>
+                            {sumas.importe < 0 ? '−' : ''}{comoPesos(Math.abs(sumas.importe))}
+                          </td>
+                        )
+                      }
+                      const suma = c.clave === 'cantidad' ? sumas.cantidad
+                        : c.clave === 'bins' ? sumas.bins : null
+                      return (
+                        <td key={c.clave} style={{ textAlign: c.align ?? 'left' }}>
+                          {i === 0 ? 'Total' : suma === null ? '' : comoNumero(suma)}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                </tfoot>
+              )}
             </table>
             {visibles.length === 0 && (
               <div className={styles.vacio}>

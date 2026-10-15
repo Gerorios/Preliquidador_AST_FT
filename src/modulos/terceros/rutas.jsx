@@ -17,6 +17,8 @@ const Grilla = lazy(() => import('./pages/Grilla'))
 const Estaciones = lazy(() => import('./pages/Estaciones'))
 const Tarifario = lazy(() => import('./pages/Tarifario'))
 const Verificaciones = lazy(() => import('./pages/Verificaciones'))
+const Recibos = lazy(() => import('./pages/Recibos'))
+const Recibo = lazy(() => import('./pages/Recibo'))
 
 export const PREFIJO = '/terceros'
 export const MODULO = 'terceros'
@@ -31,6 +33,9 @@ export const rutas = [
   { path: `${PREFIJO}/tarifario`,      element: <Tarifario />,      modulo: MODULO, pantalla: 'tarifario', label: 'Tarifario',          icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/estaciones`,     element: <Estaciones />,     modulo: MODULO, pantalla: 'estaciones', label: 'Estaciones',         icono: 'conceptos',     menu: true },
   { path: `${PREFIJO}/verificaciones`, element: <Verificaciones />, modulo: MODULO, pantalla: 'verificaciones', label: 'Verificaciones',     icono: 'verificacion',  menu: true },
+  { path: `${PREFIJO}/recibos`,        element: <Recibos />,        modulo: MODULO, pantalla: 'recibos', label: 'Órdenes de facturación', icono: 'gerencial',     menu: true },
+  // La hoja de la orden, para imprimir. No va en el menú: se abre desde Órdenes de facturación.
+  { path: `${PREFIJO}/recibo`,         element: <Recibo />,         modulo: MODULO, pantalla: 'recibos', label: 'Orden de facturación', icono: 'gerencial',     menu: false },
 ]
 
 // El menú se deriva de rutas para que nav, modulo y pantalla no puedan divergir.
@@ -47,6 +52,8 @@ export const pantallas = {
   '/terceros/tarifario': 'Tarifario: los precios pactados con cada tercero, por quincena',
   '/terceros/estaciones': 'Estaciones de servicio: lo que cada una facturó, contra lo que se cargó',
   '/terceros/verificaciones': 'Verificaciones: lo que hay que mirar antes de liquidar',
+  '/terceros/recibos': 'Órdenes de facturación: emitirlas, registrar la factura del tercero, aprobarla y marcar el pago',
+  '/terceros/recibo': 'La orden de facturación de un tercero como hoja, para imprimir o guardar como PDF',
 }
 
 export const modulo = {

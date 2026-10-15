@@ -258,6 +258,21 @@
 
 .tabla tbody tr:hover td { background: #f7faf2; }
 
+/* La fila Total queda pegada abajo, como el encabezado arriba: con mil líneas
+   la suma se ve sin tener que bajar hasta el final. */
+.filaTotal td {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 9px 10px;
+  background: #faf9f6;
+  border-top: 1px solid #ece8e1;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* El signo se ve en el color además de en el guion: mirando una columna de mil
    importes, el color dice de qué lado del recibo cae cada uno sin leerlos. */
 .paga {
@@ -467,3 +482,51 @@
   font-weight: 400;
   color: var(--text-muted);
 }
+
+/* ─── Los diálogos del recibo ─────────────────────────────────────────── */
+
+.dialogoAncho { width: min(720px, 100%); }
+
+/* Lo que frena algo o no coincide, dicho en una línea. */
+.aviso {
+  font-size: 12.5px;
+  color: var(--warn);
+}
+
+/* Lo que le pasó al recibo, de lo más viejo a lo más nuevo. */
+.historia {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-top: 10px;
+  border-top: 1px solid #f1eee8;
+}
+
+.listaLote {
+  display: flex;
+  flex-direction: column;
+  max-height: 45vh;
+  overflow: auto;
+  border: 1px solid #ece8e1;
+  border-radius: 8px;
+}
+
+.renglonLote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  border-bottom: 1px solid #f4f1ec;
+}
+
+.renglonLote:last-child { border-bottom: none; }
+
+.renglonLote select { font-size: 12px; width: 160px; }
+
+.renglonEditable { cursor: pointer; }
+
+.renglonEditable:hover { background: #fbfaf7; }

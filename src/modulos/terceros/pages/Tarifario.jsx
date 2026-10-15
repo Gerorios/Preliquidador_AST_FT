@@ -10,8 +10,8 @@ import SinPrecio from '../components/SinPrecio'
 import useQuincenaStore from '../quincenaStore'
 import { TARIFARIOS, tarifarioPorClave } from '../tarifarios'
 import {
-  listarTarifas, actualizarTarifa, confirmarTarifa, confirmarTarifasEnLote,
-  eliminarTarifa, copiarTarifario, obtenerResumenTarifario, listarQuincenas,
+  listarTarifas, actualizarTarifa, actualizarTarifasEnLote, confirmarTarifa,
+  confirmarTarifasEnLote, eliminarTarifa, copiarTarifario, obtenerResumenTarifario, listarQuincenas,
   listarCombinaciones,
 } from '../services/terceros'
 import { opcionesCascada, pasaFiltros } from '../filtrar'
@@ -157,8 +157,12 @@ export default function Tarifario() {
   const [activo, setActivo] = useState(TARIFARIOS[0].clave)
   const [modo, setModo] = useState('cargadas')
   const [filtros, setFiltros] = useState({})
+  const [precioNuevo, setPrecioNuevo] = useState('')
   const qc = useQueryClient()
   const tarifario = tarifarioPorClave(activo)
+  // El campo del precio: `precio` en todos menos en Seguros, que tiene su
+  // propia pantalla.
+  const campoPrecio = tarifario.valores.find(v => v.tipo === 'pesos')?.clave
   const propio = tarifario.propia   // Seguros se dibuja aparte: sale de un padrón
 
   const { data: resumen = {} } = useQuery({
@@ -212,9 +216,31 @@ export default function Tarifario() {
     onError: err => toast.error(err.message),
   })
 
+  // El mismo precio para todas las reglas que se ven: se filtra a quiénes
+  // alcanza (una tarea, un dueño) y se cambia el número de una, en vez de abrir
+  // regla por regla. Cambiarlo también las confirma, como de a una.
+  const cambiarPrecio = useMutation({
+    mutationFn: () => actualizarTarifasEnLote(
+      activo, visibles.map(f => f.id), { [campoPrecio]: precioNuevo }),
+    onSuccess: (d) => {
+      toast.success(`${comoEntero(d.cargadas)} regla(s) con el precio nuevo`)
+      if (d.rechazadas.length) {
+        toast.error(`${comoEntero(d.rechazadas.length)} no cambiaron: ${d.rechazadas[0]}`)
+      }
+      setPrecioNuevo('')
+      qc.invalidateQueries({ queryKey: ['terceros', 'tarifario'] })
+      qc.invalidateQueries({ queryKey: ['terceros', 'lineas'] })
+      qc.invalidateQueries({ queryKey: ['terceros', 'liquidaciones'] })
+    },
+    onError: err => toast.error(err.message),
+  })
+  const puedeCambiar = precioNuevo !== '' && Number(precioNuevo) >= 0
+    && visibles.length > 0 && !cambiarPrecio.isPending
+
   const elegirTarifario = (clave) => {
     setActivo(clave)
     setFiltros({})
+    setPrecioNuevo('')
     setModo('cargadas')
   }
 
@@ -316,6 +342,25 @@ export default function Tarifario() {
                             ? 'Confirmando…'
                             : `Confirmar (${comoEntero(heredadas.length)})`}
                         </button>
+                      )}
+                      {campoPrecio && (
+                        <>
+                          <input className="input" type="number" step="0.01" min="0"
+                                 placeholder="Precio nuevo" aria-label="Precio nuevo"
+                                 style={{ width: 130, textAlign: 'right' }}
+                                 value={precioNuevo}
+                                 onChange={e => setPrecioNuevo(e.target.value)}
+                                 onKeyDown={e => {
+                                   if (e.key === 'Enter' && puedeCambiar) cambiarPrecio.mutate()
+                                 }} />
+                          <button className="btn btn-sm" disabled={!puedeCambiar}
+                                  onClick={() => cambiarPrecio.mutate()}
+                                  title="Les pone este precio a todas las reglas que se ven">
+                            {cambiarPrecio.isPending
+                              ? 'Cambiando…'
+                              : `Cambiar precio (${comoEntero(visibles.length)})`}
+                          </button>
+                        </>
                       )}
                       <span className={styles.cuentaFiltro}>
                         {visibles.length === filas.length

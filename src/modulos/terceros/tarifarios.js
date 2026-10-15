@@ -27,19 +27,22 @@ export const TARIFARIOS = [
   {
     clave: 'servicio',
     titulo: 'Horas de servicio',
-    ayuda: 'Cuánto se le paga al tercero por el trabajo de su maquinaria. La unidad base dice sobre qué se multiplica el precio: la hora de máquina o la cantidad que midió la tarea.',
+    ayuda: 'Cuánto se le paga al tercero por el trabajo de su maquinaria. El precio puede cambiar según la máquina. La unidad base dice sobre qué se multiplica: la hora de máquina, el jornal (las horas de jornal divididas por 10), o los bins o las toneladas que midió la tarea.',
     dimensiones: [
       { clave: 'tercero', label: 'Tercero' },
       { clave: 'cliente', label: 'Cliente' },
       { clave: 'finca', label: 'Finca' },
       { clave: 'tarea', label: 'Tarea' },
+      { clave: 'maquinaria', label: 'Máquina' },
     ],
     valores: [
       { clave: 'precio', label: 'Precio', tipo: 'pesos' },
       {
         clave: 'unidad_base', label: 'Unidad base', tipo: 'opciones',
-        opciones: ['hsmaquina', 'unidades'],
-        etiquetas: { hsmaquina: 'Hora máquina', unidades: 'Cantidad' },
+        opciones: ['hsmaquina', 'jornal', 'bins', 'toneladas'],
+        etiquetas: {
+          hsmaquina: 'Hora máquina', jornal: 'Jornal', bins: 'Bins', toneladas: 'Toneladas',
+        },
         requerida: true,
       },
     ],

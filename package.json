@@ -8,13 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "node --test \"src/core/*.test.js\" \"src/core/ui/*.test.js\" \"src/core/administracion/*.test.js\" \"src/modulos/preliquidacion/*.test.js\" \"src/modulos/preliquidacion/pages/*.test.js\" \"src/modulos/facturacion/*.test.js\""
+    "test": "node --test \"src/core/*.test.js\" \"src/core/ui/*.test.js\" \"src/core/administracion/*.test.js\" \"src/modulos/preliquidacion/*.test.js\" \"src/modulos/preliquidacion/pages/*.test.js\" \"src/modulos/facturacion/*.test.js\" \"src/modulos/terceros/*.test.js\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.1",
     "@tanstack/react-virtual": "^3.14.8",
     "axios": "^1.7.3",
     "date-fns": "^3.6.0",
+    "html2pdf.js": "0.14.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",

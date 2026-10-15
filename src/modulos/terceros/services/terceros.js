@@ -195,3 +195,87 @@ export const borrarLineaFacturada = (id) =>
 export const definirOrigenEstacion = (estacionId, origen) =>
   api.patch(`/terceros/estaciones/${estacionId}`, { origen_campo: origen })
      .then(r => r.data)
+
+// ─── El recibo (etapa 11) ───────────────────────────────────────────────────
+//
+// El tercero va en la query o en el cuerpo y no en la ruta: son nombres como
+// «APELLIDO, NOMBRE», con coma y espacios.
+
+export const listarRecibos = (quincena) =>
+  api.get('/terceros/recibos', { params: { quincena } }).then(r => r.data)
+
+export const detalleRecibo = (quincena, tercero) =>
+  api.get('/terceros/recibos/detalle', { params: { quincena, tercero } }).then(r => r.data)
+
+// [{ tercero, empresa }]. Sin empresa, se emite con el reparto que ya tiene
+// guardado. Uno que no se puede emitir no frena al resto: vuelve en
+// `rechazados` con el porqué.
+export const emitirRecibos = (quincena, recibos) =>
+  api.post('/terceros/recibos/emitir', { quincena, recibos }).then(r => r.data)
+
+// A qué empresas factura y cuánto a cada una, elegido antes de emitir: queda
+// guardado y el borrador ya lo muestra. [{ empresa, importe }]; con una sola no
+// hace falta el importe, y vacío lo saca. Una orden emitida no lo acepta: hay
+// que reabrirla.
+export const repartirEmpresas = (quincena, tercero, empresas) =>
+  api.put('/terceros/recibos/empresas', { quincena, tercero, empresas }).then(r => r.data)
+
+export const elegirEmpresa = (quincena, tercero, empresa) =>
+  repartirEmpresas(quincena, tercero, empresa ? [{ empresa }] : [])
+
+export const reabrirRecibo = (quincena, tercero, motivo) =>
+  api.post('/terceros/recibos/reabrir', { quincena, tercero, motivo }).then(r => r.data)
+
+// La factura es de una empresa: una orden repartida tiene una por cada una.
+export const registrarFactura = (quincena, tercero, empresa, numero, fecha, importe) =>
+  api.put('/terceros/recibos/factura', { quincena, tercero, empresa, numero, fecha, importe })
+    .then(r => r.data)
+
+export const aprobarFactura = (quincena, tercero, empresa) =>
+  api.post('/terceros/recibos/factura/aprobar', { quincena, tercero, empresa })
+    .then(r => r.data)
+
+export const rechazarFactura = (quincena, tercero, empresa, motivo) =>
+  api.post('/terceros/recibos/factura/rechazar', { quincena, tercero, empresa, motivo })
+    .then(r => r.data)
+
+// tipo 'TOTAL', 'PARCIAL' o null para sacar el pago.
+export const registrarPago = (quincena, tercero, tipo, importe, fecha) =>
+  api.put('/terceros/recibos/pago', { quincena, tercero, tipo, importe, fecha })
+    .then(r => r.data)
+
+export const marcarRevision = (quincena, tercero, en_revision, motivo) =>
+  api.put('/terceros/recibos/revision', { quincena, tercero, en_revision, motivo })
+    .then(r => r.data)
+
+export const listarSaldosIniciales = () =>
+  api.get('/terceros/saldos-iniciales').then(r => r.data)
+
+export const cargarSaldoInicial = (tercero, quincena, importe, motivo) =>
+  api.put('/terceros/saldos-iniciales', { tercero, quincena, importe, motivo })
+    .then(r => r.data)
+
+// ─── Los ajustes y lo que llegó tarde ───────────────────────────────────────
+
+// importe con signo, a favor del tercero: positivo se le paga más, negativo se
+// le descuenta. origenClave lo manda quien resuelve algo que llegó tarde.
+export const crearAjuste = (quincena, tercero, concepto, importe, motivo,
+                            quincenaOrigen = null, origenClave = null) =>
+  api.post('/terceros/recibos/ajustes', {
+    quincena, tercero, concepto, importe, motivo,
+    quincena_origen: quincenaOrigen, origen_clave: origenClave,
+  }).then(r => r.data)
+
+export const editarAjuste = (id, concepto, importe, motivo, quincenaOrigen = null) =>
+  api.put(`/terceros/recibos/ajustes/${id}`, {
+    concepto, importe, motivo, quincena_origen: quincenaOrigen,
+  }).then(r => r.data)
+
+export const borrarAjuste = (id) =>
+  api.delete(`/terceros/recibos/ajustes/${id}`).then(r => r.data)
+
+// Dejar como está algo que llegó tarde a un recibo emitido. Pide motivo.
+export const descartarLlegada = (quincenaOrigen, tercero, clave, motivo) =>
+  api.post('/terceros/recibos/llegadas/descartar', {
+    quincena_origen: quincenaOrigen, tercero, clave, motivo,
+  }).then(r => r.data)
