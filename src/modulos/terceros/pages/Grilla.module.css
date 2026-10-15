@@ -258,6 +258,21 @@
 
 .tabla tbody tr:hover td { background: #f7faf2; }
 
+/* La fila Total queda pegada abajo, como el encabezado arriba: con mil líneas
+   la suma se ve sin tener que bajar hasta el final. */
+.filaTotal td {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 9px 10px;
+  background: #faf9f6;
+  border-top: 1px solid #ece8e1;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* El signo se ve en el color además de en el guion: mirando una columna de mil
    importes, el color dice de qué lado del recibo cae cada uno sin leerlos. */
 .paga {
