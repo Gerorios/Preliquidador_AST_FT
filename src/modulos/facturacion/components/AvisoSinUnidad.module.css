@@ -1,0 +1,55 @@
+/* Aviso warn sobre la tabla (boceto F0): el tono en el fondo, el borde y el
+   ícono; el texto oscuro, como las etiquetas del sistema, para que se lea. El
+   borde mezcla el token con transparencia en lugar de un rgba suelto. */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: var(--warn-dim);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.icono {
+  color: var(--warn);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.cuerpo {
+  flex: 1;
+  max-width: 90ch;
+  line-height: 1.5;
+}
+
+.cuerpo strong { font-weight: 600; }
+
+.detalle { margin-top: 4px; }
+
+/* Oscuro y subrayado: el ámbar sobre su propio fondo queda al límite del
+   contraste mínimo. */
+.detalle summary {
+  width: fit-content;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.detalle summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lista {
+  margin: 6px 0 2px;
+  padding-left: 18px;
+}
+
+.lista li { margin: 2px 0; }
+
+.clientes { color: var(--text-secondary); }

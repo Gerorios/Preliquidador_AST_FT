@@ -1,0 +1,28 @@
+/* Provisorio (plan E3, FA5): FA6 reemplaza este archivo con el Detalle. */
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.texto {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.volver {
+  width: fit-content;
+  text-decoration: none;
+}
+
+.volver:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
