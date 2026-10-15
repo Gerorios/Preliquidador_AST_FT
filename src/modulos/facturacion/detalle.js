@@ -9,6 +9,7 @@
 // llama pasa `puedeEditar(usuario, 'facturacion', 'resumen')`.
 
 import { textoMes } from './listado.js'
+import { formatoPesos } from './numeros.js'
 import { sumarDecimales } from './resumen.js'
 import { ETIQUETAS } from './unidades.js'
 
@@ -60,6 +61,9 @@ function enLista(nombres) {
 // Una fila se identifica por (tarea, unidad), como lo que guarda la Revisión
 // (plan E3, decisión 3).
 const clave = t => `${t.tarea_id}|${t.unidad ?? ''}`
+
+/** La clave de una fila del Detalle, (tarea, unidad): "4|horas_peon". */
+export const claveDeFila = clave
 
 const filasDe = detalle => (detalle?.grupos ?? []).flatMap(g => g.tareas ?? [])
 
@@ -186,4 +190,85 @@ export function validarComentario(texto) {
  */
 export function totalPartes(partes) {
   return sumarDecimales((partes ?? []).map(p => p.cantidad))
+}
+
+// ─── Lo que usa la pantalla del Detalle (FA6) ───────────────────────────────
+
+/** Las filas que superan el Umbral, de todos los grupos y en su orden. */
+export function filasQueSuperan(detalle) {
+  return filasDe(detalle).filter(t => t.supera)
+}
+
+/**
+ * Si la fila lleva la etiqueta "Revisada" junto a "Supera" (boceto F0): supera
+ * y la Revisión vigente la cubre, por (tarea, unidad).
+ */
+export function revisadaEnFila(tarea, revision) {
+  if (!tarea?.supera || !revision) return false
+  return (revision.tareas ?? []).some(t => clave(t) === clave(tarea))
+}
+
+/**
+ * En cuántas filas está cada tarea (una por unidad), para la marca
+ * "en 2 unidades" (plan E3, decisión 3): Map de tarea_id a la cantidad.
+ */
+export function unidadesPorTarea(detalle) {
+  const cuantas = new Map()
+  for (const t of filasDe(detalle)) cuantas.set(t.tarea_id, (cuantas.get(t.tarea_id) ?? 0) + 1)
+  return cuantas
+}
+
+const DIFERENCIA = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' })
+
+const esCero = texto => /^-?0+(\.0+)?$/.test(texto)
+
+/**
+ * La Diferencia de una fila, en su unidad y con signo: "-52", "+42,5". Cero
+ * va sin signo; null (sin campo) o lo que no es un número, una raya.
+ */
+export function textoDiferencia(valor) {
+  const texto = String(valor ?? '').trim()
+  if (!DECIMAL.test(texto)) return '—'
+  return DIFERENCIA.format(esCero(texto) ? '0' : texto)
+}
+
+/**
+ * Para el tono de una Diferencia: 'menos' (se facturó menos de lo trabajado),
+ * 'mas' o null (cero, sin dato o lo que no es un número). El signo del texto
+ * ya lo dice; el color acompaña.
+ */
+export function signoDeDiferencia(valor) {
+  const texto = String(valor ?? '').trim()
+  if (!DECIMAL.test(texto) || esCero(texto)) return null
+  return texto.startsWith('-') ? 'menos' : 'mas'
+}
+
+/**
+ * La Diferencia del TOTAL en pesos, con signo: "+$ 300,00", "-$ 1.234,50".
+ * Cero va sin signo; sin valor, una raya.
+ */
+export function textoDiferenciaPesos(valor) {
+  const texto = String(valor ?? '').trim()
+  if (!DECIMAL.test(texto)) return '—'
+  const pesos = formatoPesos(texto)
+  return texto.startsWith('-') || esCero(texto) ? pesos : `+${pesos}`
+}
+
+const TIPOS = { factura: 'Factura', nota_credito: 'Nota de crédito' }
+
+/** Un Comprobante del mes en la barra: "Factura 0003-00001231". */
+export function textoComprobante(c) {
+  return `${TIPOS[c.tipo] ?? c.tipo} ${c.numero || 'sin número'}`
+}
+
+const MESES_LARGOS = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+]
+
+/** "2026-10" a "octubre 2026", para el título. Lo que no es un mes, como vino. */
+export function textoMesLargo(mes) {
+  const partes = /^(\d{4})-(\d{2})$/.exec(mes ?? '')
+  const nombre = partes && MESES_LARGOS[Number(partes[2]) - 1]
+  return nombre ? `${nombre} ${partes[1]}` : mes
 }

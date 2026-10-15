@@ -8,6 +8,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   LARGO_COMENTARIO, textoPct, bannerDeDetalle, puedeRevisar, validarComentario, totalPartes,
+  claveDeFila, filasQueSuperan, revisadaEnFila, unidadesPorTarea, textoDiferencia,
+  textoDiferenciaPesos, textoComprobante, textoMesLargo, signoDeDiferencia,
 } from './detalle.js'
 
 // Una fila de la tabla del Detalle, con lo que usan estas funciones.
@@ -288,4 +290,90 @@ test('totalPartes: sin partes, o con una cantidad que no es un número, no suma'
   assert.equal(totalPartes([]), '0')
   assert.equal(totalPartes(undefined), '0')
   assert.equal(totalPartes([{ cantidad: '2.00' }, { cantidad: null }]), '2.00')
+})
+
+// ─── Lo que usa la pantalla del Detalle (FA6) ───────────────────────────────
+
+test('claveDeFila: una fila es (tarea, unidad); sin unidad, la tarea sola', () => {
+  assert.equal(claveDeFila(tarea(4, 'Poda', 'horas_peon')), '4|horas_peon')
+  assert.equal(claveDeFila(tarea(4, 'Poda', 'plantas')), '4|plantas')
+  assert.equal(claveDeFila(tarea(9, 'Desmalezado', null)), '9|')
+})
+
+test('filasQueSuperan: las filas que superan, de todos los grupos y en orden', () => {
+  const d = detalle({
+    grupos: [
+      { grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'horas_peon', SUPERA), tarea(2, 'Riego', 'horas_peon')] },
+      { grupo: 'Grupo dos', tareas: [tarea(3, 'Rastra', 'horas_tractor', SUPERA)] },
+    ],
+  })
+  assert.deepEqual(filasQueSuperan(d).map(t => t.tarea_nombre), ['Poda', 'Rastra'])
+  assert.deepEqual(filasQueSuperan(detalle()), [])
+  assert.deepEqual(filasQueSuperan(null), [])
+})
+
+test('revisadaEnFila: sólo una fila que supera y que la Revisión cubre, por (tarea, unidad)', () => {
+  const r = revision([{ tarea_id: 1, tarea_nombre: 'Poda', unidad: 'horas_peon' }])
+  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'horas_peon', SUPERA), r), true)
+  // La misma tarea en otra unidad no está cubierta.
+  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'plantas', SUPERA), r), false)
+  // Cubierta, pero ya no supera: no lleva la etiqueta.
+  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'horas_peon'), r), false)
+  assert.equal(revisadaEnFila(tarea(2, 'Riego', 'horas_peon', SUPERA), r), false)
+  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'horas_peon', SUPERA), null), false)
+})
+
+test('unidadesPorTarea: en cuántas filas (unidades) está cada tarea', () => {
+  const d = detalle({
+    grupos: [
+      { grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'plantas'), tarea(2, 'Riego', 'horas_peon')] },
+      { grupo: 'Grupo dos', tareas: [tarea(1, 'Poda', 'hectareas')] },
+    ],
+  })
+  const cuantas = unidadesPorTarea(d)
+  assert.equal(cuantas.get(1), 2)
+  assert.equal(cuantas.get(2), 1)
+  assert.equal(unidadesPorTarea(null).size, 0)
+})
+
+test('textoDiferencia: con signo y en es-AR; cero sin signo; null o basura, una raya', () => {
+  assert.equal(textoDiferencia('-52.00'), '-52')
+  assert.equal(textoDiferencia('42.5'), '+42,5')
+  assert.equal(textoDiferencia('1234.25'), '+1.234,25')
+  assert.equal(textoDiferencia('0.00'), '0')
+  assert.equal(textoDiferencia('-0.00'), '0')
+  assert.equal(textoDiferencia(null), '—')
+  assert.equal(textoDiferencia('abc'), '—')
+})
+
+test('textoDiferenciaPesos: pesos con signo; cero sin signo; null, una raya', () => {
+  // Intl separa el signo $ del número con un espacio duro, como formatoPesos.
+  const NBSP = ' '
+  assert.equal(textoDiferenciaPesos('-1234.5'), `-$${NBSP}1.234,50`)
+  assert.equal(textoDiferenciaPesos('300'), `+$${NBSP}300,00`)
+  assert.equal(textoDiferenciaPesos('0.00'), `$${NBSP}0,00`)
+  assert.equal(textoDiferenciaPesos('-0.00'), `$${NBSP}0,00`)
+  assert.equal(textoDiferenciaPesos(null), '—')
+})
+
+test('textoComprobante: el tipo y el número; sin número lo dice', () => {
+  assert.equal(textoComprobante({ tipo: 'factura', numero: '0003-00001231' }), 'Factura 0003-00001231')
+  assert.equal(textoComprobante({ tipo: 'nota_credito', numero: '0003-00000012' }), 'Nota de crédito 0003-00000012')
+  assert.equal(textoComprobante({ tipo: 'factura', numero: null }), 'Factura sin número')
+})
+
+test('textoMesLargo: "2026-10" a "octubre 2026"; lo que no es un mes queda como vino', () => {
+  assert.equal(textoMesLargo('2026-10'), 'octubre 2026')
+  assert.equal(textoMesLargo('2027-01'), 'enero 2027')
+  assert.equal(textoMesLargo('2026-13'), '2026-13')
+  assert.equal(textoMesLargo('otra cosa'), 'otra cosa')
+})
+
+test('signoDeDiferencia: de menos o de más, para el tono; cero, null o basura, sin tono', () => {
+  assert.equal(signoDeDiferencia('-52.00'), 'menos')
+  assert.equal(signoDeDiferencia('0.5'), 'mas')
+  assert.equal(signoDeDiferencia('0.00'), null)
+  assert.equal(signoDeDiferencia('-0.00'), null)
+  assert.equal(signoDeDiferencia(null), null)
+  assert.equal(signoDeDiferencia('abc'), null)
 })
