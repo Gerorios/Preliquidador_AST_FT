@@ -1,0 +1,122 @@
+/* El modal "Marcar revisada" del Detalle: el período, lo que supera y el
+   comentario. El marco, la cabecera y el pie son los de `Modal`. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* La banda del período: informa, no alarma. */
+.periodo {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--info) 35%, var(--border));
+  border-radius: var(--radius);
+  background: var(--info-dim);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.seccionTitulo {
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.superan {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.superan th,
+.superan td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.superan thead th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.superan tbody tr:last-child th,
+.superan tbody tr:last-child td { border-bottom: 0; }
+
+.superan th:first-child,
+.superan td:first-child { padding-left: 0; }
+
+.superan th:last-child,
+.superan td:last-child { padding-right: 0; }
+
+.nombre {
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.superan .numero {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.vacia { color: var(--text-muted); }
+
+/* El tono de la Diferencia, oscurecido para el contraste en letra chica; el
+   signo va en el texto, no sólo en el color. */
+.menos { color: color-mix(in srgb, var(--danger) 75%, var(--text-primary)); }
+.mas { color: color-mix(in srgb, var(--info) 75%, var(--text-primary)); }
+
+.campo { display: flex; flex-direction: column; }
+
+.comentario {
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.conError { border-color: var(--danger); }
+
+.error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--danger) 75%, var(--text-primary));
+}
+
+.ayuda {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* El 409: ya no hay nada que revisar. */
+.conflicto {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+  border-radius: var(--radius);
+  background: var(--danger-dim);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.conflictoIcono {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--danger) 75%, var(--text-primary));
+}

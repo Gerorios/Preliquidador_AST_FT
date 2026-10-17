@@ -1,0 +1,78 @@
+/* Pie del Resumen (boceto F0): una línea chica de contexto y, para el Admin,
+   el formulario debajo, en el mismo pie. */
+.pie {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.fila {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.texto {
+  flex: 1;
+  max-width: 120ch;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.texto strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-strong);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.etiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+}
+
+.umbral {
+  width: 8ch;
+  text-align: right;
+}
+
+.conError { border-color: var(--danger); }
+
+.error {
+  font-size: 11px;
+  color: var(--danger);
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.quien {
+  margin-left: auto;
+  align-self: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}

@@ -1,0 +1,290 @@
+/* Mismo armado que Comprobantes y los listados de Preliquidación: título
+   arriba, la barra común a todo el ancho y la tabla. Entre medio, los cuadros
+   de Alertas y el aviso de tareas sin Unidad sugerida; abajo, el pie. */
+.page {
+  padding: 24px 32px;
+  /* La barra de filtros va a todo el ancho y arranca donde el título. */
+  --filtros-margen: 32px;
+  --filtros-sangria: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+/* Es el h1 de la pantalla, con el tamaño de los títulos de las demás. */
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--text-primary);
+}
+/* Recibe el foco cuando el aviso cambia el período (la tabla se desmonta
+   mientras carga): sin contorno con el mouse, con contorno con teclado. */
+.titulo:focus { outline: none; }
+.titulo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* "Datos del campo de las 10:42 · Volver a leer", a la derecha. */
+.lectura {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lectura .mono { color: var(--text-secondary); }
+
+/* Un botón con aspecto de link: relee, no navega. */
+.link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.link:hover:not(:disabled) { color: var(--text-primary); }
+.link:disabled { color: var(--text-muted); text-decoration: none; cursor: default; }
+.link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* La tabla ocupa lo que haga falta y, si no entra, se desplaza dentro de su
+   marco: el encabezado queda fijo arriba. */
+.tabla {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla thead th {
+  z-index: 2;
+  background: var(--bg-elevated);
+}
+
+/* Las filas no se abren con un click en cualquier lado: se abren con el link
+   del Cliente o con el botón de la fila. */
+.tabla tbody tr { cursor: default; }
+
+.tabla td,
+.tabla tbody th { padding: 7px 10px; }
+
+/* Cada mes y Cliente es un bloque: el encabezado, con el Estado y la acción,
+   en el tono de la superficie y separado del bloque anterior por una línea
+   más marcada; sus líneas, sobre el fondo claro. */
+.bloque > * {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-strong);
+  vertical-align: middle;
+}
+
+.tabla tbody:first-of-type .bloque > * { border-top: 0; }
+
+.linea > * { background: var(--bg-base); }
+
+.tabla tbody tr.linea:hover > * { background: var(--bg-elevated); }
+
+.linea td { padding-top: 5px; padding-bottom: 5px; }
+
+.numero { text-align: right; }
+
+.tabla thead th.numero { text-align: right; }
+
+.mes { color: var(--text-secondary); }
+
+.cliente {
+  white-space: normal;
+  min-width: 16ch;
+  text-align: left;
+  font-weight: 400;
+}
+
+/* El Grupo de tareas es la columna más larga: se parte en dos líneas cuando
+   la tabla no entra (a 1366 px), con un ancho mínimo para que no quede una
+   palabra por línea. Con lugar, va en una sola. */
+.grupo {
+  white-space: normal;
+  min-width: 12ch;
+  color: var(--text-primary);
+}
+
+/* La Unidad también se parte ("Horas de tractor") para que la tabla entre a
+   1366 px. */
+.unidad {
+  white-space: normal;
+  min-width: 8ch;
+  color: var(--text-secondary);
+}
+
+/* Una línea cuyas tareas no tienen Unidad sugerida. */
+.sinUnidad {
+  white-space: normal;
+  min-width: 8ch;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* El tono de la Dif., como en el Detalle: el token oscurecido con el texto,
+   para que llegue al contraste mínimo en letra chica. El signo ya dice de
+   menos o de más. */
+.tabla td.menos { color: color-mix(in srgb, var(--danger) 75%, var(--text-primary)); }
+.tabla td.mas { color: color-mix(in srgb, var(--info) 75%, var(--text-primary)); }
+
+.linkCliente {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.linkCliente:hover { color: var(--accent); text-decoration: underline; }
+.linkCliente:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Una medida en cero o sin dato: una raya tenue, para que los números se
+   vean de un vistazo. */
+.vacia { color: var(--text-muted); }
+
+/* Lo Facturado de un grupo que no se compara en este filtro: en gris y en
+   palabras, para que no se lea como un número. */
+.fuera {
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* La fila del aviso de lo que no entra, entre el encabezado del bloque y sus
+   líneas: sobre el fondo de las líneas y sin el hover de una fila. */
+.filaAviso > td {
+  background: var(--bg-base);
+  padding: 6px 10px 4px;
+}
+
+/* Antes del corte y Mes en curso: se leen, pero quedan por debajo de los
+   meses que se controlan. Las etiquetas dicen por qué (no sólo el color). */
+.gris td { color: var(--text-secondary); }
+.gris .linkCliente { color: var(--text-secondary); font-weight: 400; }
+.gris .sinUnidad { color: var(--text-muted); }
+
+/* El Estado no se parte: cada etiqueta va en una línea. En pantallas angostas
+   (1366 px) va en una línea hasta el largo de "Pendiente de facturar" (21
+   caracteres de la letra mono, con uno de margen, más su relleno y su borde);
+   una más larga ("Con diferencia · 3 líneas superan") pasa a dos líneas. */
+.estado :global(.badge) {
+  flex: none;
+  width: max-content;
+}
+
+@media (max-width: 1499px) {
+  .estado :global(.badge) { max-width: calc(22ch + 18px); }
+}
+
+/* El botón de la acción nunca se parte. */
+.accion {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Un Link con aspecto de botón: navega, así que se puede abrir en otra pestaña. */
+.enlaceBoton { text-decoration: none; }
+.enlaceBoton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* El texto queda para el lector de pantalla y no se ve. */
+.soloLector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Error de carga: el tono de los avisos de error, con la salida al lado. El
+   borde mezcla el token con transparencia en lugar de un rgba suelto. */
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: var(--danger-dim);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.errorIcono {
+  color: var(--danger);
+  margin-top: 2px;
+}
+
+.errorTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.errorTexto strong { font-weight: 600; }
+
+/* Período inválido, sin datos o sin coincidencias: un título que dice qué
+   pasa y una línea que dice qué hacer. */
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.vacioTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.vacioTexto {
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.vacioTexto strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}

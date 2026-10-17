@@ -1,0 +1,171 @@
+// Tests de los textos y formatos de la pantalla del Resumen (node --test, sin
+// dependencias; plan E3, FA5): la hora de lectura del campo, las medidas de la
+// tabla, el texto de cada cuadro de Alertas y el formulario del pie (Umbral de
+// diferencia y Mes de corte). Las respuestas tienen la forma de las rutas 13 y
+// 17 del plan E3 (sección 3.2).
+
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import {
+  horaDeLectura, textoMedida, medidaVacia, medidaIlegible, textoDeCuadro, textoUmbral,
+  umbralParaEditar, leerConfiguracion, textoUltimoCambio, OTRO_PERIODO, periodoElegido,
+  textoUnidad,
+} from './vistaResumen.js'
+
+// Una zona fija, así el test no depende de la PC donde corre (UTC-3).
+const ZONA = 'America/Argentina/Buenos_Aires'
+
+test('horaDeLectura lee `leido_en` como UTC aunque venga sin zona', () => {
+  assert.equal(horaDeLectura('2026-10-15T13:42:07', ZONA), '10:42')
+  assert.equal(horaDeLectura('2026-10-15T13:42:07.123456', ZONA), '10:42')
+})
+
+test('horaDeLectura respeta la zona si viene', () => {
+  assert.equal(horaDeLectura('2026-10-15T13:42:07Z', ZONA), '10:42')
+  assert.equal(horaDeLectura('2026-10-15T13:42:07+00:00', ZONA), '10:42')
+})
+
+test('horaDeLectura va en 24 horas y con dos dígitos', () => {
+  assert.equal(horaDeLectura('2026-10-15T12:05:00', ZONA), '09:05')
+  assert.equal(horaDeLectura('2026-10-15T20:30:00', ZONA), '17:30')
+})
+
+test('horaDeLectura sin una fecha que se lea da null', () => {
+  assert.equal(horaDeLectura(null, ZONA), null)
+  assert.equal(horaDeLectura('', ZONA), null)
+  assert.equal(horaDeLectura('ayer', ZONA), null)
+})
+
+test('textoMedida muestra el decimal en es-AR, hasta dos decimales y sin ceros de más', () => {
+  assert.equal(textoMedida('1739.00'), '1.739')
+  assert.equal(textoMedida('120.50'), '120,5')
+  assert.equal(textoMedida('4.25'), '4,25')
+  assert.equal(textoMedida('12345678.75'), '12.345.678,75')
+})
+
+test('textoMedida y medidaVacia: cero, vacío o ilegible es una raya', () => {
+  for (const valor of ['0', '0.00', '-0.00', null, undefined, '', 'abc']) {
+    assert.equal(textoMedida(valor), '—', String(valor))
+    assert.equal(medidaVacia(valor), true, String(valor))
+  }
+  assert.equal(medidaVacia('0.01'), false)
+  assert.equal(medidaVacia('-3.00'), false)
+})
+
+test('En el Detalle (conCero) el cero se muestra: la raya queda para vacío o ilegible', () => {
+  assert.equal(textoMedida('0.00', { conCero: true }), '0')
+  assert.equal(textoMedida(0, { conCero: true }), '0')
+  assert.equal(textoMedida('120.50', { conCero: true }), '120,5')
+  for (const valor of [null, undefined, '', 'abc']) {
+    assert.equal(textoMedida(valor, { conCero: true }), '—', String(valor))
+    assert.equal(medidaIlegible(valor), true, String(valor))
+  }
+  assert.equal(medidaIlegible('0.00'), false)
+  assert.equal(medidaIlegible(0), false)
+})
+
+test('textoDeCuadro: el texto de cada Alerta en singular y en plural', () => {
+  // Cada cuadro cuenta filas (mes y Cliente), y el texto lo dice: un Cliente
+  // pendiente en dos meses suma 2.
+  assert.equal(textoDeCuadro('pendiente_de_facturar', 1), 'mes de cliente pendiente de facturar')
+  assert.equal(textoDeCuadro('pendiente_de_facturar', 3), 'meses de cliente pendientes de facturar')
+  assert.equal(textoDeCuadro('pendiente_de_facturar', 0), 'meses de cliente pendientes de facturar')
+  assert.equal(textoDeCuadro('con_diferencia', 1), 'mes de cliente con diferencia')
+  assert.equal(textoDeCuadro('con_diferencia', 4), 'meses de cliente con diferencia')
+  assert.equal(textoDeCuadro('falta_comprobante', 1), 'mes de cliente con facturas sin PDF')
+  assert.equal(textoDeCuadro('falta_comprobante', 2), 'meses de cliente con facturas sin PDF')
+})
+
+test('textoUmbral: el Umbral del pie, sin ceros de más', () => {
+  assert.equal(textoUmbral('5.00'), '5 %')
+  assert.equal(textoUmbral('2.50'), '2,5 %')
+  assert.equal(textoUmbral('12.75'), '12,75 %')
+  assert.equal(textoUmbral(null), null)
+  assert.equal(textoUmbral('x'), null)
+})
+
+test('umbralParaEditar: el Umbral en el campo, con coma y dos decimales', () => {
+  assert.equal(umbralParaEditar('5.00'), '5,00')
+  assert.equal(umbralParaEditar('12.5'), '12,50')
+  assert.equal(umbralParaEditar('7'), '7,00')
+  assert.equal(umbralParaEditar(null), '')
+  assert.equal(umbralParaEditar('x'), '')
+})
+
+test('leerConfiguracion arma el body del PUT con el Umbral con punto', () => {
+  assert.deepEqual(leerConfiguracion('5,00', '2026-10'),
+    { datos: { umbral_pct: '5.00', mes_corte: '2026-10' }, errores: {} })
+  assert.deepEqual(leerConfiguracion(' 7,5 ', '2026-09'),
+    { datos: { umbral_pct: '7.5', mes_corte: '2026-09' }, errores: {} })
+})
+
+test('leerConfiguracion: un Umbral vacío o ilegible es un error de su campo', () => {
+  for (const umbral of ['', '   ', 'cinco', '5.5']) {
+    const { datos, errores } = leerConfiguracion(umbral, '2026-10')
+    assert.equal(datos, null, umbral)
+    assert.match(errores.umbral_pct, /número/, umbral)
+    assert.equal(errores.mes_corte, undefined, umbral)
+  }
+})
+
+test('leerConfiguracion: sin Mes de corte, o mal escrito, es un error de su campo', () => {
+  for (const mes of ['', null, '2026-13', '2026-1']) {
+    const { datos, errores } = leerConfiguracion('5,00', mes)
+    assert.equal(datos, null, String(mes))
+    assert.match(errores.mes_corte, /Mes de corte/, String(mes))
+    assert.equal(errores.umbral_pct, undefined, String(mes))
+  }
+})
+
+test('leerConfiguracion junta los dos errores', () => {
+  const { errores } = leerConfiguracion('', '')
+  assert.ok(errores.umbral_pct)
+  assert.ok(errores.mes_corte)
+})
+
+test('textoUltimoCambio: quién y cuándo, con la hora de la PC', () => {
+  assert.equal(
+    textoUltimoCambio({ actualizado_en: '2026-10-14T12:15:00', actualizado_por_nombre: 'Persona Admin' }, ZONA),
+    'Último cambio: Persona Admin, 14/10/2026 09:15',
+  )
+})
+
+test('textoUltimoCambio sin quién dice sólo cuándo, y sin cuándo da null', () => {
+  assert.equal(
+    textoUltimoCambio({ actualizado_en: '2026-10-14T12:15:00', actualizado_por_nombre: null }, ZONA),
+    'Último cambio: 14/10/2026 09:15',
+  )
+  assert.equal(textoUltimoCambio({ actualizado_en: null, actualizado_por_nombre: 'Persona Admin' }, ZONA), null)
+  assert.equal(textoUltimoCambio(null, ZONA), null)
+  assert.equal(textoUltimoCambio({}, ZONA), null)
+})
+
+test('periodoElegido: un atajo se calcula con el día de hoy, en días', () => {
+  const hoy = new Date(2026, 0, 20)
+  assert.deepEqual(periodoElegido({ atajo: 'mes_pasado' }, hoy), { desde: '2025-12-01', hasta: '2025-12-31' })
+  assert.deepEqual(periodoElegido({ atajo: 'este_anio', desde: '2020-01-01', hasta: '2020-02-01' }, hoy),
+    { desde: '2026-01-01', hasta: '2026-01-31' })
+  assert.deepEqual(periodoElegido({ atajo: 'quincena_pasada' }, hoy), { desde: '2026-01-01', hasta: '2026-01-15' })
+})
+
+test('periodoElegido: "Otro período" usa Desde y Hasta tal cual', () => {
+  const hoy = new Date(2026, 9, 15)
+  assert.deepEqual(periodoElegido({ atajo: OTRO_PERIODO, desde: '2026-07-01', hasta: '2026-07-10' }, hoy),
+    { desde: '2026-07-01', hasta: '2026-07-10' })
+  assert.deepEqual(periodoElegido({ atajo: OTRO_PERIODO }, hoy), { desde: '', hasta: '' })
+})
+
+test('periodoElegido: un atajo que no existe vuelve al inicial, el mes pasado', () => {
+  const hoy = new Date(2026, 9, 15)
+  assert.deepEqual(periodoElegido({ atajo: 'viejo' }, hoy), { desde: '2026-09-01', hasta: '2026-09-30' })
+  assert.deepEqual(periodoElegido(undefined, hoy), { desde: '2026-09-01', hasta: '2026-09-30' })
+})
+
+test('textoUnidad: la etiqueta de la unidad; sin unidad, "Sin Unidad sugerida"', () => {
+  assert.equal(textoUnidad('horas_peon'), 'Horas de peón')
+  assert.equal(textoUnidad('hectareas'), 'Hectáreas')
+  assert.equal(textoUnidad(null), 'Sin Unidad sugerida')
+  assert.equal(textoUnidad(undefined), 'Sin Unidad sugerida')
+  // Una clave que no conoce, tal cual.
+  assert.equal(textoUnidad('otra_unidad'), 'otra_unidad')
+})

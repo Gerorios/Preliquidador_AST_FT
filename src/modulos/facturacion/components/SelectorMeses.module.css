@@ -1,0 +1,19 @@
+/* Período del Resumen, primero en la barra común: el atajo y, con "Otro
+   período", Desde y Hasta por día. */
+.periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Las fechas: mono, con cifras del mismo ancho. */
+.mes {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.a {
+  font-size: 12px;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,33 @@
+/* Etiquetas de la columna Estado, con la nota debajo (mockup aprobado). */
+.estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  white-space: normal;
+}
+
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Una etiqueta que lleva a donde se resuelve: se subraya al pasar y tiene
+   foco visible. */
+.link {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link:hover { text-decoration: underline; }
+
+.link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nota {
+  font-size: 11px;
+  color: var(--text-muted);
+}

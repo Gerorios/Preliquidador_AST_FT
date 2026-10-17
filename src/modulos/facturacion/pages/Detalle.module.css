@@ -1,0 +1,385 @@
+/* Mismo armado que el Resumen: la cabecera arriba, el aviso del caso y la
+   tabla enmarcada. La página no scrollea: lo hace la tabla por dentro. La
+   Revisión y los partes van en modales. */
+.page {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-height: 32px;
+}
+
+.volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  margin-left: -6px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.volver:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.volver:focus-visible,
+.enlace:focus-visible,
+.linkComprobante:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Es el h1 de la pantalla, con el tamaño de los títulos de las demás. Recibe
+   el foco cuando lo que lo tenía desaparece. */
+.titulo {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--text-primary);
+}
+
+.titulo:focus { outline: none; }
+.titulo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.revisar { margin-left: auto; }
+
+/* "Comprobantes del mes: Factura 0003-…, Nota de crédito …" */
+.comprobantes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.comprobantesTitulo { color: var(--text-muted); }
+
+.comprobante {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.linkComprobante {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.linkComprobante:hover { color: var(--text-primary); }
+
+.sinPdf {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* El aviso del caso (boceto F0): el tono en el fondo y el borde, el texto
+   oscuro para que se lea. El borde mezcla el token con transparencia en lugar
+   de un rgba suelto. */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.warn {
+  background: var(--warn-dim);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.ok {
+  background: var(--accent-dim);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.info {
+  background: var(--info-dim);
+  border-color: color-mix(in srgb, var(--info) 35%, transparent);
+}
+
+.avisoIcono {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--warn);
+}
+
+.avisoTexto {
+  flex: 1;
+  max-width: 110ch;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.avisoTexto strong { font-weight: 600; }
+
+/* El alto que queda debajo de la cabecera y el aviso: la tabla ocupa lo que
+   haga falta y scrollea si no entra. */
+.cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.tabla {
+  flex: 1;
+  min-width: 0;
+  align-self: flex-start;
+  max-height: 100%;
+  overflow: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla thead th {
+  z-index: 2;
+  background: var(--bg-elevated);
+}
+
+.numero { text-align: right; }
+
+.tabla td { padding: 7px 10px; }
+
+/* Una fila (grupo, unidad) se abre y se cierra con un click en cualquier lado
+   o con el triángulo (teclado). Abierta, la flecha apunta abajo y sus tareas
+   quedan debajo, en el fondo más claro. */
+.tabla td.grupo {
+  white-space: normal;
+  min-width: 24ch;
+}
+
+.triangulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px 2px 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.flecha {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 120ms ease-out;
+}
+
+.abierta .flecha { transform: rotate(90deg); }
+
+.triangulo:hover span:first-of-type { color: var(--accent); text-decoration: underline; }
+
+.triangulo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flecha { transition: none; }
+}
+
+/* Las tareas de una fila abierta: sangradas bajo el nombre del grupo, en el
+   fondo de la tabla. No se eligen: lo que se toca es el nombre, que abre el
+   modal de sus partes. */
+.tabla tr.filaTarea { cursor: default; background: var(--bg-base); }
+.tabla tr.filaTarea:hover { background: var(--bg-base); }
+
+.tabla td.tarea {
+  padding-left: 30px;
+  white-space: normal;
+  min-width: 24ch;
+}
+
+.tareaBoton {
+  padding: 0;
+  margin-right: 8px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tareaBoton:hover { color: var(--accent); text-decoration: underline; }
+
+.tareaBoton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* La fila que supera el Umbral: una raya ámbar a la izquierda, además de la
+   etiqueta "Supera". Con sombra y no con borde, para no correr la fila. */
+.supera td:first-child { box-shadow: inset 2px 0 0 var(--warn); }
+
+/* "Sin Unidad sugerida" (boceto F0) y "en varias unidades", junto al nombre. */
+.sinUnidad,
+.marca {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-right: 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+.sinUnidad {
+  border: 1px dashed color-mix(in srgb, var(--warn) 60%, transparent);
+  color: color-mix(in srgb, var(--warn) 80%, var(--text-primary));
+}
+
+.marca {
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.unidad { color: var(--text-secondary); }
+
+/* El tono de la Diferencia: el token oscurecido con el texto, para que llegue
+   al contraste mínimo en letra chica. El signo ya dice de menos o de más. */
+.tabla td.menos { color: color-mix(in srgb, var(--danger) 75%, var(--text-primary)); }
+.tabla td.mas { color: color-mix(in srgb, var(--info) 75%, var(--text-primary)); }
+
+.marcas { white-space: nowrap; }
+.marcas :global(.badge) + :global(.badge) { margin-left: 4px; }
+
+.vacia { color: var(--text-muted); }
+
+/* Lo Facturado de un grupo que no se compara en este filtro (Ticket 4): en
+   gris y en palabras, para que no se lea como un número. */
+.fuera {
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* La fila TOTAL, fija abajo, separada por una línea más marcada. */
+.tabla tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+  border-top: 2px solid var(--border-strong);
+  font-weight: 600;
+}
+
+.tabla tfoot td.sinPrecio {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* El texto queda para el lector de pantalla y no se ve. */
+.soloLector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Error de carga: el tono de los avisos de error, con la salida al lado. */
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: var(--danger-dim);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.errorIcono {
+  color: var(--danger);
+  margin-top: 2px;
+}
+
+.errorTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.errorTexto strong { font-weight: 600; }
+
+/* Sin tareas, Cliente que no existe o mes inválido: un título que dice qué
+   pasa y una línea que dice qué hacer. */
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.vacioTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.vacioTexto {
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.enlace {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
