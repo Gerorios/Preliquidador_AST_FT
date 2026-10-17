@@ -88,8 +88,9 @@ que la app parezca colgada si no avisa.
 Lo que hoy más duele, según el dueño: encontrar qué falta en una quincena, entender y usar
 Conceptos, y una interfaz que se ve vieja y poco clara.
 
-En Facturación, el trabajo es mensual y sobre **meses cerrados**: las alertas se evalúan
-sobre el último mes cerrado, y el mes en curso no se evalúa. Las contadoras emiten cada
+En Facturación, el control es **por período**, casi siempre una quincena: se filtra un rango
+de días y se ve qué Clientes están facturados y cuáles no. Un período que todavía no terminó
+se controla igual, con el aviso de que el campo puede sumar partes. Las contadoras emiten cada
 comprobante en el sistema contable y lo registran en el módulo, copiando sus líneas
 mirando el PDF o importando la orden de facturación que algunos clientes publican en su
 portal. El control va de lo general al detalle: pendientes, cruce del cliente, tarea,
