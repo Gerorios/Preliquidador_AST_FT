@@ -11,6 +11,7 @@ import {
   LARGO_COMENTARIO, textoPct, bannerDeDetalle, puedeRevisar, validarComentario, totalPartes,
   claveDeLinea, nombreDeLinea, lineasQueSuperan, revisadaEnLinea, alternarAbierta,
   textoDiferencia, textoDiferenciaPesos, textoComprobante, textoMesLargo, signoDeDiferencia,
+  periodoARevisar, textoPeriodo, textoCubre, textoNoRevisable, esNoRevisable,
 } from './detalle.js'
 
 // Una tarea dentro de su fila, con lo que usan estas funciones.
@@ -62,6 +63,8 @@ const detalle = (cambios = {}) => ({
 const revision = (grupos, extra = {}) => ({
   id: 7,
   comentario: 'el campo cargó dos veces un parte',
+  desde: '2026-10-01',
+  hasta: '2026-10-31',
   creada_en: '2026-11-10T15:00:00',
   creada_por_nombre: 'Persona de prueba',
   grupos,
@@ -102,13 +105,18 @@ const revisada = (extra = {}) => detalle({
   revision: revision([{ grupo: 'Grupo uno', unidad: 'horas_peon' }], extra),
 })
 
-test('bannerDeDetalle: revisada, con quién, cuándo y el comentario, y Deshacer con permiso', () => {
+test('bannerDeDetalle: revisada, con su período, quién, cuándo y el comentario, y Deshacer con permiso', () => {
   assert.deepEqual(bannerDeDetalle(revisada(), true), {
     tipo: 'ok',
     titulo: 'Revisada',
-    texto: 'por Persona de prueba el 10/11/2026: “el campo cargó dos veces un parte”',
+    texto: 'del 1 al 31 de octubre, por Persona de prueba el 10/11/2026: “el campo cargó dos veces un parte”',
     deshacer: true,
   })
+})
+
+test('bannerDeDetalle: revisada sin período en la respuesta, sin el "del … al …"', () => {
+  const banner = bannerDeDetalle(revisada({ desde: undefined, hasta: undefined }), true)
+  assert.equal(banner.texto, 'por Persona de prueba el 10/11/2026: “el campo cargó dos veces un parte”')
 })
 
 test('bannerDeDetalle: revisada, sin Deshacer cuando no se puede Editar en Resumen', () => {
@@ -117,7 +125,7 @@ test('bannerDeDetalle: revisada, sin Deshacer cuando no se puede Editar en Resum
 
 test('bannerDeDetalle: revisada por alguien que ya no está, sin el nombre', () => {
   const banner = bannerDeDetalle(revisada({ creada_por_nombre: null }), true)
-  assert.equal(banner.texto, 'el 10/11/2026: “el campo cargó dos veces un parte”')
+  assert.equal(banner.texto, 'del 1 al 31 de octubre, el 10/11/2026: “el campo cargó dos veces un parte”')
 })
 
 // ─── bannerDeDetalle: con diferencia y una Revisión anterior que no cubre ───
@@ -393,4 +401,56 @@ test('signoDeDiferencia: de menos o de más, para el tono; cero, null o basura, 
   assert.equal(signoDeDiferencia('-0.00'), null)
   assert.equal(signoDeDiferencia(null), null)
   assert.equal(signoDeDiferencia('abc'), null)
+})
+
+// ─── El período de la Revisión y los textos del modal (Ticket 3) ────────────
+
+test('periodoARevisar: hasta el filtro por día, el mes entero, del 1 al último día', () => {
+  assert.deepEqual(periodoARevisar('2026-10'), { desde: '2026-10-01', hasta: '2026-10-31' })
+  assert.deepEqual(periodoARevisar('2026-11'), { desde: '2026-11-01', hasta: '2026-11-30' })
+  assert.deepEqual(periodoARevisar('2026-02'), { desde: '2026-02-01', hasta: '2026-02-28' })
+  assert.deepEqual(periodoARevisar('2028-02'), { desde: '2028-02-01', hasta: '2028-02-29' })
+})
+
+test('periodoARevisar: lo que no es un mes, null', () => {
+  assert.equal(periodoARevisar('2026-13'), null)
+  assert.equal(periodoARevisar('x'), null)
+  assert.equal(periodoARevisar(undefined), null)
+})
+
+test('textoPeriodo: "del 1 al 31 de octubre"; una quincena; de un mes a otro, los dos meses', () => {
+  assert.equal(textoPeriodo({ desde: '2026-10-01', hasta: '2026-10-31' }), 'del 1 al 31 de octubre')
+  assert.equal(textoPeriodo({ desde: '2026-10-01', hasta: '2026-10-15' }), 'del 1 al 15 de octubre')
+  assert.equal(textoPeriodo({ desde: '2026-09-30', hasta: '2026-10-02' }), 'del 30 de septiembre al 2 de octubre')
+})
+
+test('textoPeriodo: sin período o con fechas que no se leen, vacío', () => {
+  assert.equal(textoPeriodo(null), '')
+  assert.equal(textoPeriodo({ desde: '2026-10-01' }), '')
+  assert.equal(textoPeriodo({ desde: 'x', hasta: '2026-10-31' }), '')
+})
+
+test('textoCubre: la franja del modal, con el período que se guarda', () => {
+  assert.equal(
+    textoCubre(periodoARevisar('2026-10')),
+    'Cubre del 1 al 31 de octubre. Si después supera otro grupo, el mes vuelve a Con diferencia.',
+  )
+})
+
+test('textoNoRevisable: el 409 habla de grupos, con el período, y dice que el Detalle se actualizó', () => {
+  const texto = textoNoRevisable(periodoARevisar('2026-10'))
+  assert.equal(
+    texto,
+    'No hace falta revisarla. En el período del 1 al 31 de octubre ya no hay grupos que superen el Umbral. '
+      + 'El Detalle se actualizó.',
+  )
+  assert.doesNotMatch(texto, /tarea/i)
+})
+
+test('esNoRevisable: sólo el 409 no_revisable de la Revisión', () => {
+  assert.equal(esNoRevisable({ status: 409, detail: { tipo: 'no_revisable', mensaje: 'x' } }), true)
+  assert.equal(esNoRevisable({ status: 409, detail: { tipo: 'sin_revision', mensaje: 'x' } }), false)
+  assert.equal(esNoRevisable({ status: 422, detail: { tipo: 'revision_invalida' } }), false)
+  assert.equal(esNoRevisable({ status: 500 }), false)
+  assert.equal(esNoRevisable(null), false)
 })

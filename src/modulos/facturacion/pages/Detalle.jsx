@@ -15,10 +15,10 @@ import { medidaIlegible, textoMedida, textoUmbral, textoUnidad } from '../vistaR
 import {
   bannerDeDetalle, puedeRevisar, validarComentario, textoPct, claveDeLinea, lineasQueSuperan,
   revisadaEnLinea, alternarAbierta, textoDiferencia, textoDiferenciaPesos, signoDeDiferencia,
-  textoComprobante, textoMesLargo,
+  textoComprobante, textoMesLargo, periodoARevisar, textoNoRevisable, esNoRevisable,
 } from '../detalle'
 import ModalPartes from '../components/ModalPartes'
-import PanelRevision from '../components/PanelRevision'
+import ModalRevision from '../components/ModalRevision'
 import styles from './Detalle.module.css'
 
 // Detalle de un Cliente en un mes (plan E3, FA6; spec de la E3a por grupo,
@@ -27,9 +27,9 @@ import styles from './Detalle.module.css'
 // Arriba, el Cliente, el mes, el Estado del mes, los Comprobantes del mes y
 // el aviso según el caso. Las filas arrancan cerradas: el triángulo abre las
 // tareas de la fila con su cantidad del campo, y el nombre de una tarea abre
-// el modal con sus partes. "Marcar revisada" abre a la derecha el comentario
-// de la Revisión de diferencia (su modal es del Ticket 3). No se factura desde
-// acá: se vuelve al Resumen, que conserva su período, sus filtros y su orden
+// el modal con sus partes. "Marcar revisada" abre el modal de la Revisión de
+// diferencia (spec, decisión 5), que cubre el mes entero hasta el filtro por
+// día (Ticket 4). No se factura desde acá: se vuelve al Resumen, que conserva su período, sus filtros y su orden
 // (estadoPantallas).
 
 const RESUMEN = '/facturacion/resumen'
@@ -126,17 +126,22 @@ export default function Detalle() {
   const [abiertas, setAbiertas] = useState(() => new Set())
   // La tarea del modal de partes, con su fila: { linea, tarea } o null.
   const [partesDe, setPartesDe] = useState(null)
-  // El panel de la derecha: la Revisión.
+  // El modal de la Revisión.
   const [revisando, setRevisando] = useState(false)
-  // El comentario vive acá: cerrar el panel sin querer no lo pierde.
+  // El comentario vive acá: cerrar el modal sin querer no lo pierde.
   const [comentario, setComentario] = useState('')
   const [errorComentario, setErrorComentario] = useState(null)
+  // El aviso del 409 dentro del modal: ya no hay nada que revisar.
+  const [conflicto, setConflicto] = useState(null)
 
   const tituloRef = useRef(null)
   const botonRevisar = useRef(null)
   const botonDeshacer = useRef(null)
   const campoComentario = useRef(null)
-  // A dónde va el foco después de abrir o cerrar la Revisión, o de guardar.
+  // A dónde va el foco después de cerrar la Revisión, de marcarla o de
+  // deshacerla: { destino, antes }. Con `antes` (el Detalle de antes de
+  // guardar), espera a que llegue el Detalle nuevo, que es el que trae el
+  // botón de destino.
   const focoPendiente = useRef(null)
 
   const lineas = data?.grupos ?? []
@@ -145,6 +150,9 @@ export default function Detalle() {
   const revisable = puedeRevisar(data, editaResumen)
   const umbralTexto = textoUmbral(data?.umbral_pct)
   const mesTexto = textoMesLargo(mes)
+  // El período que guarda la Revisión: el mes entero. El Ticket 4 lo toma del
+  // filtro por día.
+  const periodo = periodoARevisar(mes)
   // Mientras carga, el título dice "Detalle" y el mes; el Cliente llega con el Detalle.
   const cliente = data ? (data.cliente_nombre ?? `Cliente ${clienteId}`) : 'Detalle'
 
@@ -164,7 +172,7 @@ export default function Detalle() {
   const alFallar = (e, texto) => {
     toast.error(`${texto} ${e.message}`)
     if (e.status === 409 || e.status === 404) {
-      setRevisando(false)
+      cerrarRevision()
       qc.invalidateQueries({ queryKey: CLAVE_RESUMEN })
     }
   }
@@ -172,19 +180,28 @@ export default function Detalle() {
   const revisar = useMutation({
     mutationFn: dejarRevision,
     onSuccess: detalle => {
+      focoPendiente.current = { destino: 'deshacer', antes: data }
       alGuardar(detalle)
       setRevisando(false)
       setComentario('')
       setErrorComentario(null)
-      focoPendiente.current = 'deshacer'
       toast.success('Marcada como revisada')
     },
     onError: e => {
       if (e.detail?.tipo === 'revision_invalida') {
         setErrorComentario(e.message)
         campoComentario.current?.focus()
-      } else {
+      } else if (esNoRevisable(e)) {
+        // Ya no hay grupos que superen: el modal lo dice y queda abierto
+        // hasta "Cerrar", mientras el Detalle se vuelve a pedir.
+        setConflicto(textoNoRevisable(periodo))
+        qc.invalidateQueries({ queryKey: CLAVE_RESUMEN })
+      } else if (e.status === 404) {
         alFallar(e, 'No se pudo marcar revisada.')
+      } else {
+        // Un error que no dice nada del mes: el modal queda abierto, con lo
+        // escrito, para volver a intentar.
+        toast.error(`No se pudo marcar revisada. ${e.message}`)
       }
     },
   })
@@ -192,8 +209,8 @@ export default function Detalle() {
   const deshacer = useMutation({
     mutationFn: deshacerRevision,
     onSuccess: detalle => {
+      focoPendiente.current = { destino: 'revisar', antes: data }
       alGuardar(detalle)
-      focoPendiente.current = 'revisar'
       toast.success('Revisión deshecha')
     },
     onError: e => alFallar(e, 'No se pudo deshacer la Revisión.'),
@@ -209,7 +226,7 @@ export default function Detalle() {
     revisar.mutate({ clienteId, mes, comentario: comentario.trim() })
   }
 
-  // ─── Filas, modal de partes y panel de la Revisión ────────────────────────
+  // ─── Filas, modal de partes y modal de la Revisión ────────────────────────
 
   const alternar = claveLinea => setAbiertas(actuales => alternarAbierta(actuales, claveLinea))
 
@@ -218,42 +235,44 @@ export default function Detalle() {
   const abrirPartes = (linea, tarea) => setPartesDe({ linea, tarea })
   const cerrarPartes = useCallback(() => setPartesDe(null), [])
 
+  // El modal pone el foco en el comentario al abrir.
   const abrirRevision = () => {
-    focoPendiente.current = 'comentario'
     setErrorComentario(null)
+    setConflicto(null)
     setRevisando(true)
   }
 
-  const cerrarPanel = useCallback(() => {
+  // Mientras guarda, el modal no se cierra (lo controla ModalRevision).
+  function cerrarRevision() {
     setRevisando(false)
-    focoPendiente.current = 'revisar'
-  }, [])
+    setConflicto(null)
+    focoPendiente.current = { destino: 'revisar' }
+  }
 
-  // Escape cierra el panel de la Revisión, salvo mientras se guarda o con el
-  // modal de partes abierto (Escape cierra el modal, no los dos).
   const guardando = revisar.isPending
-  const modalAbierto = Boolean(partesDe)
-  useEffect(() => {
-    if (!revisando || modalAbierto) return undefined
-    const alTeclear = e => { if (e.key === 'Escape' && !guardando) cerrarPanel() }
-    document.addEventListener('keydown', alTeclear)
-    return () => document.removeEventListener('keydown', alTeclear)
-  }, [revisando, modalAbierto, guardando, cerrarPanel])
 
-  // El foco, después de que la pantalla se dibuja: al comentario al abrir la
-  // Revisión; a Deshacer al marcarla; a "Marcar revisada" al deshacer o al
-  // cerrar el panel. Si eso ya no está, al título.
+  // El foco, después de que la pantalla se dibuja: a Deshacer al marcarla; a
+  // "Marcar revisada" al deshacerla o al cerrar el modal. Si eso ya no está
+  // (después de un 409, el mes ya no se revisa), al título.
   useEffect(() => {
-    const destino = focoPendiente.current
-    if (!destino) return
+    const pendiente = focoPendiente.current
+    if (!pendiente) return
+    if (pendiente.antes !== undefined && pendiente.antes === data) return
     focoPendiente.current = null
-    const elementos = {
-      comentario: campoComentario.current,
-      deshacer: botonDeshacer.current,
-      revisar: botonRevisar.current,
-    }
-    ;(elementos[destino] ?? tituloRef.current)?.focus()
+    const elementos = { deshacer: botonDeshacer.current, revisar: botonRevisar.current }
+    ;(elementos[pendiente.destino] ?? tituloRef.current)?.focus()
   }, [revisando, data, revisable])
+
+  // Si "Marcar revisada" desaparece con el foco encima (el Detalle volvió a
+  // llegar y el mes ya no se revisa), el foco no queda en la nada: va al
+  // título.
+  const eraRevisable = useRef(revisable)
+  useEffect(() => {
+    if (eraRevisable.current && !revisable && !revisando && document.activeElement === document.body) {
+      tituloRef.current?.focus()
+    }
+    eraRevisable.current = revisable
+  }, [revisable, revisando])
 
   // ─── Contenido ────────────────────────────────────────────────────────────
 
@@ -297,7 +316,7 @@ export default function Detalle() {
     const total = data.total ?? {}
     const signoTotal = signoDeDiferencia(total.diferencia_pesos)
     contenido = (
-      <div className={`${styles.cuerpo} ${revisando ? styles.conPanel : ''}`}>
+      <div className={styles.cuerpo}>
         <div className={styles.tabla}>
           <table>
             <caption className={styles.soloLector}>
@@ -378,21 +397,6 @@ export default function Detalle() {
             </tfoot>
           </table>
         </div>
-
-        {revisando && revisable && (
-          <PanelRevision
-            superan={superan}
-            subtitulo={`${cliente} · ${mesTexto}`}
-            umbralTexto={umbralTexto}
-            comentario={comentario}
-            onComentario={texto => { setComentario(texto); setErrorComentario(null) }}
-            error={errorComentario}
-            guardando={guardando}
-            campoRef={campoComentario}
-            onConfirmar={confirmarRevision}
-            onCancelar={cerrarPanel}
-          />
-        )}
       </div>
     )
   }
@@ -406,7 +410,7 @@ export default function Detalle() {
           </Link>
           <h1 ref={tituloRef} tabIndex={-1} className={styles.titulo}>{cliente} · {mesTexto}</h1>
           {data && <Estados estados={data.estados} />}
-          {revisable && !revisando && (
+          {revisable && (
             <button
               ref={botonRevisar}
               type="button"
@@ -451,6 +455,25 @@ export default function Detalle() {
           linea={partesDe.linea}
           mesTexto={mesTexto}
           onCerrar={cerrarPartes}
+        />
+      )}
+
+      {/* Queda abierto aunque el Detalle nuevo ya no se pueda revisar: así se
+          lee el aviso del 409 hasta "Cerrar". */}
+      {revisando && data && (
+        <ModalRevision
+          superan={superan}
+          subtitulo={`${cliente} · ${mesTexto}`}
+          umbralTexto={umbralTexto}
+          periodo={periodo}
+          comentario={comentario}
+          onComentario={texto => { setComentario(texto); setErrorComentario(null) }}
+          error={errorComentario}
+          guardando={guardando}
+          conflicto={conflicto}
+          campoRef={campoComentario}
+          onConfirmar={confirmarRevision}
+          onCerrar={cerrarRevision}
         />
       )}
     </div>

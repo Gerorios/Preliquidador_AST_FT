@@ -1,6 +1,6 @@
 /* Mismo armado que el Resumen: la cabecera arriba, el aviso del caso y la
-   tabla enmarcada; a su derecha, el panel de la Revisión cuando está abierto.
-   La página no scrollea: lo hacen la tabla y el panel por dentro. */
+   tabla enmarcada. La página no scrollea: lo hace la tabla por dentro. La
+   Revisión y los partes van en modales. */
 .page {
   padding: 24px 32px;
   display: flex;
@@ -146,14 +146,12 @@
 
 .avisoTexto strong { font-weight: 600; }
 
-/* La tabla y el panel, lado a lado. El panel ocupa todo el alto; la tabla,
-   lo que haga falta, y scrollea si no entra. */
+/* El alto que queda debajo de la cabecera y el aviso: la tabla ocupa lo que
+   haga falta y scrollea si no entra. */
 .cuerpo {
   flex: 1;
   min-height: 0;
   display: flex;
-  align-items: stretch;
-  gap: 16px;
 }
 
 .tabla {
@@ -244,17 +242,6 @@
 }
 
 .tareaBoton:hover { color: var(--accent); text-decoration: underline; }
-
-/* Con el panel de la Revisión abierto la tabla tiene 376 px menos: los
-   nombres bajan de renglón para que entren Facturado, Diferencia y Dif. %. */
-.conPanel .tabla th,
-.conPanel .tabla td { padding-left: 6px; padding-right: 6px; }
-
-.conPanel .tabla td.grupo { min-width: 0; }
-.conPanel .tabla td.tarea { min-width: 0; padding-left: 22px; }
-
-/* "TOTAL DEL MES, EN PESOS" baja de renglón en lugar de ensanchar la columna. */
-.conPanel .tabla tfoot td:first-child { white-space: normal; }
 
 .tareaBoton:focus-visible {
   outline: 2px solid var(--accent);

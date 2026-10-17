@@ -115,8 +115,8 @@ function textoConRevisionAnterior(revision, superan) {
  * - Con diferencia con una Revisión vigente que no cubre lo que supera ahora:
  *   cuándo, quién, el comentario, qué cubría y qué supera ahora (warn);
  * - Con diferencia sin Revisión: el texto del mockup (warn);
- * - revisada: quién, cuándo y el comentario, con "Deshacer" sólo con Editar en
- *   Resumen (ok).
+ * - revisada: el período que cubre, quién, cuándo y el comentario, con
+ *   "Deshacer" sólo con Editar en Resumen (ok).
  * Facturada sin Revisión, o con una que ya no hace falta, y Pendiente de
  * facturar van sin aviso.
  */
@@ -141,11 +141,12 @@ export function bannerDeDetalle(detalle, puedeEditarResumen) {
   }
 
   if (detalle.diferencia_revisada && revision) {
+    const periodo = textoPeriodo(revision)
     const quien = revision.creada_por_nombre ? `por ${revision.creada_por_nombre} ` : ''
     return {
       tipo: 'ok',
       titulo: 'Revisada',
-      texto: `${quien}el ${textoFecha(revision.creada_en)}: “${revision.comentario}”`,
+      texto: `${periodo ? `${periodo}, ` : ''}${quien}el ${textoFecha(revision.creada_en)}: “${revision.comentario}”`,
       deshacer: Boolean(puedeEditarResumen),
     }
   }
@@ -266,4 +267,67 @@ export function textoMesLargo(mes) {
   const partes = /^(\d{4})-(\d{2})$/.exec(mes ?? '')
   const nombre = partes && MESES_LARGOS[Number(partes[2]) - 1]
   return nombre ? `${nombre} ${partes[1]}` : mes
+}
+
+// ─── La Revisión por grupo, en su modal (Ticket 3) ──────────────────────────
+
+const MES = /^(\d{4})-(\d{2})$/
+const DIA = /^(\d{4})-(\d{2})-(\d{2})$/
+const dosCifras = n => String(n).padStart(2, '0')
+
+/**
+ * El período que guarda la Revisión, `{ desde, hasta }` como "AAAA-MM-DD", o
+ * null si el mes no se lee. Hasta el filtro por día (Ticket 4 de la spec de
+ * la E3a por grupo) es el mes entero, del 1 al último día, como lo guarda el
+ * backend; con el filtro, sale del filtro recortado al mes.
+ */
+export function periodoARevisar(mes) {
+  const partes = MES.exec(mes ?? '')
+  const numero = partes && Number(partes[2])
+  if (!numero || numero > 12) return null
+  // El día 0 del mes siguiente es el último de este.
+  const ultimo = new Date(Date.UTC(Number(partes[1]), numero, 0)).getUTCDate()
+  return { desde: `${partes[1]}-${partes[2]}-01`, hasta: `${partes[1]}-${partes[2]}-${dosCifras(ultimo)}` }
+}
+
+// "2026-10-05" a { dia: 5, mes: 'octubre', anio: '2026' }, o null.
+function leerDia(texto) {
+  const partes = DIA.exec(texto ?? '')
+  const mes = partes && MESES_LARGOS[Number(partes[2]) - 1]
+  const dia = partes && Number(partes[3])
+  return mes && dia >= 1 && dia <= 31 ? { dia, mes, anio: partes[1] } : null
+}
+
+/**
+ * Un período `{ desde, hasta }` en palabras: "del 1 al 31 de octubre", "del 1
+ * al 15 de octubre"; si cruza de mes, "del 30 de septiembre al 2 de octubre".
+ * Sin período o con fechas que no se leen, vacío.
+ */
+export function textoPeriodo(periodo) {
+  const desde = leerDia(periodo?.desde)
+  const hasta = leerDia(periodo?.hasta)
+  if (!desde || !hasta) return ''
+  const mismoMes = desde.mes === hasta.mes && desde.anio === hasta.anio
+  return mismoMes
+    ? `del ${desde.dia} al ${hasta.dia} de ${hasta.mes}`
+    : `del ${desde.dia} de ${desde.mes} al ${hasta.dia} de ${hasta.mes}`
+}
+
+/** La franja del modal "Marcar revisada": qué período cubre la Revisión. */
+export function textoCubre(periodo) {
+  return `Cubre ${textoPeriodo(periodo)}. Si después supera otro grupo, el mes vuelve a Con diferencia.`
+}
+
+/**
+ * El aviso del modal cuando el backend responde 409 `no_revisable`: entre que
+ * se abrió y se guardó, ya no supera ningún grupo en el período.
+ */
+export function textoNoRevisable(periodo) {
+  return `No hace falta revisarla. En el período ${textoPeriodo(periodo)} ya no hay grupos `
+    + 'que superen el Umbral. El Detalle se actualizó.'
+}
+
+/** Si el error de dejar una Revisión es el 409 `no_revisable`. */
+export function esNoRevisable(error) {
+  return error?.status === 409 && error?.detail?.tipo === 'no_revisable'
 }

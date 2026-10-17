@@ -9,12 +9,16 @@ const ENFOCABLES = 'a[href], button:not([disabled]), input:not([disabled]), sele
 // Preliquidación, copiado porque un módulo no importa a otro (spec de la E3a
 // por grupo, sección 8; subirlo al núcleo queda para más adelante). Se cierra
 // con Escape, con la cruz o con un click afuera, y al cerrar el foco vuelve a
-// lo que lo tenía al abrir.
-export default function Modal({ titulo, subtitulo, onCerrar, children }) {
+// lo que lo tenía al abrir. `focoInicial` es un ref a lo que recibe el foco al
+// abrir (sin él, "Cerrar"), y `pie`, lo que va fijo abajo, fuera del scroll
+// del cuerpo (los botones de un formulario).
+export default function Modal({ titulo, subtitulo, onCerrar, focoInicial, pie, children }) {
   const idTitulo = useId()
   const cerrarRef = useRef(null)
   const modalRef = useRef(null)
   const onCerrarRef = useRef(onCerrar)
+  // El de la primera vez: el foco inicial se pone una sola vez, al abrir.
+  const focoInicialRef = useRef(focoInicial)
 
   // El padre pasa una `onCerrar` nueva en cada render: se guarda la última en
   // un ref para que el efecto de abajo corra una sola vez y no vuelva a llevar
@@ -25,8 +29,8 @@ export default function Modal({ titulo, subtitulo, onCerrar, children }) {
     // Al cerrar, el foco vuelve a lo que lo tenía al abrir (el nombre de la
     // tarea), para que con teclado no se pierda el lugar en la tabla.
     const previo = document.activeElement
-    // Foco inicial en "Cerrar", sólo al abrir.
-    cerrarRef.current?.focus()
+    // Foco inicial, sólo al abrir: lo que pida quien lo abre o "Cerrar".
+    ;(focoInicialRef.current?.current ?? cerrarRef.current)?.focus()
 
     const onKey = (e) => {
       if (e.key === 'Escape') { onCerrarRef.current(); return }
@@ -64,6 +68,7 @@ export default function Modal({ titulo, subtitulo, onCerrar, children }) {
         </header>
 
         <div className={styles.cuerpo}>{children}</div>
+        {pie && <footer className={styles.pie}>{pie}</footer>}
       </div>
     </div>
   )
