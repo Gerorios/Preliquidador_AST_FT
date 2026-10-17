@@ -55,7 +55,11 @@ export default function Modal({ titulo, subtitulo, onCerrar, focoInicial, pie, c
   }, [])
 
   return (
-    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) onCerrar() }}>
+    <div className={styles.overlay} onMouseDown={e => {
+      // Sin el preventDefault, después del cierre el mousedown lleva el foco al
+      // BODY y pisa el que devolvió el cleanup al botón que abrió el modal.
+      if (e.target === e.currentTarget) { e.preventDefault(); onCerrar() }
+    }}>
       <div ref={modalRef} className={styles.modal} role="dialog" aria-modal="true" aria-labelledby={idTitulo}>
         <header className={styles.cabecera}>
           <div className={styles.encabezado}>

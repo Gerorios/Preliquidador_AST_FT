@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -157,8 +157,15 @@ export default function Resumen() {
   )
   const elegirAlerta = alerta => setFiltros(f => ({ ...f, alerta }))
   // El botón del aviso pasa el filtro al período de lo que no entra, como un
-  // Otro período: Desde y Hasta quedan a la vista para ajustarlo.
-  const verPeriodo = ({ desde: d, hasta: h }) => setPeriodo({ atajo: OTRO_PERIODO, desde: d, hasta: h })
+  // Otro período: Desde y Hasta quedan a la vista para ajustarlo. La tabla se
+  // desmonta mientras carga y el botón se va con ella: el foco pasa al título,
+  // para que el próximo Tab siga en el selector del período y no vuelva al
+  // principio de la página.
+  const tituloRef = useRef(null)
+  const verPeriodo = ({ desde: d, hasta: h }) => {
+    setPeriodo({ atajo: OTRO_PERIODO, desde: d, hasta: h })
+    tituloRef.current?.focus()
+  }
 
   const hayDatos = valido && Boolean(data)
   const hora = horaDeLectura(data?.leido_en)
@@ -242,7 +249,9 @@ export default function Resumen() {
                     <Link to={rutaDelDetalle(f)} className={styles.linkCliente}>{nombreCliente(f)}</Link>
                   </th>
                   <td colSpan={2 + COLUMNAS_LINEA.length} />
-                  <td><EtiquetasEstado fila={f} puedeEditarComprobantes={editaComprobantes} /></td>
+                  <td className={styles.estado}>
+                    <EtiquetasEstado fila={f} puedeEditarComprobantes={editaComprobantes} />
+                  </td>
                   <td className={styles.accion}>
                     <Link
                       to={accion.destino}
@@ -272,7 +281,7 @@ export default function Resumen() {
   return (
     <div className={styles.page}>
       <div className={styles.topbar}>
-        <h1 className={styles.titulo}>Resumen</h1>
+        <h1 ref={tituloRef} tabIndex={-1} className={styles.titulo}>Resumen</h1>
         {hayDatos && filas.length > 0 && (
           <span className="badge badge-muted" aria-live="polite">
             {visibles.length === filas.length

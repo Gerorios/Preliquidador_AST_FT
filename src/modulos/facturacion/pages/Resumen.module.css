@@ -27,6 +27,14 @@
   letter-spacing: normal;
   color: var(--text-primary);
 }
+/* Recibe el foco cuando el aviso cambia el período (la tabla se desmonta
+   mientras carga): sin contorno con el mouse, con contorno con teclado. */
+.titulo:focus { outline: none; }
+.titulo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 
 /* "Datos del campo de las 10:42 · Volver a leer", a la derecha. */
 .lectura {
@@ -114,12 +122,27 @@
   font-weight: 400;
 }
 
-.grupo { color: var(--text-primary); }
+/* El Grupo de tareas es la columna más larga: se parte en dos líneas cuando
+   la tabla no entra (a 1366 px), con un ancho mínimo para que no quede una
+   palabra por línea. Con lugar, va en una sola. */
+.grupo {
+  white-space: normal;
+  min-width: 12ch;
+  color: var(--text-primary);
+}
 
-.unidad { color: var(--text-secondary); }
+/* La Unidad también se parte ("Horas de tractor") para que la tabla entre a
+   1366 px. */
+.unidad {
+  white-space: normal;
+  min-width: 8ch;
+  color: var(--text-secondary);
+}
 
 /* Una línea cuyas tareas no tienen Unidad sugerida. */
 .sinUnidad {
+  white-space: normal;
+  min-width: 8ch;
   color: var(--text-muted);
   font-style: italic;
 }
@@ -168,7 +191,24 @@
 .gris .linkCliente { color: var(--text-secondary); font-weight: 400; }
 .gris .sinUnidad { color: var(--text-muted); }
 
-.accion { text-align: right; }
+/* El Estado no se parte: cada etiqueta va en una línea. En pantallas angostas
+   (1366 px) va en una línea hasta el largo de "Pendiente de facturar" (21
+   caracteres de la letra mono, con uno de margen, más su relleno y su borde);
+   una más larga ("Con diferencia · 3 líneas superan") pasa a dos líneas. */
+.estado :global(.badge) {
+  flex: none;
+  width: max-content;
+}
+
+@media (max-width: 1499px) {
+  .estado :global(.badge) { max-width: calc(22ch + 18px); }
+}
+
+/* El botón de la acción nunca se parte. */
+.accion {
+  text-align: right;
+  white-space: nowrap;
+}
 
 /* Un Link con aspecto de botón: navega, así que se puede abrir en otra pestaña. */
 .enlaceBoton { text-decoration: none; }
