@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -10,26 +10,27 @@ import {
   CLAVE_RESUMEN, claveDetalle, obtenerDetalle, dejarRevision, deshacerRevision,
 } from '../services/resumen'
 import { ESTADOS } from '../estados'
-import { ETIQUETAS } from '../unidades'
 import { formatoPesos } from '../numeros'
-import { medidaIlegible, textoMedida, textoUmbral } from '../vistaResumen'
+import { medidaIlegible, textoMedida, textoUmbral, textoUnidad } from '../vistaResumen'
 import {
-  bannerDeDetalle, puedeRevisar, validarComentario, textoPct, claveDeFila, filasQueSuperan,
-  revisadaEnFila, unidadesPorTarea, textoDiferencia, textoDiferenciaPesos, signoDeDiferencia,
+  bannerDeDetalle, puedeRevisar, validarComentario, textoPct, claveDeLinea, lineasQueSuperan,
+  revisadaEnLinea, alternarAbierta, textoDiferencia, textoDiferenciaPesos, signoDeDiferencia,
   textoComprobante, textoMesLargo,
 } from '../detalle'
-import PanelPartes from '../components/PanelPartes'
+import ModalPartes from '../components/ModalPartes'
 import PanelRevision from '../components/PanelRevision'
 import styles from './Detalle.module.css'
 
-// Detalle de un Cliente en un mes (plan E3, FA6; pantallas.md, mockup
-// aprobado del Detalle y boceto F0): el Cruce tarea por tarea, de lo
+// Detalle de un Cliente en un mes (plan E3, FA6; spec de la E3a por grupo,
+// decisiones 1, 3 y 4): el Cruce por (grupo de tareas, unidad), de lo
 // trabajado según el campo contra lo facturado, con la fila TOTAL en pesos.
 // Arriba, el Cliente, el mes, el Estado del mes, los Comprobantes del mes y
-// el aviso según el caso. Tocar una tarea abre a la derecha su comparación y
-// sus partes del campo; "Marcar revisada" abre ahí mismo el comentario de la
-// Revisión de diferencia. No se factura desde acá: se vuelve al Resumen, que
-// conserva su período, sus filtros y su orden (estadoPantallas).
+// el aviso según el caso. Las filas arrancan cerradas: el triángulo abre las
+// tareas de la fila con su cantidad del campo, y el nombre de una tarea abre
+// el modal con sus partes. "Marcar revisada" abre a la derecha el comentario
+// de la Revisión de diferencia (su modal es del Ticket 3). No se factura desde
+// acá: se vuelve al Resumen, que conserva su período, sus filtros y su orden
+// (estadoPantallas).
 
 const RESUMEN = '/facturacion/resumen'
 
@@ -43,6 +44,32 @@ function Medida({ valor }) {
 }
 
 const tareas_ = n => `${n} ${n === 1 ? 'tarea' : 'tareas'}`
+
+// Las tareas de una fila, cuando está abierta: el nombre abre el modal de los
+// partes; al lado, "Sin Unidad sugerida" (decisión 1) y "en varias unidades"
+// si la tarea también está en otra fila. Sólo llevan la cantidad del campo:
+// las tareas no avisan ni se comparan, lo hace la fila.
+function FilasDeTareas({ linea, idFila, onAbrirPartes }) {
+  return (linea.tareas ?? []).map(t => (
+    <tr key={t.tarea_id} id={`${idFila}-${t.tarea_id}`} className={styles.filaTarea}>
+      <td className={styles.tarea}>
+        <button
+          type="button"
+          className={styles.tareaBoton}
+          aria-haspopup="dialog"
+          onClick={() => onAbrirPartes(linea, t)}
+        >
+          {nombreDeTarea(t)}
+        </button>
+        {t.sin_unidad_sugerida && <span className={styles.sinUnidad}>Sin Unidad sugerida</span>}
+        {t.en_varias_unidades && <span className={styles.marca}>en varias unidades</span>}
+      </td>
+      <td />
+      <td className={styles.numero}><Medida valor={t.campo} /></td>
+      <td colSpan={4} />
+    </tr>
+  ))
+}
 
 const nombreDeTarea = t => t.tarea_nombre || `Tarea ${t.tarea_id}`
 
@@ -95,8 +122,11 @@ export default function Detalle() {
     queryFn: () => obtenerDetalle({ clienteId, mes }),
   })
 
-  // El panel de la derecha: una tarea (su clave) o la Revisión, nunca los dos.
-  const [elegida, setElegida] = useState(null)
+  // Las filas abiertas, por su clave (grupo, unidad): todas arrancan cerradas.
+  const [abiertas, setAbiertas] = useState(() => new Set())
+  // La tarea del modal de partes, con su fila: { linea, tarea } o null.
+  const [partesDe, setPartesDe] = useState(null)
+  // El panel de la derecha: la Revisión.
   const [revisando, setRevisando] = useState(false)
   // El comentario vive acá: cerrar el panel sin querer no lo pierde.
   const [comentario, setComentario] = useState('')
@@ -106,14 +136,11 @@ export default function Detalle() {
   const botonRevisar = useRef(null)
   const botonDeshacer = useRef(null)
   const campoComentario = useRef(null)
-  // Dónde vuelve el foco al cerrar el panel, y a dónde va después de guardar.
-  const origen = useRef(null)
+  // A dónde va el foco después de abrir o cerrar la Revisión, o de guardar.
   const focoPendiente = useRef(null)
 
-  const filas = useMemo(() => (data?.grupos ?? []).flatMap(g => g.tareas ?? []), [data])
-  const tarea = useMemo(() => filas.find(t => claveDeFila(t) === elegida) ?? null, [filas, elegida])
-  const superan = useMemo(() => filasQueSuperan(data), [data])
-  const unidades = useMemo(() => unidadesPorTarea(data), [data])
+  const lineas = data?.grupos ?? []
+  const superan = useMemo(() => lineasQueSuperan(data), [data])
   const banner = bannerDeDetalle(data, editaResumen)
   const revisable = puedeRevisar(data, editaResumen)
   const umbralTexto = textoUmbral(data?.umbral_pct)
@@ -182,42 +209,40 @@ export default function Detalle() {
     revisar.mutate({ clienteId, mes, comentario: comentario.trim() })
   }
 
-  // ─── Panel de la derecha ──────────────────────────────────────────────────
+  // ─── Filas, modal de partes y panel de la Revisión ────────────────────────
 
-  const elegir = (t, boton) => {
-    const claveFila = claveDeFila(t)
-    origen.current = boton
-    setRevisando(false)
-    setElegida(actual => (actual === claveFila ? null : claveFila))
-  }
+  const alternar = claveLinea => setAbiertas(actuales => alternarAbierta(actuales, claveLinea))
+
+  // El modal guarda el foco que había al abrir (el nombre de la tarea) y lo
+  // devuelve al cerrar.
+  const abrirPartes = (linea, tarea) => setPartesDe({ linea, tarea })
+  const cerrarPartes = useCallback(() => setPartesDe(null), [])
 
   const abrirRevision = () => {
-    origen.current = botonRevisar.current
     focoPendiente.current = 'comentario'
-    setElegida(null)
     setErrorComentario(null)
     setRevisando(true)
   }
 
   const cerrarPanel = useCallback(() => {
-    setElegida(null)
     setRevisando(false)
-    focoPendiente.current = 'origen'
+    focoPendiente.current = 'revisar'
   }, [])
 
-  // Escape cierra el panel abierto, salvo mientras se guarda.
-  const panelAbierto = Boolean(tarea) || revisando
+  // Escape cierra el panel de la Revisión, salvo mientras se guarda o con el
+  // modal de partes abierto (Escape cierra el modal, no los dos).
   const guardando = revisar.isPending
+  const modalAbierto = Boolean(partesDe)
   useEffect(() => {
-    if (!panelAbierto) return undefined
+    if (!revisando || modalAbierto) return undefined
     const alTeclear = e => { if (e.key === 'Escape' && !guardando) cerrarPanel() }
     document.addEventListener('keydown', alTeclear)
     return () => document.removeEventListener('keydown', alTeclear)
-  }, [panelAbierto, guardando, cerrarPanel])
+  }, [revisando, modalAbierto, guardando, cerrarPanel])
 
   // El foco, después de que la pantalla se dibuja: al comentario al abrir la
-  // Revisión; a Deshacer al marcarla; a "Marcar revisada" al deshacer; y, al
-  // cerrar el panel, a lo que lo abrió. Si eso ya no está, al título.
+  // Revisión; a Deshacer al marcarla; a "Marcar revisada" al deshacer o al
+  // cerrar el panel. Si eso ya no está, al título.
   useEffect(() => {
     const destino = focoPendiente.current
     if (!destino) return
@@ -226,10 +251,9 @@ export default function Detalle() {
       comentario: campoComentario.current,
       deshacer: botonDeshacer.current,
       revisar: botonRevisar.current,
-      origen: origen.current?.isConnected ? origen.current : (revisable ? botonRevisar.current : null),
     }
     ;(elementos[destino] ?? tituloRef.current)?.focus()
-  }, [revisando, elegida, data, revisable])
+  }, [revisando, data, revisable])
 
   // ─── Contenido ────────────────────────────────────────────────────────────
 
@@ -260,7 +284,7 @@ export default function Detalle() {
         </button>
       </div>
     )
-  } else if (filas.length === 0) {
+  } else if (lineas.length === 0) {
     contenido = (
       <div className={styles.vacio}>
         <h2 className={styles.vacioTitulo}>Sin tareas en el mes</h2>
@@ -273,11 +297,12 @@ export default function Detalle() {
     const total = data.total ?? {}
     const signoTotal = signoDeDiferencia(total.diferencia_pesos)
     contenido = (
-      <div className={`${styles.cuerpo} ${panelAbierto ? styles.conPanel : ''}`}>
+      <div className={`${styles.cuerpo} ${revisando ? styles.conPanel : ''}`}>
         <div className={styles.tabla}>
           <table>
             <caption className={styles.soloLector}>
-              Lo trabajado según el campo contra lo facturado, por tarea. Tocá una tarea para ver sus partes.
+              Lo trabajado según el campo contra lo facturado, por grupo de tareas y unidad. Abrí una fila
+              para ver sus tareas y tocá una tarea para ver sus partes.
             </caption>
             <thead>
               <tr>
@@ -290,57 +315,47 @@ export default function Detalle() {
                 <th scope="col"><span className={styles.soloLector}>Marcas</span></th>
               </tr>
             </thead>
-            {data.grupos.map(g => (
-              <tbody key={g.grupo}>
-                <tr className={styles.grupo}>
-                  <th scope="rowgroup" colSpan={7}>{g.grupo}</th>
-                </tr>
-                {(g.tareas ?? []).map(t => {
-                  const claveFila = claveDeFila(t)
-                  const elegidaAhora = claveFila === elegida && !revisando
-                  const signo = signoDeDiferencia(t.diferencia)
-                  const enUnidades = unidades.get(t.tarea_id) ?? 1
-                  const revisada = revisadaEnFila(t, data.revision)
-                  const clases = [
-                    styles.fila, elegidaAhora && 'selected', t.supera && styles.supera,
-                  ].filter(Boolean).join(' ')
-                  return (
-                    <tr
-                      key={claveFila}
-                      className={clases}
-                      onClick={e => elegir(t, e.currentTarget.querySelector('button'))}
-                    >
-                      <td className={styles.tarea}>
+            <tbody>
+              {lineas.map((l, i) => {
+                const claveLinea = claveDeLinea(l)
+                const abierta = abiertas.has(claveLinea)
+                const idFila = `fact-detalle-${i}`
+                const signo = signoDeDiferencia(l.diferencia)
+                const revisada = revisadaEnLinea(l, data.revision)
+                const clases = [
+                  styles.fila, abierta && styles.abierta, l.supera && styles.supera,
+                ].filter(Boolean).join(' ')
+                return (
+                  <Fragment key={claveLinea}>
+                    <tr className={clases} onClick={() => alternar(claveLinea)}>
+                      <td className={styles.grupo}>
                         <button
                           type="button"
-                          className={styles.tareaBoton}
-                          aria-pressed={elegidaAhora}
-                          title={nombreDeTarea(t)}
-                          onClick={e => { e.stopPropagation(); elegir(t, e.currentTarget) }}
+                          className={styles.triangulo}
+                          aria-expanded={abierta}
+                          aria-controls={abierta ? (l.tareas ?? []).map(t => `${idFila}-${t.tarea_id}`).join(' ') : undefined}
+                          onClick={e => { e.stopPropagation(); alternar(claveLinea) }}
                         >
-                          {nombreDeTarea(t)}
+                          <Icono nombre="derecha" size={14} className={styles.flecha} />
+                          <span>{l.grupo}</span>
+                          <span className={styles.soloLector}>, {textoUnidad(l.unidad)}</span>
                         </button>
-                        {t.sin_unidad_sugerida && <span className={styles.sinUnidad}>Sin Unidad sugerida</span>}
-                        {(t.en_varias_unidades || enUnidades > 1) && (
-                          <span className={styles.marca}>en {enUnidades > 1 ? enUnidades : 'varias'} unidades</span>
-                        )}
                       </td>
-                      <td className={styles.unidad}>
-                        {t.unidad ? (ETIQUETAS[t.unidad] ?? t.unidad) : <span className={styles.vacia}>—</span>}
-                      </td>
-                      <td className={styles.numero}><Medida valor={t.campo} /></td>
-                      <td className={styles.numero}><Medida valor={t.facturado} /></td>
-                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>{textoDiferencia(t.diferencia)}</td>
-                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>{textoPct(t.diferencia_pct)}</td>
+                      <td className={styles.unidad}>{textoUnidad(l.unidad)}</td>
+                      <td className={styles.numero}><Medida valor={l.campo} /></td>
+                      <td className={styles.numero}><Medida valor={l.facturado} /></td>
+                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>{textoDiferencia(l.diferencia)}</td>
+                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>{textoPct(l.diferencia_pct)}</td>
                       <td className={styles.marcas}>
-                        {t.supera && <span className="badge badge-warn">Supera</span>}
+                        {l.supera && <span className="badge badge-warn">Supera</span>}
                         {revisada && <span className="badge badge-green">Revisada</span>}
                       </td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            ))}
+                    {abierta && <FilasDeTareas linea={l} idFila={idFila} onAbrirPartes={abrirPartes} />}
+                  </Fragment>
+                )
+              })}
+            </tbody>
             <tfoot>
               <tr>
                 <td colSpan={2}>TOTAL DEL MES, EN PESOS</td>
@@ -363,15 +378,6 @@ export default function Detalle() {
             </tfoot>
           </table>
         </div>
-
-        {tarea && !revisando && (
-          <PanelPartes
-            tarea={tarea}
-            mesTexto={mesTexto}
-            umbralTexto={umbralTexto}
-            onCerrar={cerrarPanel}
-          />
-        )}
 
         {revisando && revisable && (
           <PanelRevision
@@ -438,6 +444,15 @@ export default function Detalle() {
       )}
 
       {contenido}
+
+      {partesDe && (
+        <ModalPartes
+          tarea={partesDe.tarea}
+          linea={partesDe.linea}
+          mesTexto={mesTexto}
+          onCerrar={cerrarPartes}
+        />
+      )}
     </div>
   )
 }

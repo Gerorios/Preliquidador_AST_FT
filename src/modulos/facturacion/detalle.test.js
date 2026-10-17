@@ -1,31 +1,40 @@
 // Tests de la lógica del Detalle (node --test, sin dependencias; plan E3,
-// FA4). El detalle de entrada tiene la forma de GET
-// /api/facturacion/resumen/{cliente_id}/{mes} (plan E3, sección 3.2, ruta 14).
-// Los textos de los avisos salen del mockup aprobado del Detalle y del boceto
-// F0 de la E3a. El permiso llega como un booleano, como en estados.js.
+// FA4, y Ticket 2 de la spec de la E3a por grupo). El detalle de entrada tiene
+// la forma de GET /api/facturacion/resumen/{cliente_id}/{mes}: una fila por
+// (grupo de tareas, unidad), con sus tareas adentro. Los textos de los avisos
+// salen del mockup aprobado del Detalle y del boceto F0 de la E3a. El permiso
+// llega como un booleano, como en estados.js.
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   LARGO_COMENTARIO, textoPct, bannerDeDetalle, puedeRevisar, validarComentario, totalPartes,
-  claveDeFila, filasQueSuperan, revisadaEnFila, unidadesPorTarea, textoDiferencia,
-  textoDiferenciaPesos, textoComprobante, textoMesLargo, signoDeDiferencia,
+  claveDeLinea, nombreDeLinea, lineasQueSuperan, revisadaEnLinea, alternarAbierta,
+  textoDiferencia, textoDiferenciaPesos, textoComprobante, textoMesLargo, signoDeDiferencia,
 } from './detalle.js'
 
-// Una fila de la tabla del Detalle, con lo que usan estas funciones.
-const tarea = (tarea_id, tarea_nombre, unidad, extra = {}) => ({
+// Una tarea dentro de su fila, con lo que usan estas funciones.
+const tarea = (tarea_id, tarea_nombre, extra = {}) => ({
   tarea_id,
   tarea_nombre,
-  unidad,
   sin_unidad_sugerida: false,
   en_varias_unidades: false,
+  campo: '100.00',
+  precio: '10.00',
+  partes: [],
+  ...extra,
+})
+
+// Una fila del Detalle: una línea (grupo, unidad) con sus tareas.
+const linea = (grupo, unidad, extra = {}, tareas = [tarea(1, 'Tarea uno')]) => ({
+  grupo,
+  unidad,
   campo: '100.00',
   facturado: '100.00',
   diferencia: '0.00',
   diferencia_pct: '0.00',
   supera: false,
-  precio: '10.00',
-  partes: [],
+  tareas,
   ...extra,
 })
 
@@ -41,20 +50,21 @@ const detalle = (cambios = {}) => ({
   diferencia_revisada: false,
   se_puede_revisar: false,
   comprobantes: [],
-  grupos: [{ grupo: 'Grupo uno', tareas: [tarea(1, 'Tarea uno', 'horas_peon')] }],
+  grupos: [linea('Grupo uno', 'horas_peon')],
   total: {},
   revision: null,
   ...cambios,
 })
 
-// Una Revisión vigente. 15:00 UTC es el mismo día en cualquier huso de
-// América, así la fecha del test no depende de la PC.
-const revision = (tareas, extra = {}) => ({
+// Una Revisión vigente, con las (grupo, unidad) que cubre. 15:00 UTC es el
+// mismo día en cualquier huso de América, así la fecha del test no depende de
+// la PC.
+const revision = (grupos, extra = {}) => ({
   id: 7,
   comentario: 'el campo cargó dos veces un parte',
   creada_en: '2026-11-10T15:00:00',
   creada_por_nombre: 'Persona de prueba',
-  tareas,
+  grupos,
   ...extra,
 })
 
@@ -88,8 +98,8 @@ test('textoPct: el cero va sin signo, y lo que no es un número da una raya', ()
 const revisada = (extra = {}) => detalle({
   estados: ['facturada'],
   diferencia_revisada: true,
-  grupos: [{ grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'horas_peon', SUPERA)] }],
-  revision: revision([{ tarea_id: 1, tarea_nombre: 'Poda', unidad: 'horas_peon' }], extra),
+  grupos: [linea('Grupo uno', 'horas_peon', SUPERA)],
+  revision: revision([{ grupo: 'Grupo uno', unidad: 'horas_peon' }], extra),
 })
 
 test('bannerDeDetalle: revisada, con quién, cuándo y el comentario, y Deshacer con permiso', () => {
@@ -112,21 +122,23 @@ test('bannerDeDetalle: revisada por alguien que ya no está, sin el nombre', () 
 
 // ─── bannerDeDetalle: con diferencia y una Revisión anterior que no cubre ───
 
-test('bannerDeDetalle: con diferencia y una Revisión que no cubre lo que supera ahora', () => {
+test('bannerDeDetalle: con diferencia y una Revisión que no cubre lo que supera ahora, por línea', () => {
   const d = detalle({
     estados: ['con_diferencia'],
     se_puede_revisar: true,
     grupos: [
-      { grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'horas_peon', SUPERA)] },
-      { grupo: 'Grupo dos', tareas: [tarea(2, 'Pulverización', 'tancadas', SUPERA), tarea(3, 'Riego', 'horas_peon')] },
+      linea('Grupo uno', 'horas_peon', SUPERA),
+      linea('Grupo dos', 'horas_peon'),
+      linea('Grupo dos', 'tancadas', SUPERA),
     ],
-    revision: revision([{ tarea_id: 1, tarea_nombre: 'Poda', unidad: 'horas_peon' }]),
+    revision: revision([{ grupo: 'Grupo uno', unidad: 'horas_peon' }]),
   })
   assert.deepEqual(bannerDeDetalle(d, true), {
     tipo: 'warn',
-    titulo: '2 tareas superan el 5 %.',
+    titulo: '2 líneas superan el 5 %.',
     texto: 'Hubo una Revisión el 10/11/2026 (Persona de prueba: “el campo cargó dos veces un parte”) '
-      + 'que cubría Poda. Ahora supera también Pulverización: hace falta revisarlo de nuevo o corregirlo.',
+      + 'que cubría Grupo uno (Horas de peón). Ahora supera también Grupo dos (Tancadas): '
+      + 'hace falta revisarlo de nuevo o corregirlo.',
     deshacer: false,
   })
 })
@@ -134,45 +146,44 @@ test('bannerDeDetalle: con diferencia y una Revisión que no cubre lo que supera
 test('bannerDeDetalle: si lo que cubría la Revisión ya no supera, no dice "también"', () => {
   const d = detalle({
     estados: ['con_diferencia'],
-    grupos: [{ grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'horas_peon'), tarea(2, 'Riego', 'horas_peon', SUPERA)] }],
-    revision: revision([{ tarea_id: 1, tarea_nombre: 'Poda', unidad: 'horas_peon' }]),
+    grupos: [linea('Grupo uno', 'horas_peon'), linea('Grupo uno', 'plantas', SUPERA)],
+    revision: revision([{ grupo: 'Grupo uno', unidad: 'horas_peon' }]),
   })
   const banner = bannerDeDetalle(d, true)
-  assert.equal(banner.titulo, '1 tarea supera el 5 %.')
-  assert.match(banner.texto, /que cubría Poda\. Ahora supera Riego: hace falta/)
+  assert.equal(banner.titulo, '1 línea supera el 5 %.')
+  assert.match(banner.texto, /que cubría Grupo uno \(Horas de peón\)\. Ahora supera Grupo uno \(Plantas\): hace falta/)
 })
 
-test('bannerDeDetalle: una tarea en dos unidades se nombra con su unidad, y la cubierta es la de su unidad', () => {
-  const VARIAS = { en_varias_unidades: true }
+test('bannerDeDetalle: el mismo grupo en otra unidad no está cubierto, y la línea sin unidad lo dice', () => {
   const d = detalle({
     estados: ['con_diferencia'],
-    grupos: [{ grupo: 'Grupo uno', tareas: [
-      tarea(1, 'Poda', 'horas_peon', { ...SUPERA, ...VARIAS }),
-      tarea(1, 'Poda', 'hectareas', { ...SUPERA, ...VARIAS }),
-    ] }],
-    revision: revision([{ tarea_id: 1, tarea_nombre: 'Poda', unidad: 'horas_peon' }]),
+    grupos: [linea('Sin grupo', 'horas_peon', SUPERA), linea('Sin grupo', null, SUPERA)],
+    revision: revision([{ grupo: 'Sin grupo', unidad: 'horas_peon' }]),
   })
   const banner = bannerDeDetalle(d, true)
-  assert.match(banner.texto, /que cubría Poda \(Horas de peón\)\. Ahora supera también Poda \(Hectáreas\):/)
+  assert.match(banner.texto,
+    /que cubría Sin grupo \(Horas de peón\)\. Ahora supera también Sin grupo \(Sin Unidad sugerida\):/)
 })
 
-test('bannerDeDetalle: varias tareas se nombran con comas y "y"', () => {
+test('bannerDeDetalle: varias líneas se nombran con comas y "y"', () => {
   const d = detalle({
     estados: ['con_diferencia'],
-    grupos: [{ grupo: 'Grupo uno', tareas: [
-      tarea(1, 'Poda', 'horas_peon', SUPERA),
-      tarea(2, 'Riego', 'horas_peon', SUPERA),
-      tarea(3, 'Raleo', 'plantas', SUPERA),
-      tarea(4, 'Desbrote', 'horas_peon', SUPERA),
-    ] }],
+    grupos: [
+      linea('Grupo uno', 'horas_peon', SUPERA),
+      linea('Grupo dos', 'horas_peon', SUPERA),
+      linea('Grupo tres', 'plantas', SUPERA),
+      linea('Grupo cuatro', 'horas_tractor', SUPERA),
+    ],
     revision: revision([
-      { tarea_id: 1, tarea_nombre: 'Poda', unidad: 'horas_peon' },
-      { tarea_id: 2, tarea_nombre: 'Riego', unidad: 'horas_peon' },
+      { grupo: 'Grupo uno', unidad: 'horas_peon' },
+      { grupo: 'Grupo dos', unidad: 'horas_peon' },
     ]),
   })
   const banner = bannerDeDetalle(d, true)
-  assert.equal(banner.titulo, '4 tareas superan el 5 %.')
-  assert.match(banner.texto, /que cubría Poda y Riego\. Ahora supera también Raleo y Desbrote:/)
+  assert.equal(banner.titulo, '4 líneas superan el 5 %.')
+  assert.ok(banner.texto.includes(
+    'que cubría Grupo uno (Horas de peón) y Grupo dos (Horas de peón). '
+    + 'Ahora supera también Grupo tres (Plantas) y Grupo cuatro (Horas de tractor):'), banner.texto)
 })
 
 // ─── bannerDeDetalle: con diferencia sin Revisión ───────────────────────────
@@ -181,13 +192,13 @@ test('bannerDeDetalle: con diferencia y sin Revisión, el texto del mockup con e
   const d = detalle({
     estados: ['con_diferencia', 'falta_comprobante'],
     umbral_pct: '2.50',
-    grupos: [{ grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'horas_peon', SUPERA), tarea(2, 'Riego', 'horas_peon')] }],
+    grupos: [linea('Grupo uno', 'horas_peon', SUPERA), linea('Grupo uno', 'plantas')],
   })
   assert.deepEqual(bannerDeDetalle(d, true), {
     tipo: 'warn',
-    titulo: '1 tarea supera el 2,5 %.',
-    texto: 'Tocá una tarea para ver sus partes y consultarlo con el campo. Se cierra sola si se '
-      + 'corrige el parte o se carga una nota de crédito o una factura corregida.',
+    titulo: '1 línea supera el 2,5 %.',
+    texto: 'Abrí un grupo y tocá una tarea para ver sus partes y consultarlo con el campo. Se cierra '
+      + 'sola si se corrige el parte o se carga una nota de crédito o una factura corregida.',
     deshacer: false,
   })
 })
@@ -232,7 +243,7 @@ test('bannerDeDetalle: sin aviso en Facturada, en Pendiente de facturar y sin de
 test('bannerDeDetalle: Facturada con una Revisión vigente que ya no hace falta (nada supera) no avisa', () => {
   const d = detalle({
     diferencia_revisada: false,
-    revision: revision([{ tarea_id: 1, tarea_nombre: 'Tarea uno', unidad: 'horas_peon' }]),
+    revision: revision([{ grupo: 'Grupo uno', unidad: 'horas_peon' }]),
   })
   assert.equal(bannerDeDetalle(d, true), null)
 })
@@ -292,48 +303,54 @@ test('totalPartes: sin partes, o con una cantidad que no es un número, no suma'
   assert.equal(totalPartes([{ cantidad: '2.00' }, { cantidad: null }]), '2.00')
 })
 
-// ─── Lo que usa la pantalla del Detalle (FA6) ───────────────────────────────
+// ─── Lo que usa la pantalla del Detalle (FA6 y Ticket 2) ────────────────────
 
-test('claveDeFila: una fila es (tarea, unidad); sin unidad, la tarea sola', () => {
-  assert.equal(claveDeFila(tarea(4, 'Poda', 'horas_peon')), '4|horas_peon')
-  assert.equal(claveDeFila(tarea(4, 'Poda', 'plantas')), '4|plantas')
-  assert.equal(claveDeFila(tarea(9, 'Desmalezado', null)), '9|')
+test('claveDeLinea: una fila es (grupo, unidad); sin unidad, el grupo solo', () => {
+  assert.equal(claveDeLinea(linea('Grupo uno', 'horas_peon')), 'Grupo uno|horas_peon')
+  assert.equal(claveDeLinea(linea('Grupo uno', 'plantas')), 'Grupo uno|plantas')
+  assert.equal(claveDeLinea(linea('Sin grupo', null)), 'Sin grupo|')
+  // También sirve para lo que guarda la Revisión.
+  assert.equal(claveDeLinea({ grupo: 'Grupo uno', unidad: 'horas_peon' }), 'Grupo uno|horas_peon')
 })
 
-test('filasQueSuperan: las filas que superan, de todos los grupos y en orden', () => {
+test('nombreDeLinea: el grupo y su unidad; sin unidad, lo dice', () => {
+  assert.equal(nombreDeLinea(linea('Grupo uno', 'horas_peon')), 'Grupo uno (Horas de peón)')
+  assert.equal(nombreDeLinea(linea('Sin grupo', null)), 'Sin grupo (Sin Unidad sugerida)')
+})
+
+test('lineasQueSuperan: las filas que superan, en su orden', () => {
   const d = detalle({
     grupos: [
-      { grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'horas_peon', SUPERA), tarea(2, 'Riego', 'horas_peon')] },
-      { grupo: 'Grupo dos', tareas: [tarea(3, 'Rastra', 'horas_tractor', SUPERA)] },
+      linea('Grupo uno', 'horas_peon', SUPERA),
+      linea('Grupo uno', 'plantas'),
+      linea('Grupo dos', 'horas_tractor', SUPERA),
     ],
   })
-  assert.deepEqual(filasQueSuperan(d).map(t => t.tarea_nombre), ['Poda', 'Rastra'])
-  assert.deepEqual(filasQueSuperan(detalle()), [])
-  assert.deepEqual(filasQueSuperan(null), [])
+  assert.deepEqual(lineasQueSuperan(d).map(claveDeLinea), ['Grupo uno|horas_peon', 'Grupo dos|horas_tractor'])
+  assert.deepEqual(lineasQueSuperan(detalle()), [])
+  assert.deepEqual(lineasQueSuperan(null), [])
 })
 
-test('revisadaEnFila: sólo una fila que supera y que la Revisión cubre, por (tarea, unidad)', () => {
-  const r = revision([{ tarea_id: 1, tarea_nombre: 'Poda', unidad: 'horas_peon' }])
-  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'horas_peon', SUPERA), r), true)
-  // La misma tarea en otra unidad no está cubierta.
-  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'plantas', SUPERA), r), false)
+test('revisadaEnLinea: sólo una fila que supera y que la Revisión cubre, por (grupo, unidad)', () => {
+  const r = revision([{ grupo: 'Grupo uno', unidad: 'horas_peon' }])
+  assert.equal(revisadaEnLinea(linea('Grupo uno', 'horas_peon', SUPERA), r), true)
+  // El mismo grupo en otra unidad no está cubierto.
+  assert.equal(revisadaEnLinea(linea('Grupo uno', 'plantas', SUPERA), r), false)
   // Cubierta, pero ya no supera: no lleva la etiqueta.
-  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'horas_peon'), r), false)
-  assert.equal(revisadaEnFila(tarea(2, 'Riego', 'horas_peon', SUPERA), r), false)
-  assert.equal(revisadaEnFila(tarea(1, 'Poda', 'horas_peon', SUPERA), null), false)
+  assert.equal(revisadaEnLinea(linea('Grupo uno', 'horas_peon'), r), false)
+  assert.equal(revisadaEnLinea(linea('Grupo dos', 'horas_peon', SUPERA), r), false)
+  assert.equal(revisadaEnLinea(linea('Grupo uno', 'horas_peon', SUPERA), null), false)
 })
 
-test('unidadesPorTarea: en cuántas filas (unidades) está cada tarea', () => {
-  const d = detalle({
-    grupos: [
-      { grupo: 'Grupo uno', tareas: [tarea(1, 'Poda', 'plantas'), tarea(2, 'Riego', 'horas_peon')] },
-      { grupo: 'Grupo dos', tareas: [tarea(1, 'Poda', 'hectareas')] },
-    ],
-  })
-  const cuantas = unidadesPorTarea(d)
-  assert.equal(cuantas.get(1), 2)
-  assert.equal(cuantas.get(2), 1)
-  assert.equal(unidadesPorTarea(null).size, 0)
+test('alternarAbierta: abre una fila cerrada y cierra una abierta, sin tocar el conjunto de antes', () => {
+  const cerradas = new Set()
+  const una = alternarAbierta(cerradas, 'Grupo uno|horas_peon')
+  assert.deepEqual([...una], ['Grupo uno|horas_peon'])
+  assert.equal(cerradas.size, 0)
+  const dos = alternarAbierta(una, 'Grupo uno|')
+  assert.deepEqual([...dos].sort(), ['Grupo uno|', 'Grupo uno|horas_peon'])
+  assert.deepEqual([...alternarAbierta(dos, 'Grupo uno|horas_peon')], ['Grupo uno|'])
+  assert.deepEqual([...una], ['Grupo uno|horas_peon'])
 })
 
 test('textoDiferencia: con signo y en es-AR; cero sin signo; null o basura, una raya', () => {

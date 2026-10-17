@@ -1,17 +1,13 @@
 import Icono from '../../../core/ui/iconos'
-import { ETIQUETAS } from '../unidades'
-import { claveDeFila, signoDeDiferencia, textoDiferencia, textoPct } from '../detalle'
+import { claveDeLinea, nombreDeLinea, signoDeDiferencia, textoDiferencia, textoPct } from '../detalle'
 import styles from './PanelRevision.module.css'
 
 // Panel lateral "Marcar revisada" del Detalle (plan E3, FA6; mockup aprobado
 // del Detalle): lo que supera el Umbral y un comentario obligatorio. Lo que se
 // escribe vive en la página, así cerrar el panel sin querer no lo pierde.
 // Mientras guarda, el overlay del núcleo cubre la pantalla (es una mutación).
-
-const nombreDe = t => {
-  const nombre = t.tarea_nombre || `Tarea ${t.tarea_id}`
-  return t.en_varias_unidades && t.unidad ? `${nombre} (${ETIQUETAS[t.unidad] ?? t.unidad})` : nombre
-}
+// Lo que supera son las líneas (grupo, unidad) del Detalle; el modal de la
+// Revisión por grupo es del Ticket 3 de la spec de la E3a por grupo.
 
 export default function PanelRevision({
   superan, subtitulo, umbralTexto, comentario, onComentario, error, guardando,
@@ -41,13 +37,13 @@ export default function PanelRevision({
               Lo que supera el {umbralTexto ?? 'Umbral'}
             </h3>
             <ul className={styles.lista}>
-              {superan.map(t => {
-                const signo = signoDeDiferencia(t.diferencia)
+              {superan.map(l => {
+                const signo = signoDeDiferencia(l.diferencia)
                 return (
-                  <li key={claveDeFila(t)} className={styles.item}>
-                    <span className={styles.itemNombre}>{nombreDe(t)}</span>
+                  <li key={claveDeLinea(l)} className={styles.item}>
+                    <span className={styles.itemNombre}>{nombreDeLinea(l)}</span>
                     <span className={`mono ${signo ? styles[signo] : ''}`}>
-                      {textoDiferencia(t.diferencia)} ({textoPct(t.diferencia_pct)})
+                      {textoDiferencia(l.diferencia)} ({textoPct(l.diferencia_pct)})
                     </span>
                   </li>
                 )

@@ -11,7 +11,7 @@
 import { textoMes } from './listado.js'
 import { formatoPesos } from './numeros.js'
 import { sumarDecimales } from './resumen.js'
-import { ETIQUETAS } from './unidades.js'
+import { textoUnidad } from './vistaResumen.js'
 
 // El largo máximo del comentario de una Revisión: `LARGO_COMENTARIO` del
 // backend (app/modulos/facturacion/config.py) y la columna VARCHAR(500).
@@ -58,24 +58,19 @@ function enLista(nombres) {
   return `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`
 }
 
-// Una fila se identifica por (tarea, unidad), como lo que guarda la Revisión
-// (plan E3, decisión 3).
-const clave = t => `${t.tarea_id}|${t.unidad ?? ''}`
+// Una fila del Detalle es una línea (grupo de tareas, unidad), como lo que
+// guarda la Revisión (spec de la E3a por grupo). Sin unidad, el grupo solo.
+const clave = l => `${l.grupo}|${l.unidad ?? ''}`
 
-/** La clave de una fila del Detalle, (tarea, unidad): "4|horas_peon". */
-export const claveDeFila = clave
+/** La clave de una fila del Detalle, (grupo, unidad): "Manuales|horas_peon". */
+export const claveDeLinea = clave
 
-const filasDe = detalle => (detalle?.grupos ?? []).flatMap(g => g.tareas ?? [])
+const lineasDe = detalle => detalle?.grupos ?? []
 
-// El nombre de una tarea en un aviso. Si en el mes se facturó en dos
-// unidades, lleva la unidad, para saber cuál de las dos filas es.
-function nombreDeTarea(t, enVariasUnidades) {
-  const nombre = t.tarea_nombre || `Tarea ${t.tarea_id}`
-  if (!enVariasUnidades.has(t.tarea_id) || !t.unidad) return nombre
-  return `${nombre} (${ETIQUETAS[t.unidad] ?? t.unidad})`
-}
+/** Una línea en un aviso: "Manuales (Horas de peón)", "Sin grupo (Sin Unidad sugerida)". */
+export const nombreDeLinea = l => `${l.grupo} (${textoUnidad(l.unidad)})`
 
-const cuantasSuperan = n => (n === 1 ? '1 tarea supera' : `${n} tareas superan`)
+const cuantasSuperan = n => (n === 1 ? '1 línea supera' : `${n} líneas superan`)
 
 const SIN_CONTROL = {
   antes_del_corte: mesCorte => ({
@@ -91,21 +86,21 @@ const SIN_CONTROL = {
   }),
 }
 
-const TEXTO_SIN_REVISION = 'Tocá una tarea para ver sus partes y consultarlo con el campo. Se cierra sola si se '
-  + 'corrige el parte o se carga una nota de crédito o una factura corregida.'
+const TEXTO_SIN_REVISION = 'Abrí un grupo y tocá una tarea para ver sus partes y consultarlo con el campo. '
+  + 'Se cierra sola si se corrige el parte o se carga una nota de crédito o una factura corregida.'
 
 // "Hubo una Revisión el … (quién: “…”) que cubría …. Ahora supera también …":
-// la Revisión vigente no cubre todo lo que supera ahora (plan E3, decisión 6).
-// Dice "también" sólo si algo de lo que cubría sigue superando. Si no queda
-// nada nuevo por nombrar, null, y va el texto sin Revisión.
-function textoConRevisionAnterior(revision, superan, enVariasUnidades) {
-  const cubiertas = new Set((revision.tareas ?? []).map(clave))
-  const nuevas = superan.filter(t => !cubiertas.has(clave(t)))
+// la Revisión vigente no cubre todas las líneas que superan ahora. Dice
+// "también" sólo si algo de lo que cubría sigue superando. Si no queda nada
+// nuevo por nombrar, null, y va el texto sin Revisión.
+function textoConRevisionAnterior(revision, superan) {
+  const cubiertas = new Set((revision.grupos ?? []).map(clave))
+  const nuevas = superan.filter(l => !cubiertas.has(clave(l)))
   if (!nuevas.length) return null
-  const siguen = superan.some(t => cubiertas.has(clave(t)))
+  const siguen = superan.some(l => cubiertas.has(clave(l)))
   const quien = revision.creada_por_nombre ? `${revision.creada_por_nombre}: ` : ''
-  const cubria = enLista((revision.tareas ?? []).map(t => nombreDeTarea(t, enVariasUnidades)))
-  const ahora = enLista(nuevas.map(t => nombreDeTarea(t, enVariasUnidades)))
+  const cubria = enLista((revision.grupos ?? []).map(nombreDeLinea))
+  const ahora = enLista(nuevas.map(nombreDeLinea))
   return `Hubo una Revisión el ${textoFecha(revision.creada_en)} (${quien}“${revision.comentario}”) `
     + `que cubría ${cubria}. Ahora supera${siguen ? ' también' : ''} ${ahora}: `
     + 'hace falta revisarlo de nuevo o corregirlo.'
@@ -135,14 +130,12 @@ export function bannerDeDetalle(detalle, puedeEditarResumen) {
 
   const revision = detalle.revision
   if (estados.includes('con_diferencia')) {
-    const filas = filasDe(detalle)
-    const superan = filas.filter(t => t.supera)
-    const enVariasUnidades = new Set(filas.filter(t => t.en_varias_unidades).map(t => t.tarea_id))
+    const superan = lineasQueSuperan(detalle)
     const umbral = textoUmbral(detalle.umbral_pct)
     return {
       tipo: 'warn',
       titulo: `${cuantasSuperan(superan.length)}${umbral ? ` el ${umbral}` : ' el Umbral'}.`,
-      texto: (revision && textoConRevisionAnterior(revision, superan, enVariasUnidades)) ?? TEXTO_SIN_REVISION,
+      texto: (revision && textoConRevisionAnterior(revision, superan)) ?? TEXTO_SIN_REVISION,
       deshacer: false,
     }
   }
@@ -184,38 +177,40 @@ export function validarComentario(texto) {
 }
 
 /**
- * La suma de la cantidad de los partes de una fila, como texto decimal y
- * exacta, para el "Total del campo" del panel. Lo que no es un número no
- * suma; sin partes, "0".
+ * La suma de la cantidad de los partes de una tarea, como texto decimal y
+ * exacta, para el "Total del campo" del modal de partes. Lo que no es un
+ * número no suma; sin partes, "0".
  */
 export function totalPartes(partes) {
   return sumarDecimales((partes ?? []).map(p => p.cantidad))
 }
 
-// ─── Lo que usa la pantalla del Detalle (FA6) ───────────────────────────────
+// ─── Lo que usa la pantalla del Detalle (FA6 y Ticket 2) ────────────────────
 
-/** Las filas que superan el Umbral, de todos los grupos y en su orden. */
-export function filasQueSuperan(detalle) {
-  return filasDe(detalle).filter(t => t.supera)
+/** Las líneas (grupo, unidad) que superan el Umbral, en su orden. */
+export function lineasQueSuperan(detalle) {
+  return lineasDe(detalle).filter(l => l.supera)
 }
 
 /**
- * Si la fila lleva la etiqueta "Revisada" junto a "Supera" (boceto F0): supera
- * y la Revisión vigente la cubre, por (tarea, unidad).
+ * Si la línea lleva la etiqueta "Revisada" junto a "Supera" (boceto F0):
+ * supera y la Revisión vigente la cubre, por (grupo, unidad).
  */
-export function revisadaEnFila(tarea, revision) {
-  if (!tarea?.supera || !revision) return false
-  return (revision.tareas ?? []).some(t => clave(t) === clave(tarea))
+export function revisadaEnLinea(linea, revision) {
+  if (!linea?.supera || !revision) return false
+  return (revision.grupos ?? []).some(l => clave(l) === clave(linea))
 }
 
 /**
- * En cuántas filas está cada tarea (una por unidad), para la marca
- * "en 2 unidades" (plan E3, decisión 3): Map de tarea_id a la cantidad.
+ * Las líneas abiertas del Detalle, con la de `claveLinea` abierta si estaba
+ * cerrada o cerrada si estaba abierta. Devuelve un Set nuevo, para el estado de
+ * React; el de antes queda igual.
  */
-export function unidadesPorTarea(detalle) {
-  const cuantas = new Map()
-  for (const t of filasDe(detalle)) cuantas.set(t.tarea_id, (cuantas.get(t.tarea_id) ?? 0) + 1)
-  return cuantas
+export function alternarAbierta(abiertas, claveLinea) {
+  const nuevas = new Set(abiertas)
+  if (nuevas.has(claveLinea)) nuevas.delete(claveLinea)
+  else nuevas.add(claveLinea)
+  return nuevas
 }
 
 const DIFERENCIA = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2, signDisplay: 'exceptZero' })

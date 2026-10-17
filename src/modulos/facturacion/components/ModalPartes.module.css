@@ -1,0 +1,57 @@
+/* La tabla de los partes dentro del modal: las filas no se eligen, así que
+   van sin el hover ni el puntero de las tablas del sistema. */
+.titulo {
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.nada {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.partes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.partes thead th {
+  position: static;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-strong);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--text-secondary);
+}
+
+.partes tbody tr { cursor: default; }
+.partes tbody tr:hover { background: transparent; }
+
+.partes td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.partes tfoot td {
+  font-weight: 600;
+  border-top: 2px solid var(--border-strong);
+  border-bottom: 0;
+}
+
+.partes .numero { text-align: right; }
+
+.supervisor { color: var(--text-secondary); }
+
+.vacia { color: var(--text-muted); }
