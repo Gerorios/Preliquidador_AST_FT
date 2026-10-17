@@ -147,6 +147,21 @@
    vean de un vistazo. */
 .vacia { color: var(--text-muted); }
 
+/* Lo Facturado de un grupo que no se compara en este filtro: en gris y en
+   palabras, para que no se lea como un número. */
+.fuera {
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* La fila del aviso de lo que no entra, entre el encabezado del bloque y sus
+   líneas: sobre el fondo de las líneas y sin el hover de una fila. */
+.filaAviso > td {
+  background: var(--bg-base);
+  padding: 6px 10px 4px;
+}
+
 /* Antes del corte y Mes en curso: se leen, pero quedan por debajo de los
    meses que se controlan. Las etiquetas dicen por qué (no sólo el color). */
 .gris td { color: var(--text-secondary); }

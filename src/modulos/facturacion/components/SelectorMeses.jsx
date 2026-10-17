@@ -1,17 +1,15 @@
-import { ATAJOS_RESUMEN } from '../periodo'
+import { ATAJOS_RESUMEN, topeDelPeriodo } from '../periodo'
 import { OTRO_PERIODO, periodoElegido } from '../vistaResumen'
 import styles from './SelectorMeses.module.css'
 
-// Período del Resumen (plan E3, FA5): va primero en la barra común, en el
-// lugar de la quincena. "Otro período" abre Desde y Hasta por mes, porque el
-// Resumen pide meses ("AAAA-MM").
+// Período del Resumen (plan E3, FA5, y Ticket 4 de la spec de la E3a por
+// grupo): va primero en la barra común, en el lugar de la quincena. "Otro
+// período" abre Desde y Hasta por día ("AAAA-MM-DD"), con el campo de fecha
+// del navegador.
 //
-// `valor`: { atajo, desde?, hasta? }; qué meses pide lo dice periodoElegido y
+// `valor`: { atajo, desde?, hasta? }; qué días pide lo dice periodoElegido y
 // si el rango es válido, rangoValido (periodo.js). El backend manda (422
-// `rango_invalido`).
-
-// El mes en curso como "AAAA-MM": el tope de los dos campos de mes.
-const mesDe = hoy => `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
+// `fecha_invalida` o `rango_invalido`).
 
 export default function SelectorMeses({ valor, onChange, hoy }) {
   const elegirAtajo = id => {
@@ -21,7 +19,8 @@ export default function SelectorMeses({ valor, onChange, hoy }) {
       : { atajo: id })
   }
 
-  const tope = mesDe(hoy)
+  // El tope de los dos campos: el fin del mes en curso.
+  const tope = topeDelPeriodo(hoy)
   const otro = valor.atajo === OTRO_PERIODO
 
   return (
@@ -39,7 +38,7 @@ export default function SelectorMeses({ valor, onChange, hoy }) {
         <>
           <input
             className={`input ${styles.mes}`}
-            type="month"
+            type="date"
             aria-label="Desde"
             max={tope}
             value={valor.desde ?? ''}
@@ -48,7 +47,7 @@ export default function SelectorMeses({ valor, onChange, hoy }) {
           <span className={styles.a}>a</span>
           <input
             className={`input ${styles.mes}`}
-            type="month"
+            type="date"
             aria-label="Hasta"
             max={tope}
             value={valor.hasta ?? ''}

@@ -15,13 +15,15 @@ import {
   CAMPOS_RESUMEN, filaDelResumen, datosParaFiltros, filtrarResumen, contarAlertas, ordenarResumen,
 } from '../resumen'
 import {
-  horaDeLectura, medidaIlegible, medidaVacia, periodoElegido, textoMedida, textoUnidad,
+  OTRO_PERIODO, horaDeLectura, medidaIlegible, medidaVacia, periodoElegido, textoMedida, textoUnidad,
 } from '../vistaResumen'
 import { signoDeDiferencia, textoDiferencia, textoPct } from '../detalle'
+import { avisoFueraDelFiltro } from '../fueraDelFiltro'
 import CuadrosAlertas from '../components/CuadrosAlertas'
 import EtiquetasEstado from '../components/EtiquetasEstado'
 import SelectorMeses from '../components/SelectorMeses'
 import AvisoSinUnidad from '../components/AvisoSinUnidad'
+import AvisoFueraDelFiltro from '../components/AvisoFueraDelFiltro'
 import PieConfiguracion from '../components/PieConfiguracion'
 import styles from './Resumen.module.css'
 
@@ -36,9 +38,19 @@ import styles from './Resumen.module.css'
 // de Mes, Cliente y Estado; y el aviso de tareas sin Unidad sugerida. El pie
 // dice cómo se controla. Lo trabajado sale del sistema de campo, que es lento:
 // la hora de la lectura se ve arriba a la derecha, con "Volver a leer".
+//
+// El filtro es por día (Ticket 4 de la spec de la E3a por grupo): cada fila
+// sigue siendo un mes y un Cliente, con el filtro recortado a ese mes. Una
+// Línea que cae en parte afuera no cuenta: su grupo dice "fuera del filtro" y
+// el bloque lleva, debajo del encabezado, el aviso con el botón que pasa el
+// filtro al período de esas Líneas.
 
 // Las columnas de las líneas que van a la derecha.
 const COLUMNAS_LINEA = ['Campo', 'Facturado', 'Dif.', 'Dif. %']
+
+// Todas las columnas: Mes, Cliente, Grupo de tareas, Unidad, las de la línea,
+// Estado y Acción. El aviso de lo que no entra va a todo el ancho.
+const COLUMNAS = 4 + COLUMNAS_LINEA.length + 2
 
 // Para el chip "Alerta: …" de la barra cuando un cuadro filtra. Los botones
 // de alerta de la barra no se muestran: esa tarea la hacen los cuadros.
@@ -64,10 +76,15 @@ function Medida({ valor, conCero = false }) {
     : textoMedida(valor, { conCero })
 }
 
+const Raya = () => <span className={styles.vacia}>—</span>
+
 // Una línea (grupo, unidad) del bloque. En un mes en gris, sin tono en la
-// Dif. ni "Supera".
+// Dif. ni "Supera". Un grupo con alguna Línea que cae en parte afuera del
+// filtro no se compara (decisión 7): Facturado dice "fuera del filtro" en
+// gris, y la Dif. y el % van con raya.
 function Linea({ linea, gris }) {
-  const signo = gris ? null : signoDeDiferencia(linea.diferencia)
+  const fuera = Boolean(linea.fuera_del_filtro)
+  const signo = gris || fuera ? null : signoDeDiferencia(linea.diferencia)
   const tono = signo ? ` ${styles[signo]}` : ''
   return (
     <tr className={styles.linea}>
@@ -75,10 +92,12 @@ function Linea({ linea, gris }) {
       <td className={styles.grupo}>{linea.grupo}</td>
       <td className={linea.unidad ? styles.unidad : styles.sinUnidad}>{textoUnidad(linea.unidad)}</td>
       <td className={styles.numero}><Medida valor={linea.campo} conCero /></td>
-      <td className={styles.numero}><Medida valor={linea.facturado} /></td>
-      <td className={`${styles.numero}${tono}`}>{textoDiferencia(linea.diferencia)}</td>
-      <td className={`${styles.numero}${tono}`}>{textoPct(linea.diferencia_pct)}</td>
-      <td>{!gris && linea.supera && <span className="badge badge-warn">Supera</span>}</td>
+      <td className={styles.numero}>
+        {fuera ? <span className={styles.fuera}>fuera del filtro</span> : <Medida valor={linea.facturado} />}
+      </td>
+      <td className={`${styles.numero}${tono}`}>{fuera ? <Raya /> : textoDiferencia(linea.diferencia)}</td>
+      <td className={`${styles.numero}${tono}`}>{fuera ? <Raya /> : textoPct(linea.diferencia_pct)}</td>
+      <td>{!gris && !fuera && linea.supera && <span className="badge badge-warn">Supera</span>}</td>
       <td />
     </tr>
   )
@@ -137,6 +156,9 @@ export default function Resumen() {
     [filtros.alerta],
   )
   const elegirAlerta = alerta => setFiltros(f => ({ ...f, alerta }))
+  // El botón del aviso pasa el filtro al período de lo que no entra, como un
+  // Otro período: Desde y Hasta quedan a la vista para ajustarlo.
+  const verPeriodo = ({ desde: d, hasta: h }) => setPeriodo({ atajo: OTRO_PERIODO, desde: d, hasta: h })
 
   const hayDatos = valido && Boolean(data)
   const hora = horaDeLectura(data?.leido_en)
@@ -147,8 +169,8 @@ export default function Resumen() {
       <div className={styles.vacio}>
         <h2 className={styles.vacioTitulo}>Revisá el período</h2>
         <p className={styles.vacioTexto}>
-          Elegí Desde y Hasta: Hasta no puede ser anterior a Desde ni posterior al mes en curso,
-          y el período abarca {MESES_MAXIMOS} meses como máximo.
+          Elegí Desde y Hasta: Hasta no puede ser anterior a Desde ni posterior al fin del mes
+          en curso, y el período abarca {MESES_MAXIMOS} meses como máximo.
         </p>
       </div>
     )
@@ -174,7 +196,7 @@ export default function Resumen() {
       <div className={styles.vacio}>
         <h2 className={styles.vacioTitulo}>Sin trabajo ni comprobantes en el período</h2>
         <p className={styles.vacioTexto}>
-          Ningún Cliente tuvo trabajo en el campo ni Comprobantes en esos meses. Elegí otro
+          Ningún Cliente tuvo trabajo en el campo ni Comprobantes en esas fechas. Elegí otro
           período en la barra.
         </p>
       </div>
@@ -211,6 +233,7 @@ export default function Resumen() {
           {ordenadas.map(f => {
             const accion = accionDeFila(f, editaComprobantes)
             const gris = esGris(f)
+            const aviso = avisoFueraDelFiltro(f)
             return (
               <tbody key={`${f.cliente_id}-${f.mes}`} className={gris ? styles.gris : undefined}>
                 <tr className={styles.bloque}>
@@ -230,6 +253,11 @@ export default function Resumen() {
                     </Link>
                   </td>
                 </tr>
+                {aviso && (
+                  <tr className={styles.filaAviso}>
+                    <td colSpan={COLUMNAS}><AvisoFueraDelFiltro aviso={aviso} onVer={verPeriodo} /></td>
+                  </tr>
+                )}
                 {(f.grupos ?? []).map(l => (
                   <Linea key={`${l.grupo}|${l.unidad ?? ''}`} linea={l} gris={gris} />
                 ))}

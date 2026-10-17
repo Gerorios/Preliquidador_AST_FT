@@ -1,5 +1,5 @@
 /* Período del Resumen, primero en la barra común: el atajo y, con "Otro
-   período", Desde y Hasta por mes. */
+   período", Desde y Hasta por día. */
 .periodo {
   display: inline-flex;
   align-items: center;
@@ -7,7 +7,7 @@
   flex-wrap: wrap;
 }
 
-/* Los meses se leen como fecha: mono, con cifras del mismo ancho. */
+/* Las fechas: mono, con cifras del mismo ancho. */
 .mes {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

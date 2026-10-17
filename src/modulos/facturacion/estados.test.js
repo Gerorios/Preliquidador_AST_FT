@@ -27,14 +27,17 @@ const SIN_ADJUNTO = [{ id: 40, tipo: 'factura', numero: '0001-00000040' }, { id:
 
 // ─── Mapa clave → etiqueta, badge y orden ───────────────────────────────────
 
-test('ESTADOS: las seis claves del backend, con la etiqueta, el badge y el orden del mockup', () => {
+test('ESTADOS: las siete claves del backend, con la etiqueta, el badge y el orden del mockup', () => {
+  // Sin comparar (Ticket 4 de la spec de la E3a por grupo) va entre Falta
+  // comprobante y Facturada, como en el backend: no pide hacer nada, avisa.
   assert.deepEqual(ESTADOS, {
     pendiente_de_facturar: { etiqueta: 'Pendiente de facturar', badge: 'badge-danger', orden: 0 },
     con_diferencia: { etiqueta: 'Con diferencia', badge: 'badge-warn', orden: 1 },
     falta_comprobante: { etiqueta: 'Falta comprobante', badge: 'badge-info', orden: 2 },
-    facturada: { etiqueta: 'Facturada', badge: 'badge-green', orden: 3 },
-    mes_en_curso: { etiqueta: 'Mes en curso', badge: 'badge-muted', orden: 4 },
-    antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 5 },
+    sin_comparar: { etiqueta: 'Sin comparar en este período', badge: 'badge-muted', orden: 3 },
+    facturada: { etiqueta: 'Facturada', badge: 'badge-green', orden: 4 },
+    mes_en_curso: { etiqueta: 'Mes en curso', badge: 'badge-muted', orden: 5 },
+    antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 6 },
   })
 })
 
@@ -64,6 +67,24 @@ test('estadoMasUrgente: una clave que no conoce no cuenta; sin ninguna conocida,
 
 test('rutaDelDetalle: /facturacion/resumen/{cliente_id}/{mes}', () => {
   assert.equal(rutaDelDetalle(fila(['facturada'])), DETALLE)
+})
+
+test('rutaDelDetalle: con el filtro de la fila, lo lleva como desde y hasta', () => {
+  // El Detalle se abre con el mismo período que muestra la fila (decisión 5).
+  assert.equal(rutaDelDetalle(fila(['facturada'], { desde: '2026-09-01', hasta: '2026-09-10' })),
+    `${DETALLE}?desde=2026-09-01&hasta=2026-09-10`)
+  // Sólo con los dos: con uno solo, el mes entero.
+  assert.equal(rutaDelDetalle(fila(['facturada'], { desde: '2026-09-01' })), DETALLE)
+})
+
+test('Sin comparar: el botón y la etiqueta van como en Facturada', () => {
+  const f = fila(['sin_comparar'])
+  assert.deepEqual(accionDeFila(f, true), { texto: 'Ver detalle', destino: DETALLE, primaria: false })
+  assert.equal(destinoDeEtiqueta('sin_comparar', f, true), null)
+  assert.equal(textoDeEstado('sin_comparar', f), 'Sin comparar en este período')
+  // Más urgente que Facturada y menos que Falta comprobante.
+  assert.equal(estadoMasUrgente(['facturada', 'sin_comparar']), 'sin_comparar')
+  assert.equal(estadoMasUrgente(['sin_comparar', 'falta_comprobante']), 'falta_comprobante')
 })
 
 // ─── Acción de cada fila ────────────────────────────────────────────────────

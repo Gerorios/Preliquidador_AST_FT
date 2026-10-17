@@ -275,19 +275,38 @@ const MES = /^(\d{4})-(\d{2})$/
 const DIA = /^(\d{4})-(\d{2})-(\d{2})$/
 const dosCifras = n => String(n).padStart(2, '0')
 
-/**
- * El período que guarda la Revisión, `{ desde, hasta }` como "AAAA-MM-DD", o
- * null si el mes no se lee. Hasta el filtro por día (Ticket 4 de la spec de
- * la E3a por grupo) es el mes entero, del 1 al último día, como lo guarda el
- * backend; con el filtro, sale del filtro recortado al mes.
- */
-export function periodoARevisar(mes) {
+// El mes entero de "AAAA-MM", `{ desde, hasta }` del 1 al último día, o null.
+function mesEntero(mes) {
   const partes = MES.exec(mes ?? '')
   const numero = partes && Number(partes[2])
   if (!numero || numero > 12) return null
   // El día 0 del mes siguiente es el último de este.
   const ultimo = new Date(Date.UTC(Number(partes[1]), numero, 0)).getUTCDate()
   return { desde: `${partes[1]}-${partes[2]}-01`, hasta: `${partes[1]}-${partes[2]}-${dosCifras(ultimo)}` }
+}
+
+/**
+ * El período del Detalle, que es el que guarda la Revisión: `{ desde, hasta }`
+ * como "AAAA-MM-DD", el filtro del Resumen recortado al mes como lo devuelve
+ * el backend (Ticket 4 de la spec de la E3a por grupo). Si el detalle no los
+ * trae, el mes entero, del 1 al último día. null si el mes no se lee.
+ */
+export function periodoARevisar(detalle) {
+  const entero = mesEntero(detalle?.mes)
+  if (!entero) return null
+  const { desde, hasta } = detalle
+  return DIA.test(desde ?? '') && DIA.test(hasta ?? '') ? { desde, hasta } : entero
+}
+
+/** Si un período `{ desde, hasta }` es un mes entero, del 1 al último día. */
+export function esMesEntero(periodo) {
+  const entero = mesEntero(periodo?.desde?.slice(0, 7))
+  return Boolean(entero && entero.desde === periodo.desde && entero.hasta === periodo.hasta)
+}
+
+/** El nombre del mes de un día "AAAA-MM-DD", "julio"; si no se lee, vacío. */
+export function nombreDelMes(dia) {
+  return leerDia(dia)?.mes ?? ''
 }
 
 // "2026-10-05" a { dia: 5, mes: 'octubre', anio: '2026' }, o null.

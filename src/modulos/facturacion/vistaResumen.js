@@ -137,7 +137,7 @@ export function textoUltimoCambio(configuracion, zona) {
 export const OTRO_PERIODO = 'otro'
 
 /**
- * El período que pide la pantalla, `{ desde, hasta }` en "AAAA-MM", según lo
+ * El período que pide la pantalla, `{ desde, hasta }` en "AAAA-MM-DD", según lo
  * elegido en la barra (`{ atajo, desde?, hasta? }`). Un atajo se calcula con
  * `hoy` cada vez, así "Mes pasado" sigue siendo el mes pasado al volver otro
  * día; "Otro período" usa Desde y Hasta tal cual (si es válido lo dice

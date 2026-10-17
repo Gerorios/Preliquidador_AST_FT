@@ -13,14 +13,19 @@
 
 // Etiqueta, badge (clase de src/index.css) y orden de urgencia de cada clave,
 // tomados de la tabla del mockup aprobado del Resumen: 0 es lo más urgente.
-// Una Facturada con `diferencia_revisada` sigue siendo Facturada.
+// Una Facturada con `diferencia_revisada` sigue siendo Facturada. Sin comparar
+// en este período (Ticket 4 de la spec de la E3a por grupo: nada de la fila
+// entra entero en el filtro) va en el lugar que le da el backend, entre Falta
+// comprobante y Facturada, y no lleva a ningún lado: el aviso de la fila dice
+// qué período mirar.
 export const ESTADOS = {
   pendiente_de_facturar: { etiqueta: 'Pendiente de facturar', badge: 'badge-danger', orden: 0 },
   con_diferencia: { etiqueta: 'Con diferencia', badge: 'badge-warn', orden: 1 },
   falta_comprobante: { etiqueta: 'Falta comprobante', badge: 'badge-info', orden: 2 },
-  facturada: { etiqueta: 'Facturada', badge: 'badge-green', orden: 3 },
-  mes_en_curso: { etiqueta: 'Mes en curso', badge: 'badge-muted', orden: 4 },
-  antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 5 },
+  sin_comparar: { etiqueta: 'Sin comparar en este período', badge: 'badge-muted', orden: 3 },
+  facturada: { etiqueta: 'Facturada', badge: 'badge-green', orden: 4 },
+  mes_en_curso: { etiqueta: 'Mes en curso', badge: 'badge-muted', orden: 5 },
+  antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 6 },
 }
 
 /**
@@ -36,8 +41,16 @@ export function estadoMasUrgente(estados) {
   return masUrgente
 }
 
-/** El Detalle de la fila: /facturacion/resumen/{cliente_id}/{mes}. */
-export const rutaDelDetalle = fila => `/facturacion/resumen/${fila.cliente_id}/${fila.mes}`
+/**
+ * El Detalle de la fila: /facturacion/resumen/{cliente_id}/{mes}, con el
+ * filtro de la fila (el del Resumen recortado al mes) como `?desde=&hasta=`,
+ * para que el Detalle muestre el mismo período. Sin los dos, el mes entero.
+ */
+export function rutaDelDetalle(fila) {
+  const ruta = `/facturacion/resumen/${fila.cliente_id}/${fila.mes}`
+  if (!fila.desde || !fila.hasta) return ruta
+  return `${ruta}?${new URLSearchParams({ desde: fila.desde, hasta: fila.hasta })}`
+}
 
 // El alta de una Factura con el Cliente y el mes de la fila. En la E3a abre
 // el formulario de la E2; en la E3b, la Precarga.

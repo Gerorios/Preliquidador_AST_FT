@@ -288,6 +288,14 @@
 
 .vacia { color: var(--text-muted); }
 
+/* Lo Facturado de un grupo que no se compara en este filtro (Ticket 4): en
+   gris y en palabras, para que no se lea como un número. */
+.fuera {
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
 /* La fila TOTAL, fija abajo, separada por una línea más marcada. */
 .tabla tfoot td {
   position: sticky;

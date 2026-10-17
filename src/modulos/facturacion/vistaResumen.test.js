@@ -140,23 +140,25 @@ test('textoUltimoCambio sin quién dice sólo cuándo, y sin cuándo da null', (
   assert.equal(textoUltimoCambio({}, ZONA), null)
 })
 
-test('periodoElegido: un atajo se calcula con el día de hoy', () => {
+test('periodoElegido: un atajo se calcula con el día de hoy, en días', () => {
   const hoy = new Date(2026, 0, 20)
-  assert.deepEqual(periodoElegido({ atajo: 'mes_pasado' }, hoy), { desde: '2025-12', hasta: '2025-12' })
-  assert.deepEqual(periodoElegido({ atajo: 'este_anio', desde: '2020-01', hasta: '2020-02' }, hoy),
-    { desde: '2026-01', hasta: '2026-01' })
+  assert.deepEqual(periodoElegido({ atajo: 'mes_pasado' }, hoy), { desde: '2025-12-01', hasta: '2025-12-31' })
+  assert.deepEqual(periodoElegido({ atajo: 'este_anio', desde: '2020-01-01', hasta: '2020-02-01' }, hoy),
+    { desde: '2026-01-01', hasta: '2026-01-31' })
+  assert.deepEqual(periodoElegido({ atajo: 'quincena_pasada' }, hoy), { desde: '2026-01-01', hasta: '2026-01-15' })
 })
 
 test('periodoElegido: "Otro período" usa Desde y Hasta tal cual', () => {
   const hoy = new Date(2026, 9, 15)
-  assert.deepEqual(periodoElegido({ atajo: OTRO_PERIODO, desde: '2026-03', hasta: '2026-05' }, hoy),
-    { desde: '2026-03', hasta: '2026-05' })
+  assert.deepEqual(periodoElegido({ atajo: OTRO_PERIODO, desde: '2026-07-01', hasta: '2026-07-10' }, hoy),
+    { desde: '2026-07-01', hasta: '2026-07-10' })
   assert.deepEqual(periodoElegido({ atajo: OTRO_PERIODO }, hoy), { desde: '', hasta: '' })
 })
 
 test('periodoElegido: un atajo que no existe vuelve al inicial, el mes pasado', () => {
-  assert.deepEqual(periodoElegido({ atajo: 'viejo' }, new Date(2026, 9, 15)), { desde: '2026-09', hasta: '2026-09' })
-  assert.deepEqual(periodoElegido(undefined, new Date(2026, 9, 15)), { desde: '2026-09', hasta: '2026-09' })
+  const hoy = new Date(2026, 9, 15)
+  assert.deepEqual(periodoElegido({ atajo: 'viejo' }, hoy), { desde: '2026-09-01', hasta: '2026-09-30' })
+  assert.deepEqual(periodoElegido(undefined, hoy), { desde: '2026-09-01', hasta: '2026-09-30' })
 })
 
 test('textoUnidad: la etiqueta de la unidad; sin unidad, "Sin Unidad sugerida"', () => {

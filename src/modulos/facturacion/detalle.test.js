@@ -11,7 +11,7 @@ import {
   LARGO_COMENTARIO, textoPct, bannerDeDetalle, puedeRevisar, validarComentario, totalPartes,
   claveDeLinea, nombreDeLinea, lineasQueSuperan, revisadaEnLinea, alternarAbierta,
   textoDiferencia, textoDiferenciaPesos, textoComprobante, textoMesLargo, signoDeDiferencia,
-  periodoARevisar, textoPeriodo, textoCubre, textoNoRevisable, esNoRevisable,
+  periodoARevisar, esMesEntero, textoPeriodo, textoCubre, textoNoRevisable, esNoRevisable,
 } from './detalle.js'
 
 // Una tarea dentro de su fila, con lo que usan estas funciones.
@@ -405,17 +405,34 @@ test('signoDeDiferencia: de menos o de más, para el tono; cero, null o basura, 
 
 // ─── El período de la Revisión y los textos del modal (Ticket 3) ────────────
 
-test('periodoARevisar: hasta el filtro por día, el mes entero, del 1 al último día', () => {
-  assert.deepEqual(periodoARevisar('2026-10'), { desde: '2026-10-01', hasta: '2026-10-31' })
-  assert.deepEqual(periodoARevisar('2026-11'), { desde: '2026-11-01', hasta: '2026-11-30' })
-  assert.deepEqual(periodoARevisar('2026-02'), { desde: '2026-02-01', hasta: '2026-02-28' })
-  assert.deepEqual(periodoARevisar('2028-02'), { desde: '2028-02-01', hasta: '2028-02-29' })
+test('periodoARevisar: el período del Detalle, el filtro recortado al mes (Ticket 4)', () => {
+  assert.deepEqual(periodoARevisar({ mes: '2026-10', desde: '2026-10-01', hasta: '2026-10-15' }),
+    { desde: '2026-10-01', hasta: '2026-10-15' })
+  assert.deepEqual(periodoARevisar({ mes: '2026-10', desde: '2026-10-01', hasta: '2026-10-31' }),
+    { desde: '2026-10-01', hasta: '2026-10-31' })
+})
+
+test('periodoARevisar: sin desde y hasta, el mes entero, del 1 al último día', () => {
+  assert.deepEqual(periodoARevisar({ mes: '2026-10' }), { desde: '2026-10-01', hasta: '2026-10-31' })
+  assert.deepEqual(periodoARevisar({ mes: '2026-11' }), { desde: '2026-11-01', hasta: '2026-11-30' })
+  assert.deepEqual(periodoARevisar({ mes: '2026-02' }), { desde: '2026-02-01', hasta: '2026-02-28' })
+  assert.deepEqual(periodoARevisar({ mes: '2028-02', desde: 'x', hasta: null }),
+    { desde: '2028-02-01', hasta: '2028-02-29' })
 })
 
 test('periodoARevisar: lo que no es un mes, null', () => {
-  assert.equal(periodoARevisar('2026-13'), null)
-  assert.equal(periodoARevisar('x'), null)
+  assert.equal(periodoARevisar({ mes: '2026-13' }), null)
+  assert.equal(periodoARevisar({ mes: 'x' }), null)
   assert.equal(periodoARevisar(undefined), null)
+})
+
+test('esMesEntero: del 1 al último día del mes, sí; una parte, no', () => {
+  assert.equal(esMesEntero({ desde: '2026-10-01', hasta: '2026-10-31' }), true)
+  assert.equal(esMesEntero({ desde: '2026-02-01', hasta: '2026-02-28' }), true)
+  assert.equal(esMesEntero({ desde: '2026-10-01', hasta: '2026-10-15' }), false)
+  assert.equal(esMesEntero({ desde: '2026-10-16', hasta: '2026-10-31' }), false)
+  assert.equal(esMesEntero({ desde: '2026-10-01', hasta: '2026-11-30' }), false)
+  assert.equal(esMesEntero(null), false)
 })
 
 test('textoPeriodo: "del 1 al 31 de octubre"; una quincena; de un mes a otro, los dos meses', () => {
@@ -432,13 +449,13 @@ test('textoPeriodo: sin período o con fechas que no se leen, vacío', () => {
 
 test('textoCubre: la franja del modal, con el período que se guarda', () => {
   assert.equal(
-    textoCubre(periodoARevisar('2026-10')),
+    textoCubre(periodoARevisar({ mes: '2026-10' })),
     'Cubre del 1 al 31 de octubre. Si después supera otro grupo, el mes vuelve a Con diferencia.',
   )
 })
 
 test('textoNoRevisable: el 409 habla de grupos, con el período, y dice que el Detalle se actualizó', () => {
-  const texto = textoNoRevisable(periodoARevisar('2026-10'))
+  const texto = textoNoRevisable(periodoARevisar({ mes: '2026-10' }))
   assert.equal(
     texto,
     'No hace falta revisarla. En el período del 1 al 31 de octubre ya no hay grupos que superen el Umbral. '

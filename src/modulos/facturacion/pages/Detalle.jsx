@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
@@ -15,7 +15,8 @@ import { medidaIlegible, textoMedida, textoUmbral, textoUnidad } from '../vistaR
 import {
   bannerDeDetalle, puedeRevisar, validarComentario, textoPct, claveDeLinea, lineasQueSuperan,
   revisadaEnLinea, alternarAbierta, textoDiferencia, textoDiferenciaPesos, signoDeDiferencia,
-  textoComprobante, textoMesLargo, periodoARevisar, textoNoRevisable, esNoRevisable,
+  textoComprobante, textoMesLargo, periodoARevisar, esMesEntero, textoPeriodo, textoNoRevisable,
+  esNoRevisable,
 } from '../detalle'
 import ModalPartes from '../components/ModalPartes'
 import ModalRevision from '../components/ModalRevision'
@@ -28,9 +29,14 @@ import styles from './Detalle.module.css'
 // el aviso según el caso. Las filas arrancan cerradas: el triángulo abre las
 // tareas de la fila con su cantidad del campo, y el nombre de una tarea abre
 // el modal con sus partes. "Marcar revisada" abre el modal de la Revisión de
-// diferencia (spec, decisión 5), que cubre el mes entero hasta el filtro por
-// día (Ticket 4). No se factura desde acá: se vuelve al Resumen, que conserva su período, sus filtros y su orden
-// (estadoPantallas).
+// diferencia (spec, decisión 5). No se factura desde acá: se vuelve al
+// Resumen, que conserva su período, sus filtros y su orden (estadoPantallas).
+//
+// El período es el filtro del Resumen, que llega como `?desde=&hasta=`
+// (Ticket 4): el backend lo recorta al mes y lo devuelve en el Detalle; sin
+// ellos, el mes entero. La Revisión cubre ese período exacto. Un grupo con
+// alguna Línea que cae en parte afuera dice "fuera del filtro" y no se
+// compara, como en el Resumen.
 
 const RESUMEN = '/facturacion/resumen'
 
@@ -85,15 +91,16 @@ function Estados({ estados }) {
   ))
 }
 
-// Los Comprobantes del mes: links al Comprobante sólo con Ver en
-// `comprobantes`; si no, el texto. Uno que pide su PDF lo dice al lado.
-function Comprobantes({ comprobantes, enlaces }) {
+// Los Comprobantes del período: links al Comprobante sólo con Ver en
+// `comprobantes`; si no, el texto. Uno que pide su PDF lo dice al lado. Con
+// una parte del mes, son los que tienen alguna Línea en ese período.
+function Comprobantes({ comprobantes, enlaces, parcial }) {
   if (!comprobantes.length) {
-    return <p className={styles.comprobantes}>Sin Comprobantes en el mes.</p>
+    return <p className={styles.comprobantes}>Sin Comprobantes {parcial ? 'en el período' : 'en el mes'}.</p>
   }
   return (
     <p className={styles.comprobantes}>
-      <span className={styles.comprobantesTitulo}>Comprobantes del mes:</span>
+      <span className={styles.comprobantesTitulo}>Comprobantes {parcial ? 'del período' : 'del mes'}:</span>
       {comprobantes.map(c => {
         const sinPdf = !c.es_historico && c.cantidad_adjuntos === 0
         return (
@@ -111,15 +118,19 @@ function Comprobantes({ comprobantes, enlaces }) {
 
 export default function Detalle() {
   const { clienteId, mes } = useParams()
+  // El filtro del Resumen; sin los dos, el mes entero.
+  const [params] = useSearchParams()
+  const desde = params.get('desde') || undefined
+  const hasta = params.get('hasta') || undefined
   const qc = useQueryClient()
   const { usuario } = useAuthStore()
   const editaResumen = puedeEditar(usuario, 'facturacion', 'resumen')
   const veComprobantes = puedeVer(usuario, 'facturacion', 'comprobantes')
 
-  const clave = claveDetalle(clienteId, mes)
+  const clave = claveDetalle(clienteId, mes, desde, hasta)
   const { data, isPending, isError, error, refetch, isFetching } = useQuery({
     queryKey: clave,
-    queryFn: () => obtenerDetalle({ clienteId, mes }),
+    queryFn: () => obtenerDetalle({ clienteId, mes, desde, hasta }),
   })
 
   // Las filas abiertas, por su clave (grupo, unidad): todas arrancan cerradas.
@@ -150,9 +161,12 @@ export default function Detalle() {
   const revisable = puedeRevisar(data, editaResumen)
   const umbralTexto = textoUmbral(data?.umbral_pct)
   const mesTexto = textoMesLargo(mes)
-  // El período que guarda la Revisión: el mes entero. El Ticket 4 lo toma del
-  // filtro por día.
-  const periodo = periodoARevisar(mes)
+  // El período del Detalle y de la Revisión: el que devuelve el backend (el
+  // filtro recortado al mes); mientras carga, el de la dirección.
+  const periodo = periodoARevisar(data ?? { mes, desde, hasta })
+  const parcial = Boolean(periodo) && !esMesEntero(periodo)
+  // "octubre 2026" o, con una parte del mes, "del 1 al 15 de octubre 2026".
+  const periodoTexto = parcial ? `${textoPeriodo(periodo)} ${periodo.desde.slice(0, 4)}` : mesTexto
   // Mientras carga, el título dice "Detalle" y el mes; el Cliente llega con el Detalle.
   const cliente = data ? (data.cliente_nombre ?? `Cliente ${clienteId}`) : 'Detalle'
 
@@ -223,7 +237,7 @@ export default function Detalle() {
       campoComentario.current?.focus()
       return
     }
-    revisar.mutate({ clienteId, mes, comentario: comentario.trim() })
+    revisar.mutate({ clienteId, mes, desde, hasta, comentario: comentario.trim() })
   }
 
   // ─── Filas, modal de partes y modal de la Revisión ────────────────────────
@@ -284,7 +298,7 @@ export default function Detalle() {
     contenido = sinArreglo ? (
       <div className={styles.vacio}>
         <h2 className={styles.vacioTitulo}>
-          {error.status === 404 ? 'No se encontró este Cliente' : 'El mes no es válido'}
+          {error.status === 404 ? 'No se encontró este Cliente' : error.detail?.tipo === 'mes_invalido' ? 'El mes no es válido' : 'El período no es válido'}
         </h2>
         <p className={styles.vacioTexto}>
           {error.message} Volvé al <Link to={RESUMEN} className={styles.enlace}>Resumen</Link> y
@@ -306,9 +320,9 @@ export default function Detalle() {
   } else if (lineas.length === 0) {
     contenido = (
       <div className={styles.vacio}>
-        <h2 className={styles.vacioTitulo}>Sin tareas en el mes</h2>
+        <h2 className={styles.vacioTitulo}>Sin tareas {parcial ? 'en el período' : 'en el mes'}</h2>
         <p className={styles.vacioTexto}>
-          {cliente} no tuvo trabajo facturable en el campo ni Líneas facturadas en {mesTexto}.
+          {cliente} no tuvo trabajo facturable en el campo ni Líneas facturadas en {periodoTexto}.
         </p>
       </div>
     )
@@ -339,10 +353,13 @@ export default function Detalle() {
                 const claveLinea = claveDeLinea(l)
                 const abierta = abiertas.has(claveLinea)
                 const idFila = `fact-detalle-${i}`
-                const signo = signoDeDiferencia(l.diferencia)
-                const revisada = revisadaEnLinea(l, data.revision)
+                // Un grupo con alguna Línea en parte afuera del filtro no se
+                // compara (decisión 7): sin Dif., sin % y sin "Supera".
+                const fuera = Boolean(l.fuera_del_filtro)
+                const signo = fuera ? null : signoDeDiferencia(l.diferencia)
+                const revisada = !fuera && revisadaEnLinea(l, data.revision)
                 const clases = [
-                  styles.fila, abierta && styles.abierta, l.supera && styles.supera,
+                  styles.fila, abierta && styles.abierta, !fuera && l.supera && styles.supera,
                 ].filter(Boolean).join(' ')
                 return (
                   <Fragment key={claveLinea}>
@@ -362,11 +379,17 @@ export default function Detalle() {
                       </td>
                       <td className={styles.unidad}>{textoUnidad(l.unidad)}</td>
                       <td className={styles.numero}><Medida valor={l.campo} /></td>
-                      <td className={styles.numero}><Medida valor={l.facturado} /></td>
-                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>{textoDiferencia(l.diferencia)}</td>
-                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>{textoPct(l.diferencia_pct)}</td>
+                      <td className={styles.numero}>
+                        {fuera ? <span className={styles.fuera}>fuera del filtro</span> : <Medida valor={l.facturado} />}
+                      </td>
+                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>
+                        {fuera ? <span className={styles.vacia}>—</span> : textoDiferencia(l.diferencia)}
+                      </td>
+                      <td className={`${styles.numero} ${signo ? styles[signo] : ''}`}>
+                        {fuera ? <span className={styles.vacia}>—</span> : textoPct(l.diferencia_pct)}
+                      </td>
                       <td className={styles.marcas}>
-                        {l.supera && <span className="badge badge-warn">Supera</span>}
+                        {!fuera && l.supera && <span className="badge badge-warn">Supera</span>}
                         {revisada && <span className="badge badge-green">Revisada</span>}
                       </td>
                     </tr>
@@ -377,7 +400,7 @@ export default function Detalle() {
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={2}>TOTAL DEL MES, EN PESOS</td>
+                <td colSpan={2}>{parcial ? 'TOTAL DEL PERÍODO, EN PESOS' : 'TOTAL DEL MES, EN PESOS'}</td>
                 <td className={styles.numero}>{formatoPesos(total.campo_pesos)}</td>
                 <td className={styles.numero}>{formatoPesos(total.facturado_pesos)}</td>
                 <td className={`${styles.numero} ${signoTotal ? styles[signoTotal] : ''}`}>
@@ -408,7 +431,7 @@ export default function Detalle() {
           <Link to={RESUMEN} className={styles.volver}>
             <Icono nombre="atras" size={14} enTexto /> Resumen
           </Link>
-          <h1 ref={tituloRef} tabIndex={-1} className={styles.titulo}>{cliente} · {mesTexto}</h1>
+          <h1 ref={tituloRef} tabIndex={-1} className={styles.titulo}>{cliente} · {periodoTexto}</h1>
           {data && <Estados estados={data.estados} />}
           {revisable && (
             <button
@@ -421,7 +444,7 @@ export default function Detalle() {
             </button>
           )}
         </div>
-        {data && <Comprobantes comprobantes={data.comprobantes ?? []} enlaces={veComprobantes} />}
+        {data && <Comprobantes comprobantes={data.comprobantes ?? []} enlaces={veComprobantes} parcial={parcial} />}
       </div>
 
       {banner && (
@@ -438,7 +461,7 @@ export default function Detalle() {
               className="btn btn-sm"
               // Sin deshabilitarlo mientras guarda, para que no pierda el foco:
               // el overlay del núcleo ya tapa la pantalla.
-              onClick={() => { if (!deshacer.isPending) deshacer.mutate({ clienteId, mes }) }}
+              onClick={() => { if (!deshacer.isPending) deshacer.mutate({ clienteId, mes, desde, hasta }) }}
               aria-busy={deshacer.isPending}
             >
               {deshacer.isPending ? 'Deshaciendo…' : 'Deshacer'}
@@ -453,7 +476,7 @@ export default function Detalle() {
         <ModalPartes
           tarea={partesDe.tarea}
           linea={partesDe.linea}
-          mesTexto={mesTexto}
+          mesTexto={periodoTexto}
           onCerrar={cerrarPartes}
         />
       )}
@@ -463,7 +486,7 @@ export default function Detalle() {
       {revisando && data && (
         <ModalRevision
           superan={superan}
-          subtitulo={`${cliente} · ${mesTexto}`}
+          subtitulo={`${cliente} · ${periodoTexto}`}
           umbralTexto={umbralTexto}
           periodo={periodo}
           comentario={comentario}
