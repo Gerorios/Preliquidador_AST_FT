@@ -1,8 +1,8 @@
 // Textos y formatos de la pantalla del Resumen (plan E3, FA5): la hora de
-// lectura del campo, las medidas de la tabla, el texto de cada cuadro de
-// Alertas y el formulario del pie (Umbral de diferencia y Mes de corte). Las
-// filas, los filtros y los totales están en resumen.js (FA3). No importa React,
-// para que lo cargue `node --test`.
+// lectura del campo, las medidas y la unidad de cada línea, el texto de cada
+// cuadro de Alertas y el formulario del pie (Umbral de diferencia y Mes de
+// corte). Las filas, los filtros y el orden están en resumen.js (FA3). No
+// importa React, para que lo cargue `node --test`.
 //
 // Las horas llegan en UTC y sin zona, como las demás fechas de alta del
 // backend (`creada_en` en detalle.js): se leen como UTC y se muestran con la
@@ -10,6 +10,7 @@
 
 import { leerNumero } from './numeros.js'
 import { ATAJO_INICIAL, periodoDeAtajo } from './periodo.js'
+import { ETIQUETAS } from './unidades.js'
 
 const DECIMAL = /^-?\d+(?:\.\d+)?$/
 const CERO = /^-?0+(?:\.0+)?$/
@@ -145,4 +146,14 @@ export const OTRO_PERIODO = 'otro'
 export function periodoElegido(valor, hoy) {
   if (valor?.atajo === OTRO_PERIODO) return { desde: valor.desde ?? '', hasta: valor.hasta ?? '' }
   return periodoDeAtajo(valor?.atajo, hoy) ?? periodoDeAtajo(ATAJO_INICIAL, hoy)
+}
+
+/**
+ * La unidad de una línea del Resumen: su etiqueta ("Horas de peón"). Sin
+ * unidad (las tareas del grupo no tienen Unidad sugerida), "Sin Unidad
+ * sugerida"; una clave que no conoce, tal cual.
+ */
+export function textoUnidad(unidad) {
+  if (unidad == null || unidad === '') return 'Sin Unidad sugerida'
+  return ETIQUETAS[unidad] ?? unidad
 }

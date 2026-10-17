@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import FiltrosBar from '../../../core/ui/FiltrosBar'
-import { EncabezadoOrdenable } from '../../../core/ui/TablaOrdenable'
-import { ordenarFilas } from '../../../core/ui/ordenarFilas'
 import CargandoContenido from '../../../core/ui/CargandoContenido'
 import Icono from '../../../core/ui/iconos'
 import { useEstadoPantalla } from '../../../core/estadoPantallas'
@@ -12,12 +10,14 @@ import useAuthStore from '../../../core/authStore'
 import { puedeEditar } from '../../../core/permisos'
 import { claveResumen, obtenerResumen } from '../services/resumen'
 import { ATAJO_INICIAL, MESES_MAXIMOS, rangoValido } from '../periodo'
-import { ESTADOS, accionDeFila, estadoMasUrgente, rutaDelDetalle } from '../estados'
+import { ESTADOS, accionDeFila, rutaDelDetalle } from '../estados'
 import {
-  CAMPOS_RESUMEN, filaDelResumen, datosParaFiltros, filtrarResumen, contarAlertas, totales,
+  CAMPOS_RESUMEN, filaDelResumen, datosParaFiltros, filtrarResumen, contarAlertas, ordenarResumen,
 } from '../resumen'
-import { horaDeLectura, medidaVacia, periodoElegido, textoMedida } from '../vistaResumen'
-import { formatoPesos } from '../numeros'
+import {
+  horaDeLectura, medidaIlegible, medidaVacia, periodoElegido, textoMedida, textoUnidad,
+} from '../vistaResumen'
+import { signoDeDiferencia, textoDiferencia, textoPct } from '../detalle'
 import CuadrosAlertas from '../components/CuadrosAlertas'
 import EtiquetasEstado from '../components/EtiquetasEstado'
 import SelectorMeses from '../components/SelectorMeses'
@@ -26,53 +26,62 @@ import PieConfiguracion from '../components/PieConfiguracion'
 import styles from './Resumen.module.css'
 
 // Resumen de Facturación (plan E3, FA5; pantallas.md, mockup aprobado y
-// boceto F0): una fila por mes y Cliente con lo trabajado según el campo, lo
-// facturado (neto) y el Estado del mes. Arriba, los cuadros de Alertas, que
-// filtran la tabla; la barra común con el período y los filtros de Mes,
-// Cliente y Estado; y el aviso de tareas sin Unidad sugerida. La fila TOTAL
-// queda fija abajo y el pie dice cómo se controla. Lo trabajado sale del
-// sistema de campo, que es lento: la hora de la lectura se ve arriba a la
-// derecha, con "Volver a leer".
+// boceto de la E3a por grupo; spec de la E3a por grupo, Ticket 1): un bloque
+// por mes y Cliente, con un encabezado que lleva el Estado del mes y la acción,
+// y debajo una línea por grupo de tareas y unidad con Campo, Facturado, Dif. y
+// Dif. %. Sólo cantidades: sin pesos ni fila TOTAL. El orden es fijo, sin
+// ordenar por columna (decisión 2): el mes más nuevo, el Estado más urgente y
+// el Cliente; las líneas vienen ordenadas del backend. Arriba, los cuadros de
+// Alertas, que filtran la tabla; la barra común con el período y los filtros
+// de Mes, Cliente y Estado; y el aviso de tareas sin Unidad sugerida. El pie
+// dice cómo se controla. Lo trabajado sale del sistema de campo, que es lento:
+// la hora de la lectura se ve arriba a la derecha, con "Volver a leer".
 
-// Las medidas de la tabla, en el orden del mockup: lo trabajado según el campo.
-const MEDIDAS = [
-  { clave: 'horas_peon', label: 'Horas peón' },
-  { clave: 'horas_tractor', label: 'Horas tractor' },
-  { clave: 'tancadas', label: 'Tancadas' },
-  { clave: 'plantas', label: 'Plantas' },
-  { clave: 'hectareas', label: 'Hectáreas' },
-]
-
-// Para ordenar: los decimales como número; vacío, al final (ordenarFilas).
-const numero = texto => (texto == null || texto === '' ? null : Number(texto))
-
-// `valor` es lo que ordena. El Estado ordena por urgencia (el más urgente
-// primero) y el Mes en ISO, así el orden de texto es el de la fecha.
-const COLUMNAS = [
-  { clave: 'mes', label: 'Mes', valor: f => f.mes },
-  { clave: 'cliente', label: 'Cliente', valor: f => f.cliente_nombre },
-  ...MEDIDAS.map(m => ({ ...m, numerica: true, valor: f => numero(f[m.clave]) })),
-  { clave: 'facturado', label: 'Facturado', numerica: true, valor: f => numero(f.facturado_neto) },
-  { clave: 'estado', label: 'Estado', valor: f => ESTADOS[estadoMasUrgente(f.estados)]?.orden ?? null },
-]
+// Las columnas de las líneas que van a la derecha.
+const COLUMNAS_LINEA = ['Campo', 'Facturado', 'Dif.', 'Dif. %']
 
 // Para el chip "Alerta: …" de la barra cuando un cuadro filtra. Los botones
 // de alerta de la barra no se muestran: esa tarea la hacen los cuadros.
 const ALERTAS = ['pendiente_de_facturar', 'con_diferencia', 'falta_comprobante']
   .map(clave => ({ value: clave, label: ESTADOS[clave].etiqueta }))
 
-// Antes del corte y Mes en curso van en gris: muestran sus números y suman en
-// el TOTAL, pero no se controlan (o, en el mes en curso, sólo el PDF).
+// Antes del corte y Mes en curso van en gris: muestran sus líneas con la
+// Dif., pero no se controlan (o, en el mes en curso, sólo el PDF), así que
+// ninguna avisa.
 const esGris = f => (f.estados ?? []).some(e => e === 'mes_en_curso' || e === 'antes_del_corte')
 
 const filas_ = n => `${n} ${n === 1 ? 'fila' : 'filas'}`
 
 const nombreCliente = f => f.cliente_nombre ?? `Cliente ${f.cliente_id}`
 
-function Medida({ valor }) {
-  return medidaVacia(valor)
+// Una cantidad de una línea. Con `conCero` (el Campo, que se compara con lo
+// facturado) el cero se muestra; la raya queda para lo que no hay: el Campo
+// de una línea sin unidad o lo Facturado en cero.
+function Medida({ valor, conCero = false }) {
+  const raya = conCero ? medidaIlegible(valor) : medidaVacia(valor)
+  return raya
     ? <span className={styles.vacia}>—</span>
-    : textoMedida(valor)
+    : textoMedida(valor, { conCero })
+}
+
+// Una línea (grupo, unidad) del bloque. En un mes en gris, sin tono en la
+// Dif. ni "Supera".
+function Linea({ linea, gris }) {
+  const signo = gris ? null : signoDeDiferencia(linea.diferencia)
+  const tono = signo ? ` ${styles[signo]}` : ''
+  return (
+    <tr className={styles.linea}>
+      <td colSpan={2} />
+      <td className={styles.grupo}>{linea.grupo}</td>
+      <td className={linea.unidad ? styles.unidad : styles.sinUnidad}>{textoUnidad(linea.unidad)}</td>
+      <td className={styles.numero}><Medida valor={linea.campo} conCero /></td>
+      <td className={styles.numero}><Medida valor={linea.facturado} /></td>
+      <td className={`${styles.numero}${tono}`}>{textoDiferencia(linea.diferencia)}</td>
+      <td className={`${styles.numero}${tono}`}>{textoPct(linea.diferencia_pct)}</td>
+      <td>{!gris && linea.supera && <span className="badge badge-warn">Supera</span>}</td>
+      <td />
+    </tr>
+  )
 }
 
 export default function Resumen() {
@@ -83,11 +92,10 @@ export default function Resumen() {
   // 4), como decide el núcleo.
   const esAdmin = usuario?.rol === 'admin'
 
-  // Período, filtros y orden sobreviven al ir a un Detalle o a un Comprobante
-  // y volver (estadoPantallas).
+  // Período y filtros sobreviven al ir a un Detalle o a un Comprobante y
+  // volver (estadoPantallas).
   const [periodo, setPeriodo] = useEstadoPantalla('facturacion.resumen.periodo', { atajo: ATAJO_INICIAL })
   const [filtros, setFiltros] = useEstadoPantalla('facturacion.resumen.filtros', {})
-  const [orden, setOrden] = useEstadoPantalla('facturacion.resumen.orden', null)
 
   // El día de hoy fija los atajos y el tope de los meses. Se toma una vez por
   // visita a la pantalla.
@@ -120,9 +128,8 @@ export default function Resumen() {
   const filas = useMemo(() => (data?.filas ?? []).map(filaDelResumen), [data])
   const datosBarra = useMemo(() => datosParaFiltros(filas), [filas])
   const visibles = useMemo(() => filtrarResumen(filas, filtros), [filas, filtros])
-  const ordenadas = useMemo(() => ordenarFilas(visibles, COLUMNAS, orden), [visibles, orden])
+  const ordenadas = useMemo(() => ordenarResumen(visibles), [visibles])
   const cuenta = useMemo(() => contarAlertas(filas, filtros), [filas, filtros])
-  const total = useMemo(() => totales(visibles), [visibles])
   // Con un cuadro elegido, las opciones de la barra salen de las filas que
   // tienen esa Alerta.
   const prefiltro = useCallback(
@@ -187,30 +194,31 @@ export default function Resumen() {
     contenido = (
       <div className={styles.tabla}>
         <table>
-          <caption className={styles.soloLector}>Resumen por mes y Cliente</caption>
+          <caption className={styles.soloLector}>
+            Resumen por mes y Cliente, con una línea por grupo de tareas y unidad
+          </caption>
           <thead>
             <tr>
-              {COLUMNAS.map(c => <EncabezadoOrdenable key={c.clave} columna={c} orden={orden} onOrden={setOrden} />)}
+              <th scope="col">Mes</th>
+              <th scope="col">Cliente</th>
+              <th scope="col">Grupo de tareas</th>
+              <th scope="col">Unidad</th>
+              {COLUMNAS_LINEA.map(c => <th key={c} scope="col" className={styles.numero}>{c}</th>)}
+              <th scope="col">Estado</th>
               <th scope="col"><span className={styles.soloLector}>Acción</span></th>
             </tr>
           </thead>
-          <tbody>
-            {ordenadas.map(f => {
-              const accion = accionDeFila(f, editaComprobantes)
-              return (
-                <tr key={`${f.cliente_id}-${f.mes}`} className={esGris(f) ? styles.gris : undefined}>
+          {ordenadas.map(f => {
+            const accion = accionDeFila(f, editaComprobantes)
+            const gris = esGris(f)
+            return (
+              <tbody key={`${f.cliente_id}-${f.mes}`} className={gris ? styles.gris : undefined}>
+                <tr className={styles.bloque}>
                   <td className={`mono ${styles.mes}`}>{f.mes_texto ?? f.mes}</td>
-                  <td className={styles.cliente}>
+                  <th scope="rowgroup" className={styles.cliente}>
                     <Link to={rutaDelDetalle(f)} className={styles.linkCliente}>{nombreCliente(f)}</Link>
-                  </td>
-                  {MEDIDAS.map(m => (
-                    <td key={m.clave} className={styles.numero}><Medida valor={f[m.clave]} /></td>
-                  ))}
-                  <td className={styles.numero}>
-                    {medidaVacia(f.facturado_neto)
-                      ? <span className={styles.vacia}>—</span>
-                      : formatoPesos(f.facturado_neto)}
-                  </td>
+                  </th>
+                  <td colSpan={2 + COLUMNAS_LINEA.length} />
                   <td><EtiquetasEstado fila={f} puedeEditarComprobantes={editaComprobantes} /></td>
                   <td className={styles.accion}>
                     <Link
@@ -222,20 +230,12 @@ export default function Resumen() {
                     </Link>
                   </td>
                 </tr>
-              )
-            })}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={2}>TOTAL · {filas_(total.cantidad)}</td>
-              {MEDIDAS.map(m => (
-                <td key={m.clave} className={styles.numero}><Medida valor={total[m.clave]} /></td>
-              ))}
-              <td className={styles.numero}>{formatoPesos(total.facturado_neto)}</td>
-              <td />
-              <td />
-            </tr>
-          </tfoot>
+                {(f.grupos ?? []).map(l => (
+                  <Linea key={`${l.grupo}|${l.unidad ?? ''}`} linea={l} gris={gris} />
+                ))}
+              </tbody>
+            )
+          })}
         </table>
       </div>
     )

@@ -1,16 +1,19 @@
 // Filas del Resumen (plan E3, FA3): lo que necesita la barra común del núcleo
-// (FiltrosBar) para filtrar, el número de cada cuadro de Alertas y la fila
-// TOTAL. Las filas son las de GET /api/facturacion/resumen (plan E3, sección
-// 3.2, ruta 13). No importa React, para que lo cargue `node --test`.
+// (FiltrosBar) para filtrar, el número de cada cuadro de Alertas y el orden
+// fijo de los bloques (spec de la E3a por grupo, decisión 2). Las filas son
+// las de GET /api/facturacion/resumen (plan E3, sección 3.2, ruta 13): una por
+// mes y Cliente, con sus líneas (grupo, unidad) en `grupos`, ya en su orden.
+// Sólo cantidades: no hay fila TOTAL. No importa React, para que lo cargue
+// `node --test`.
 //
 // Una fila puede tener varios estados (Con diferencia y Falta comprobante),
 // pero la barra lee un solo valor por campo (`fila[campo.field]`). Para que
 // las opciones en cascada del núcleo salgan bien sin tocar el núcleo, la barra
 // recibe `datosParaFiltros`: cada fila repetida una vez por estado, con la
-// etiqueta de ese estado en `estado_texto`. La tabla, los cuadros y el TOTAL
-// usan las filas sin repetir.
+// etiqueta de ese estado en `estado_texto`. La tabla y los cuadros usan las
+// filas sin repetir.
 
-import { ESTADOS } from './estados.js'
+import { ESTADOS, estadoMasUrgente } from './estados.js'
 import { textoMes, delMesMasNuevo } from './listado.js'
 
 // Las opciones de Estado van por urgencia, como en el mockup aprobado; una
@@ -28,9 +31,6 @@ export const CAMPOS_RESUMEN = [
 // Los estados que son Alerta, cada uno con su cuadro. Cada cuadro cuenta
 // filas (mes y Cliente) y cada Alerta por separado (plan E3, premisa 6).
 const CLAVES_ALERTA = ['pendiente_de_facturar', 'con_diferencia', 'falta_comprobante']
-
-// Las medidas del campo y el neto, como texto decimal; el neto, con signo.
-const MEDIDAS = ['horas_peon', 'horas_tractor', 'tancadas', 'plantas', 'hectareas', 'facturado_neto']
 
 /**
  * La fila de la API con los textos que usan la barra y la tabla:
@@ -136,13 +136,29 @@ export function sumarDecimales(textos) {
   return `${negativo ? '-' : ''}${enteros}${decimales}`
 }
 
+// ─── Orden fijo de los bloques (decisión 2) ─────────────────────────────────
+
+const ordenDeUrgencia = f => {
+  const clave = estadoMasUrgente(f.estados)
+  return clave == null ? Infinity : ESTADOS[clave].orden
+}
+
+// El nombre como lo muestra la pantalla: sin nombre, "Cliente 9".
+const nombreParaOrdenar = f => f.cliente_nombre ?? `Cliente ${f.cliente_id}`
+
+const POR_NOMBRE = new Intl.Collator('es', { sensitivity: 'base', numeric: true })
+
 /**
- * La fila TOTAL de las filas que recibe (las que quedan con los filtros):
- * `cantidad` de filas y la suma de cada medida y del neto, como texto
- * decimal. El neto viene con signo, así una Nota de crédito resta.
+ * Las filas (ya pasadas por filaDelResumen) en el orden fijo del Resumen, sin
+ * ordenar por columna: el mes más nuevo primero, después el Estado más urgente
+ * (una fila sin estado conocido, al final) y después el Cliente, por nombre.
+ * Las líneas de cada fila ya vienen en su orden del backend (por grupo, "Sin
+ * grupo" al final, y por unidad). Devuelve una lista nueva.
  */
-export function totales(filas) {
-  const total = { cantidad: filas.length }
-  for (const medida of MEDIDAS) total[medida] = sumarDecimales(filas.map(f => f[medida]))
-  return total
+export function ordenarResumen(filas) {
+  return [...filas].sort((a, b) =>
+    (b.mes ?? '').localeCompare(a.mes ?? '')
+    || ordenDeUrgencia(a) - ordenDeUrgencia(b)
+    || POR_NOMBRE.compare(nombreParaOrdenar(a), nombreParaOrdenar(b))
+    || a.cliente_id - b.cliente_id)
 }

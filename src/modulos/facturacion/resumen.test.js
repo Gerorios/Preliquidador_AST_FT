@@ -1,5 +1,6 @@
-// Tests de las filas, los cuadros de Alertas, los filtros y los totales del
-// Resumen (node --test, sin dependencias; plan E3, FA3). Las filas de entrada
+// Tests de las filas, los cuadros de Alertas, los filtros y el orden fijo del
+// Resumen (node --test, sin dependencias; plan E3, FA3, y spec de la E3a por
+// grupo, Ticket 1). Las filas de entrada
 // tienen la forma de cada fila de GET /api/facturacion/resumen (plan E3,
 // sección 3.2, ruta 13), y los campos se prueban contra opcionesCascada del
 // núcleo, que es lo que usa la barra común para armar las opciones de cada
@@ -9,23 +10,22 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   CAMPOS_RESUMEN, filaDelResumen, datosParaFiltros, filtrarResumen,
-  contarAlertas, totales,
+  contarAlertas, ordenarResumen, sumarDecimales,
 } from './resumen.js'
 import { delMesMasNuevo } from './listado.js'
 import { opcionesCascada } from '../../core/ui/opcionesCascada.js'
 
-// Una fila tal como la manda el backend: las medidas y el neto como texto
-// decimal, y los estados ordenados por urgencia.
+// Una fila tal como la manda el backend: las líneas (grupo, unidad) con las
+// cantidades como texto decimal, y los estados ordenados por urgencia.
 const fila = (cambios = {}) => ({
   cliente_id: 12,
   cliente_nombre: 'CLIENTE UNO',
   mes: '2026-09',
-  horas_peon: '120.50',
-  horas_tractor: '8.00',
-  tancadas: '0',
-  plantas: '0',
-  hectareas: '4.25',
-  facturado_neto: '1500.00',
+  grupos: [{
+    grupo: 'MANUALES', unidad: 'horas_peon', campo: '120.50', facturado: '120.50',
+    diferencia: '0.00', diferencia_pct: '0.00', supera: false,
+  }],
+  lineas_superan: 0,
   estados: ['facturada'],
   diferencia_revisada: false,
   comprobantes_sin_adjunto: [],
@@ -49,8 +49,8 @@ test('delMesMasNuevo: del mes más nuevo al más viejo, y lo que no es un mes al
 test('filaDelResumen: conserva los campos de la API y suma el texto del mes', () => {
   const f = filaDelResumen(fila())
   assert.equal(f.cliente_id, 12)
-  assert.equal(f.horas_peon, '120.50')
-  assert.equal(f.facturado_neto, '1500.00')
+  assert.deepEqual(f.grupos, fila().grupos)
+  assert.equal(f.lineas_superan, 0)
   assert.deepEqual(f.estados, ['facturada'])
   assert.equal(f.mes_texto, 'sep 2026')
 })
@@ -246,54 +246,59 @@ test('contarAlertas: no aplica el Estado ni la Alerta, así el número del cuadr
   assert.deepEqual(contarAlertas(filas(LISTA), { estado: ['Facturada'] }), sinFiltro)
 })
 
-// ─── totales ────────────────────────────────────────────────────────────────
+// ─── ordenarResumen: el orden fijo (decisión 2) ─────────────────────────────
 
-test('totales: suma cada medida y el neto de las filas que recibe, y las cuenta', () => {
-  const t = totales(filas([
-    fila(),
-    fila({ horas_peon: '0.25', horas_tractor: '1.5', tancadas: '3', plantas: '1200',
-      hectareas: '0.75', facturado_neto: '250.50' }),
+const claves = lista => lista.map(f => `${f.mes} ${f.cliente_nombre}`)
+
+test('ordenarResumen: el mes más nuevo primero', () => {
+  const orden = ordenarResumen(filas([
+    fila({ mes: '2026-08', cliente_nombre: 'A' }),
+    fila({ mes: '2026-10', cliente_nombre: 'A' }),
+    fila({ mes: '2026-09', cliente_nombre: 'A' }),
   ]))
-  assert.deepEqual(t, {
-    cantidad: 2,
-    horas_peon: '120.75',
-    horas_tractor: '9.50',
-    tancadas: '3',
-    plantas: '1200',
-    hectareas: '5.00',
-    facturado_neto: '1750.50',
-  })
+  assert.deepEqual(claves(orden), ['2026-10 A', '2026-09 A', '2026-08 A'])
 })
 
-test('totales: el neto viene con signo y una Nota de crédito resta', () => {
-  const t = totales(filas([fila({ facturado_neto: '100.00' }), fila({ facturado_neto: '-250.50' })]))
-  assert.equal(t.facturado_neto, '-150.50')
-})
-
-test('totales: suma exacta, sin el error de los números de punto flotante', () => {
-  const t = totales(filas([fila({ horas_peon: '0.1' }), fila({ horas_peon: '0.2' })]))
-  assert.equal(t.horas_peon, '0.3')
-  // Más de 2^53 centavos: con Number se perdería el último dígito.
-  const grande = totales(filas([
-    fila({ facturado_neto: '90071992547409.91' }),
-    fila({ facturado_neto: '0.01' }),
+test('ordenarResumen: en el mismo mes, el Estado más urgente primero', () => {
+  const orden = ordenarResumen(filas([
+    fila({ cliente_nombre: 'A', estados: ['facturada'] }),
+    fila({ cliente_nombre: 'B', estados: ['falta_comprobante'] }),
+    fila({ cliente_nombre: 'C', estados: ['con_diferencia', 'falta_comprobante'] }),
+    fila({ cliente_nombre: 'D', estados: ['pendiente_de_facturar'] }),
+    fila({ cliente_nombre: 'E', estados: ['otra_cosa'] }),
   ]))
-  assert.equal(grande.facturado_neto, '90071992547409.92')
+  // Una fila sin estado conocido va al final.
+  assert.deepEqual(orden.map(f => f.cliente_nombre), ['D', 'C', 'B', 'A', 'E'])
 })
 
-test('totales: sin filas, todo en cero', () => {
-  assert.deepEqual(totales([]), {
-    cantidad: 0,
-    horas_peon: '0',
-    horas_tractor: '0',
-    tancadas: '0',
-    plantas: '0',
-    hectareas: '0',
-    facturado_neto: '0',
-  })
+test('ordenarResumen: con el mismo mes y Estado, por Cliente en orden alfabético', () => {
+  const orden = ordenarResumen(filas([
+    fila({ cliente_id: 3, cliente_nombre: 'Ñandú' }),
+    fila({ cliente_id: 1, cliente_nombre: 'álamo' }),
+    fila({ cliente_id: 2, cliente_nombre: 'Bosque' }),
+    // Sin nombre: por su número, como lo muestra la pantalla ("Cliente 9").
+    fila({ cliente_id: 9, cliente_nombre: null }),
+  ]))
+  assert.deepEqual(orden.map(f => f.cliente_id), [1, 2, 9, 3])
 })
 
-test('totales: un valor que no es un número no suma', () => {
-  const t = totales(filas([fila({ plantas: null }), fila({ plantas: '10' })]))
-  assert.equal(t.plantas, '10')
+test('ordenarResumen: no ordena por columna ni cambia lo que recibe', () => {
+  const lista = filas([
+    fila({ mes: '2026-08', cliente_nombre: 'A' }),
+    fila({ mes: '2026-09', cliente_nombre: 'B' }),
+  ])
+  const copia = structuredClone(lista)
+  ordenarResumen(lista)
+  assert.deepEqual(lista, copia)
+})
+
+// ─── sumarDecimales: la usa el total de los partes del Detalle ─────────────
+
+test('sumarDecimales: suma exacta, con la escala más larga', () => {
+  assert.equal(sumarDecimales(['0.1', '0.2']), '0.3')
+  assert.equal(sumarDecimales(['0.25', '120.5']), '120.75')
+  assert.equal(sumarDecimales(['90071992547409.91', '0.01']), '90071992547409.92')
+  assert.equal(sumarDecimales(['100.00', '-250.50']), '-150.50')
+  assert.equal(sumarDecimales([null, '10']), '10')
+  assert.equal(sumarDecimales([]), '0')
 })

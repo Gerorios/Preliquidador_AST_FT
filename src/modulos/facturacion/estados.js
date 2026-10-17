@@ -91,3 +91,18 @@ export function destinoDeEtiqueta(clave, fila, puedeEditarComprobantes) {
   if (!Object.hasOwn(DESTINOS, clave ?? '')) return null
   return DESTINOS[clave](fila, puedeEditarComprobantes)
 }
+
+/**
+ * El texto de la etiqueta de un estado en la fila. Con diferencia dice cuántas
+ * líneas (grupo, unidad) superan el Umbral, "Con diferencia · 2 líneas
+ * superan": cuenta líneas, no grupos (decisión 2 de la spec de la E3a por
+ * grupo). Sin `lineas_superan`, y en los demás estados, la etiqueta sola. Una
+ * clave que no es de ESTADOS, null.
+ */
+export function textoDeEstado(clave, fila) {
+  if (!Object.hasOwn(ESTADOS, clave ?? '')) return null
+  const { etiqueta } = ESTADOS[clave]
+  const n = fila?.lineas_superan
+  if (clave !== 'con_diferencia' || !Number.isInteger(n) || n < 1) return etiqueta
+  return `${etiqueta} · ${n} ${n === 1 ? 'línea supera' : 'líneas superan'}`
+}

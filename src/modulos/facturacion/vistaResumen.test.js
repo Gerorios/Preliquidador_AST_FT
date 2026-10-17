@@ -9,6 +9,7 @@ import assert from 'node:assert/strict'
 import {
   horaDeLectura, textoMedida, medidaVacia, medidaIlegible, textoDeCuadro, textoUmbral,
   umbralParaEditar, leerConfiguracion, textoUltimoCambio, OTRO_PERIODO, periodoElegido,
+  textoUnidad,
 } from './vistaResumen.js'
 
 // Una zona fija, así el test no depende de la PC donde corre (UTC-3).
@@ -156,4 +157,13 @@ test('periodoElegido: "Otro período" usa Desde y Hasta tal cual', () => {
 test('periodoElegido: un atajo que no existe vuelve al inicial, el mes pasado', () => {
   assert.deepEqual(periodoElegido({ atajo: 'viejo' }, new Date(2026, 9, 15)), { desde: '2026-09', hasta: '2026-09' })
   assert.deepEqual(periodoElegido(undefined, new Date(2026, 9, 15)), { desde: '2026-09', hasta: '2026-09' })
+})
+
+test('textoUnidad: la etiqueta de la unidad; sin unidad, "Sin Unidad sugerida"', () => {
+  assert.equal(textoUnidad('horas_peon'), 'Horas de peón')
+  assert.equal(textoUnidad('hectareas'), 'Hectáreas')
+  assert.equal(textoUnidad(null), 'Sin Unidad sugerida')
+  assert.equal(textoUnidad(undefined), 'Sin Unidad sugerida')
+  // Una clave que no conoce, tal cual.
+  assert.equal(textoUnidad('otra_unidad'), 'otra_unidad')
 })

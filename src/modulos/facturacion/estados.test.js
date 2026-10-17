@@ -7,7 +7,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  ESTADOS, estadoMasUrgente, rutaDelDetalle, accionDeFila, destinoDeEtiqueta,
+  ESTADOS, estadoMasUrgente, rutaDelDetalle, accionDeFila, destinoDeEtiqueta, textoDeEstado,
 } from './estados.js'
 
 // Una fila como la manda el backend, con lo que usan estas funciones.
@@ -150,4 +150,28 @@ test('destinoDeEtiqueta: Facturada, Mes en curso y Antes del corte van como text
   }
   assert.equal(destinoDeEtiqueta('otra_cosa', fila(['otra_cosa']), true), null)
   assert.equal(destinoDeEtiqueta('constructor', fila(['constructor']), true), null)
+})
+
+// ─── textoDeEstado (decisión 2 de la spec de la E3a por grupo) ──────────────
+
+test('textoDeEstado: Con diferencia dice cuántas líneas superan', () => {
+  assert.equal(textoDeEstado('con_diferencia', fila(['con_diferencia'], { lineas_superan: 1 })),
+    'Con diferencia · 1 línea supera')
+  // Cuenta líneas (grupo, unidad): un grupo con dos unidades que superan, 2.
+  assert.equal(textoDeEstado('con_diferencia', fila(['con_diferencia'], { lineas_superan: 3 })),
+    'Con diferencia · 3 líneas superan')
+})
+
+test('textoDeEstado: sin líneas que superen, Con diferencia va sola', () => {
+  assert.equal(textoDeEstado('con_diferencia', fila(['con_diferencia'], { lineas_superan: 0 })),
+    'Con diferencia')
+  assert.equal(textoDeEstado('con_diferencia', fila(['con_diferencia'])), 'Con diferencia')
+})
+
+test('textoDeEstado: los demás estados, su etiqueta; una clave que no conoce, null', () => {
+  const conLineas = fila(['facturada', 'falta_comprobante'], { lineas_superan: 2 })
+  assert.equal(textoDeEstado('facturada', conLineas), 'Facturada')
+  assert.equal(textoDeEstado('falta_comprobante', conLineas), 'Falta comprobante')
+  assert.equal(textoDeEstado('otra_cosa', conLineas), null)
+  assert.equal(textoDeEstado('constructor', conLineas), null)
 })
