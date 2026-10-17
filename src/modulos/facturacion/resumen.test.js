@@ -58,8 +58,12 @@ test('filaDelResumen: conserva los campos de la API y suma el texto del mes', ()
 test('filaDelResumen: las etiquetas de los estados, de la más urgente a la menos', () => {
   const f = filaDelResumen(fila({ estados: ['falta_comprobante', 'con_diferencia'] }))
   assert.deepEqual(f.estados_texto, ['Con diferencia', 'Falta comprobante'])
-  const enCurso = filaDelResumen(fila({ estados: ['mes_en_curso', 'falta_comprobante'] }))
-  assert.deepEqual(enCurso.estados_texto, ['Falta comprobante', 'Mes en curso'])
+  const corte = filaDelResumen(fila({ estados: ['antes_del_corte', 'falta_comprobante'] }))
+  assert.deepEqual(corte.estados_texto, ['Falta comprobante', 'Antes del corte'])
+  // Mes en curso ya no es un estado (plan del 2026-10-17): no lleva etiqueta.
+  const enCurso = filaDelResumen(fila({ estados: ['mes_en_curso', 'falta_comprobante'], en_curso: true }))
+  assert.deepEqual(enCurso.estados_texto, ['Falta comprobante'])
+  assert.equal(enCurso.en_curso, true)
 })
 
 test('filaDelResumen: una clave de estado que no se conoce no lleva etiqueta', () => {

@@ -11,7 +11,7 @@ import {
   LARGO_COMENTARIO, textoPct, bannerDeDetalle, puedeRevisar, validarComentario, totalPartes,
   claveDeLinea, nombreDeLinea, lineasQueSuperan, revisadaEnLinea, alternarAbierta,
   textoDiferencia, textoDiferenciaPesos, textoComprobante, textoMesLargo, signoDeDiferencia,
-  periodoARevisar, esMesEntero, textoPeriodo, textoCubre, textoNoRevisable, esNoRevisable,
+  periodoARevisar, esMesEntero, textoPeriodo, textoCubre, textoNoRevisable, esNoRevisable, avisoEnCurso,
 } from './detalle.js'
 
 // Una tarea dentro de su fila, con lo que usan estas funciones.
@@ -229,15 +229,52 @@ test('bannerDeDetalle: Antes del corte sin el Mes de corte en la respuesta, sin 
     'es anterior al Mes de corte. Los números se ven igual, sin "Supera" ni Revisión.')
 })
 
-test('bannerDeDetalle: Mes en curso, info, también con Falta comprobante', () => {
-  const esperado = {
-    tipo: 'info',
-    titulo: 'Mes en curso:',
-    texto: 'todavía no se compara lo trabajado con lo facturado. Sólo se controla que cada factura tenga su PDF.',
-    deshacer: false,
-  }
-  assert.deepEqual(bannerDeDetalle(detalle({ estados: ['mes_en_curso'] }), true), esperado)
-  assert.deepEqual(bannerDeDetalle(detalle({ estados: ['mes_en_curso', 'falta_comprobante'] }), true), esperado)
+// ─── Período en curso (plan del 2026-10-17, decisión 2) ─────────────────────
+
+test('bannerDeDetalle: ya no hay aviso de Mes en curso; un período en curso se controla igual', () => {
+  // Una clave mes_en_curso, si llegara, no tiene aviso propio.
+  assert.equal(bannerDeDetalle(detalle({ estados: ['mes_en_curso', 'falta_comprobante'] }), true), null)
+  // En curso y Con diferencia: el aviso de la Revisión, como en un período terminado.
+  const d = detalle({
+    estados: ['con_diferencia'],
+    en_curso: true,
+    desde: '2026-10-16',
+    hasta: '2026-10-31',
+    grupos: [linea('Grupo uno', 'horas_peon', SUPERA)],
+  })
+  assert.equal(bannerDeDetalle(d, true).titulo, '1 línea supera el 5 %.')
+})
+
+test('avisoEnCurso: con `en_curso`, la línea del período en curso con el Hasta', () => {
+  const d = detalle({ en_curso: true, desde: '2026-10-16', hasta: '2026-10-31' })
+  assert.deepEqual(avisoEnCurso(d), {
+    titulo: 'Período en curso:',
+    texto: 'el campo todavía puede sumar partes hasta el 31/10/2026.',
+  })
+  // Con el filtro cortado antes de fin de mes, su Hasta.
+  const parte = detalle({ en_curso: true, desde: '2026-10-01', hasta: '2026-10-20' })
+  assert.equal(avisoEnCurso(parte).texto, 'el campo todavía puede sumar partes hasta el 20/10/2026.')
+})
+
+test('avisoEnCurso: sin Desde y Hasta en la respuesta, el fin del mes', () => {
+  const d = detalle({ en_curso: true })
+  assert.equal(avisoEnCurso(d).texto, 'el campo todavía puede sumar partes hasta el 31/10/2026.')
+})
+
+test('avisoEnCurso: no pisa el aviso de la Revisión; va aparte', () => {
+  const d = detalle({
+    estados: ['con_diferencia'],
+    en_curso: true,
+    grupos: [linea('Grupo uno', 'horas_peon', SUPERA)],
+  })
+  assert.equal(avisoEnCurso(d)?.titulo, 'Período en curso:')
+  assert.equal(bannerDeDetalle(d, true).tipo, 'warn')
+})
+
+test('avisoEnCurso: sin `en_curso`, en falso o sin detalle, no lleva', () => {
+  assert.equal(avisoEnCurso(detalle()), null)
+  assert.equal(avisoEnCurso(detalle({ en_curso: false })), null)
+  assert.equal(avisoEnCurso(null), null)
 })
 
 // ─── bannerDeDetalle: sin aviso ─────────────────────────────────────────────

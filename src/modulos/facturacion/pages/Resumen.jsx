@@ -57,10 +57,10 @@ const COLUMNAS = 4 + COLUMNAS_LINEA.length + 2
 const ALERTAS = ['pendiente_de_facturar', 'con_diferencia', 'falta_comprobante']
   .map(clave => ({ value: clave, label: ESTADOS[clave].etiqueta }))
 
-// Antes del corte y Mes en curso van en gris: muestran sus líneas con la
-// Dif., pero no se controlan (o, en el mes en curso, sólo el PDF), así que
-// ninguna avisa.
-const esGris = f => (f.estados ?? []).some(e => e === 'mes_en_curso' || e === 'antes_del_corte')
+// Antes del corte va en gris: muestra sus líneas con la Dif., pero no se
+// controla, así que ninguna avisa. Un período en curso se controla igual
+// (plan del 2026-10-17): no va en gris, lleva la etiqueta "En curso".
+const esGris = f => (f.estados ?? []).includes('antes_del_corte')
 
 const filas_ = n => `${n} ${n === 1 ? 'fila' : 'filas'}`
 
@@ -157,10 +157,10 @@ export default function Resumen() {
   )
   const elegirAlerta = alerta => setFiltros(f => ({ ...f, alerta }))
   // El botón del aviso pasa el filtro al período de lo que no entra, como un
-  // Otro período: Desde y Hasta quedan a la vista para ajustarlo. La tabla se
-  // desmonta mientras carga y el botón se va con ella: el foco pasa al título,
-  // para que el próximo Tab siga en el selector del período y no vuelva al
-  // principio de la página.
+  // Otro período: el campo muestra Desde y Hasta y el calendario los marca, para
+  // ajustarlo. La tabla se desmonta mientras carga y el botón se va con ella: el
+  // foco pasa al título, para que el próximo Tab siga en el selector del período
+  // y no vuelva al principio de la página.
   const tituloRef = useRef(null)
   const verPeriodo = ({ desde: d, hasta: h }) => {
     setPeriodo({ atajo: OTRO_PERIODO, desde: d, hasta: h })
@@ -176,8 +176,8 @@ export default function Resumen() {
       <div className={styles.vacio}>
         <h2 className={styles.vacioTitulo}>Revisá el período</h2>
         <p className={styles.vacioTexto}>
-          Elegí Desde y Hasta: Hasta no puede ser anterior a Desde ni posterior al fin del mes
-          en curso, y el período abarca {MESES_MAXIMOS} meses como máximo.
+          El período abarca {MESES_MAXIMOS} meses como máximo. Abrí el calendario y elegí uno
+          más corto.
         </p>
       </div>
     )

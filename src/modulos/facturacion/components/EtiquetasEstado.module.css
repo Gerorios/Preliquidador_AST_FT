@@ -10,7 +10,32 @@
 .etiquetas {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
+}
+
+/* "En curso": tenue, chica y sin borde ni fondo, para que no se lea como un
+   Estado más. Con poco ancho baja debajo de las etiquetas, entera, y no
+   ensancha la columna (a 1366 px). El cursor de ayuda avisa que tiene title. */
+.enCurso {
+  padding: 0 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* El texto queda para el lector de pantalla y no se ve. */
+.soloLector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Una etiqueta que lleva a donde se resuelve: se subraya al pasar y tiene
