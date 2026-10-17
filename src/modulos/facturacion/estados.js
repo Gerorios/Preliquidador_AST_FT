@@ -4,9 +4,9 @@
 // etiqueta. No importa React, para que lo cargue `node --test`.
 //
 // Una fila puede traer varios estados (Con diferencia y Falta comprobante, o
-// Mes en curso y Falta comprobante); se muestran todos y el botón de la fila
-// sigue al más urgente. El backend ya los manda ordenados, pero la urgencia se
-// toma de `orden`, para no depender de eso.
+// Antes del corte y Falta comprobante); se muestran todos y el botón de la
+// fila sigue al más urgente. El backend ya los manda ordenados, pero la
+// urgencia se toma de `orden`, para no depender de eso.
 //
 // El permiso llega como un booleano, como `editable` de las páginas del
 // módulo: quien llama pasa `puedeEditar(usuario, 'facturacion', 'comprobantes')`.
@@ -17,15 +17,16 @@
 // en este período (Ticket 4 de la spec de la E3a por grupo: nada de la fila
 // entra entero en el filtro) va en el lugar que le da el backend, entre Falta
 // comprobante y Facturada, y no lleva a ningún lado: el aviso de la fila dice
-// qué período mirar.
+// qué período mirar. No hay estado de Mes en curso: todo mes desde el Mes de
+// corte se controla, también el que no terminó (plan del 2026-10-17); eso lo
+// dice aparte la etiqueta "En curso" (etiquetaEnCurso).
 export const ESTADOS = {
   pendiente_de_facturar: { etiqueta: 'Pendiente de facturar', badge: 'badge-danger', orden: 0 },
   con_diferencia: { etiqueta: 'Con diferencia', badge: 'badge-warn', orden: 1 },
   falta_comprobante: { etiqueta: 'Falta comprobante', badge: 'badge-info', orden: 2 },
   sin_comparar: { etiqueta: 'Sin comparar en este período', badge: 'badge-muted', orden: 3 },
   facturada: { etiqueta: 'Facturada', badge: 'badge-green', orden: 4 },
-  mes_en_curso: { etiqueta: 'Mes en curso', badge: 'badge-muted', orden: 5 },
-  antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 6 },
+  antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 5 },
 }
 
 /**
@@ -85,7 +86,7 @@ const TEXTO_DE_ACCION = {
  * El botón de la fila, `{ texto, destino, primaria }`, según su estado más
  * urgente: "Cargar factura", "Ver diferencia" o "Adjuntar PDF", como botón
  * principal. Si el estado no pide nada, o pide Editar en `comprobantes` y no
- * se tiene, "Ver detalle", también en Antes del corte y en Mes en curso.
+ * se tiene, "Ver detalle", también en Antes del corte.
  */
 export function accionDeFila(fila, puedeEditarComprobantes) {
   const clave = estadoMasUrgente(fila.estados)
@@ -97,8 +98,8 @@ export function accionDeFila(fila, puedeEditarComprobantes) {
 /**
  * A dónde lleva la etiqueta de un estado de la fila, o null si va como texto.
  * Pendiente de facturar y Falta comprobante son link sólo con Editar en
- * `comprobantes`; Con diferencia, siempre; Facturada, Mes en curso y Antes
- * del corte, nunca.
+ * `comprobantes`; Con diferencia, siempre; Facturada y Antes del corte,
+ * nunca.
  */
 export function destinoDeEtiqueta(clave, fila, puedeEditarComprobantes) {
   if (!Object.hasOwn(DESTINOS, clave ?? '')) return null
@@ -118,4 +119,16 @@ export function textoDeEstado(clave, fila) {
   const n = fila?.lineas_superan
   if (clave !== 'con_diferencia' || !Number.isInteger(n) || n < 1) return etiqueta
   return `${etiqueta} · ${n} ${n === 1 ? 'línea supera' : 'líneas superan'}`
+}
+
+/**
+ * La etiqueta tenue "En curso" de una fila cuyo período todavía no terminó
+ * (`en_curso` del backend: el último día del filtro, recortado al mes, es hoy
+ * o posterior), `{ texto, ayuda }`; `ayuda` va como `title` y para el lector
+ * de pantalla. No cambia el Estado: un período en curso se controla igual
+ * (plan del 2026-10-17, decisión 2). Sin `en_curso`, null.
+ */
+export function etiquetaEnCurso(fila) {
+  if (fila?.en_curso !== true) return null
+  return { texto: 'En curso', ayuda: 'El período todavía no terminó: el campo puede sumar partes.' }
 }

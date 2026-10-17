@@ -16,7 +16,7 @@ import {
   bannerDeDetalle, puedeRevisar, validarComentario, textoPct, claveDeLinea, lineasQueSuperan,
   revisadaEnLinea, alternarAbierta, textoDiferencia, textoDiferenciaPesos, signoDeDiferencia,
   textoComprobante, textoMesLargo, periodoARevisar, esMesEntero, textoPeriodo, textoNoRevisable,
-  esNoRevisable,
+  esNoRevisable, avisoEnCurso,
 } from '../detalle'
 import ModalPartes from '../components/ModalPartes'
 import ModalRevision from '../components/ModalRevision'
@@ -158,6 +158,9 @@ export default function Detalle() {
   const lineas = data?.grupos ?? []
   const superan = useMemo(() => lineasQueSuperan(data), [data])
   const banner = bannerDeDetalle(data, editaResumen)
+  // Si el período no terminó, una línea aparte arriba del aviso del caso: se
+  // controla igual, pero el campo puede sumar partes (plan del 2026-10-17).
+  const enCurso = avisoEnCurso(data)
   const revisable = puedeRevisar(data, editaResumen)
   const umbralTexto = textoUmbral(data?.umbral_pct)
   const mesTexto = textoMesLargo(mes)
@@ -446,6 +449,12 @@ export default function Detalle() {
         </div>
         {data && <Comprobantes comprobantes={data.comprobantes ?? []} enlaces={veComprobantes} parcial={parcial} />}
       </div>
+
+      {enCurso && (
+        <div className={`${styles.aviso} ${styles.info}`} role="note">
+          <p className={styles.avisoTexto}><strong>{enCurso.titulo}</strong> {enCurso.texto}</p>
+        </div>
+      )}
 
       {banner && (
         <div

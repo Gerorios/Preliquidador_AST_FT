@@ -86,8 +86,8 @@ export default function PieConfiguracion({ umbral, mesCorte, mesEnCurso, esAdmin
           Se controla desde <strong>{textoMes(mesCorte) ?? '—'}</strong> (Mes de corte). Con
           diferencia: en alguna tarea, lo facturado se aparta más
           de <strong>{umbralVisible ?? '—'}</strong> de lo trabajado; el porcentaje lo fija el
-          administrador. Mes en curso: sólo se controla que cada factura tenga su PDF. La
-          cosecha (bins) no entra en esta versión.
+          administrador. Un período que todavía no terminó se controla igual, pero el campo
+          puede sumar partes. La cosecha (bins) no entra en esta versión.
         </p>
         {esAdmin && !abierto && (
           <button ref={botonCambiar} type="button" className="btn btn-sm" onClick={abrir}>

@@ -8,6 +8,7 @@
 // F0 de la E3a. El permiso llega como un booleano, como en estados.js: quien
 // llama pasa `puedeEditar(usuario, 'facturacion', 'resumen')`.
 
+import { textoFecha as textoDia } from './formulario.js'
 import { textoMes } from './listado.js'
 import { formatoPesos } from './numeros.js'
 import { sumarDecimales } from './resumen.js'
@@ -79,11 +80,6 @@ const SIN_CONTROL = {
     texto: `es anterior al Mes de corte${mesCorte ? ` (${mesCorte})` : ''}. `
       + 'Los números se ven igual, sin "Supera" ni Revisión.',
   }),
-  mes_en_curso: () => ({
-    tipo: 'info',
-    titulo: 'Mes en curso:',
-    texto: 'todavía no se compara lo trabajado con lo facturado. Sólo se controla que cada factura tenga su PDF.',
-  }),
 }
 
 const TEXTO_SIN_REVISION = 'Abrí un grupo y tocá una tarea para ver sus partes y consultarlo con el campo. '
@@ -111,14 +107,15 @@ function textoConRevisionAnterior(revision, superan) {
  * si no lleva. `tipo` es la clase del banner ('warn', 'ok' o 'info'), `titulo`
  * va en negrita antes del texto y `deshacer` dice si se muestra "Deshacer".
  * Los cuatro casos del boceto F0:
- * - Antes del corte o Mes en curso: el mes no se controla (info);
+ * - Antes del corte: el mes no se controla (info);
  * - Con diferencia con una Revisión vigente que no cubre lo que supera ahora:
  *   cuándo, quién, el comentario, qué cubría y qué supera ahora (warn);
  * - Con diferencia sin Revisión: el texto del mockup (warn);
  * - revisada: el período que cubre, quién, cuándo y el comentario, con
  *   "Deshacer" sólo con Editar en Resumen (ok).
  * Facturada sin Revisión, o con una que ya no hace falta, y Pendiente de
- * facturar van sin aviso.
+ * facturar van sin aviso. Que el período no terminó lo dice aparte
+ * avisoEnCurso, sin pisar este aviso.
  */
 export function bannerDeDetalle(detalle, puedeEditarResumen) {
   if (!detalle) return null
@@ -152,6 +149,22 @@ export function bannerDeDetalle(detalle, puedeEditarResumen) {
   }
 
   return null
+}
+
+/**
+ * La línea de arriba del Detalle cuando el período todavía no terminó
+ * (`en_curso` del backend), `{ titulo, texto }`, o null. Va aparte del aviso
+ * de bannerDeDetalle: un período en curso se controla igual, y esto sólo
+ * avisa que el campo puede sumar partes hasta el Hasta del período, como
+ * "31/10/2026" (plan del 2026-10-17, decisión 2).
+ */
+export function avisoEnCurso(detalle) {
+  if (detalle?.en_curso !== true) return null
+  const hasta = textoDia(periodoARevisar(detalle)?.hasta)
+  return {
+    titulo: 'Período en curso:',
+    texto: `el campo todavía puede sumar partes${hasta ? ` hasta el ${hasta}` : ''}.`,
+  }
 }
 
 /**

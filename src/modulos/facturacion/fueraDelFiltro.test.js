@@ -93,8 +93,17 @@ test('avisoFueraDelFiltro: si lo que no entra cubre el mes entero, el botón lle
   assert.deepEqual(aviso.boton, { texto: 'Ver julio entero', desde: '2026-07-01', hasta: '2026-07-31' })
 })
 
-test('avisoFueraDelFiltro: en un mes que no se compara (en gris), no hay aviso', () => {
-  for (const estado of ['mes_en_curso', 'antes_del_corte']) {
-    assert.equal(avisoFueraDelFiltro(fila([FACTURA], { estados: [estado, 'falta_comprobante'] })), null, estado)
+test('avisoFueraDelFiltro: en un mes que no se compara (Antes del corte, en gris), no hay aviso', () => {
+  assert.equal(avisoFueraDelFiltro(fila([FACTURA], { estados: ['antes_del_corte', 'falta_comprobante'] })), null)
+})
+
+test('avisoFueraDelFiltro: un período en curso se compara, así que el aviso va', () => {
+  // El mes en curso se controla como los demás (plan del 2026-10-17): sólo
+  // Antes del corte apaga el aviso. Una clave mes_en_curso, si llegara, no.
+  const enCurso = { mes: '2026-10', desde: '2026-10-01', hasta: '2026-10-10', en_curso: true }
+  const factura = { ...FACTURA, desde: '2026-10-01', hasta: '2026-10-15' }
+  for (const estados of [['sin_comparar'], ['mes_en_curso', 'falta_comprobante']]) {
+    const aviso = avisoFueraDelFiltro(fila([factura], { ...enCurso, estados }))
+    assert.equal(aviso?.titulo, '1 factura no entra en este filtro', estados.join(', '))
   }
 })

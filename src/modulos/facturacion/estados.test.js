@@ -8,6 +8,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   ESTADOS, estadoMasUrgente, rutaDelDetalle, accionDeFila, destinoDeEtiqueta, textoDeEstado,
+  etiquetaEnCurso,
 } from './estados.js'
 
 // Una fila como la manda el backend, con lo que usan estas funciones.
@@ -27,17 +28,18 @@ const SIN_ADJUNTO = [{ id: 40, tipo: 'factura', numero: '0001-00000040' }, { id:
 
 // ─── Mapa clave → etiqueta, badge y orden ───────────────────────────────────
 
-test('ESTADOS: las siete claves del backend, con la etiqueta, el badge y el orden del mockup', () => {
+test('ESTADOS: las seis claves del backend, con la etiqueta, el badge y el orden del mockup', () => {
   // Sin comparar (Ticket 4 de la spec de la E3a por grupo) va entre Falta
   // comprobante y Facturada, como en el backend: no pide hacer nada, avisa.
+  // Mes en curso ya no es un estado: el mes en curso se controla como los
+  // demás (plan del 2026-10-17, decisión 1).
   assert.deepEqual(ESTADOS, {
     pendiente_de_facturar: { etiqueta: 'Pendiente de facturar', badge: 'badge-danger', orden: 0 },
     con_diferencia: { etiqueta: 'Con diferencia', badge: 'badge-warn', orden: 1 },
     falta_comprobante: { etiqueta: 'Falta comprobante', badge: 'badge-info', orden: 2 },
     sin_comparar: { etiqueta: 'Sin comparar en este período', badge: 'badge-muted', orden: 3 },
     facturada: { etiqueta: 'Facturada', badge: 'badge-green', orden: 4 },
-    mes_en_curso: { etiqueta: 'Mes en curso', badge: 'badge-muted', orden: 5 },
-    antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 6 },
+    antes_del_corte: { etiqueta: 'Antes del corte', badge: 'badge-muted', orden: 5 },
   })
 })
 
@@ -51,12 +53,12 @@ test('estadoMasUrgente: con un solo estado, ese', () => {
 test('estadoMasUrgente: con varios, el de menor orden, sin importar cómo vengan', () => {
   assert.equal(estadoMasUrgente(['con_diferencia', 'falta_comprobante']), 'con_diferencia')
   assert.equal(estadoMasUrgente(['falta_comprobante', 'con_diferencia']), 'con_diferencia')
-  // En el mes en curso, Falta comprobante es lo que hay que hacer (mockup).
-  assert.equal(estadoMasUrgente(['mes_en_curso', 'falta_comprobante']), 'falta_comprobante')
 })
 
 test('estadoMasUrgente: una clave que no conoce no cuenta; sin ninguna conocida, null', () => {
   assert.equal(estadoMasUrgente(['otra_cosa', 'facturada']), 'facturada')
+  // Mes en curso ya no es un estado: si llegara, no cuenta.
+  assert.equal(estadoMasUrgente(['mes_en_curso']), null)
   assert.equal(estadoMasUrgente(['otra_cosa']), null)
   assert.equal(estadoMasUrgente(['constructor', 'toString']), null)
   assert.equal(estadoMasUrgente([]), null)
@@ -111,10 +113,17 @@ test('accionDeFila: Con diferencia, "Ver diferencia" al Detalle, con o sin Edita
 test('accionDeFila: Falta comprobante con Editar, "Adjuntar PDF" al primer Comprobante sin Adjunto', () => {
   assert.deepEqual(accionDeFila(fila(['falta_comprobante'], { comprobantes_sin_adjunto: SIN_ADJUNTO }), true),
     { texto: 'Adjuntar PDF', destino: '/facturacion/comprobantes/40', primaria: true })
-  // También en el mes en curso, donde es lo más urgente.
-  assert.deepEqual(accionDeFila(fila(['mes_en_curso', 'falta_comprobante'],
-    { mes: '2026-10', comprobantes_sin_adjunto: SIN_ADJUNTO }), true),
-    { texto: 'Adjuntar PDF', destino: '/facturacion/comprobantes/40', primaria: true })
+})
+
+test('accionDeFila: un período en curso se controla igual: Pendiente de facturar, "Cargar factura"', () => {
+  // Quincena pasada el 17 de octubre ya no cae en un Mes en curso (plan del
+  // 2026-10-17, decisiones 1 y 2): el botón sigue al estado, no a `en_curso`.
+  const enCurso = fila(['pendiente_de_facturar'], { mes: '2026-10', en_curso: true })
+  assert.deepEqual(accionDeFila(enCurso, true), {
+    texto: 'Cargar factura',
+    destino: '/facturacion/comprobantes/nuevo?tipo=factura&cliente=12&mes=2026-10',
+    primaria: true,
+  })
 })
 
 test('accionDeFila: Falta comprobante sin Editar en comprobantes, "Ver detalle"', () => {
@@ -127,8 +136,8 @@ test('accionDeFila: Falta comprobante sin ningún Comprobante en la lista, "Ver 
     { texto: 'Ver detalle', destino: DETALLE, primaria: false })
 })
 
-test('accionDeFila: Facturada, Mes en curso y Antes del corte, "Ver detalle"', () => {
-  for (const estado of ['facturada', 'mes_en_curso', 'antes_del_corte']) {
+test('accionDeFila: Facturada y Antes del corte, "Ver detalle"', () => {
+  for (const estado of ['facturada', 'antes_del_corte']) {
     for (const permiso of [true, false]) {
       assert.deepEqual(accionDeFila(fila([estado]), permiso),
         { texto: 'Ver detalle', destino: DETALLE, primaria: false }, `${estado}, permiso ${permiso}`)
@@ -165,8 +174,8 @@ test('destinoDeEtiqueta: Con diferencia es link al Detalle, con o sin Editar en 
   assert.equal(destinoDeEtiqueta('con_diferencia', f, false), DETALLE)
 })
 
-test('destinoDeEtiqueta: Facturada, Mes en curso y Antes del corte van como texto', () => {
-  for (const estado of ['facturada', 'mes_en_curso', 'antes_del_corte']) {
+test('destinoDeEtiqueta: Facturada y Antes del corte van como texto', () => {
+  for (const estado of ['facturada', 'antes_del_corte']) {
     assert.equal(destinoDeEtiqueta(estado, fila([estado]), true), null, estado)
   }
   assert.equal(destinoDeEtiqueta('otra_cosa', fila(['otra_cosa']), true), null)
@@ -195,4 +204,21 @@ test('textoDeEstado: los demás estados, su etiqueta; una clave que no conoce, n
   assert.equal(textoDeEstado('falta_comprobante', conLineas), 'Falta comprobante')
   assert.equal(textoDeEstado('otra_cosa', conLineas), null)
   assert.equal(textoDeEstado('constructor', conLineas), null)
+})
+
+// ─── etiquetaEnCurso (plan del 2026-10-17, decisión 2) ──────────────────────
+
+test('etiquetaEnCurso: con `en_curso`, "En curso" con el aviso para el title y el lector de pantalla', () => {
+  assert.deepEqual(etiquetaEnCurso(fila(['pendiente_de_facturar'], { en_curso: true })), {
+    texto: 'En curso',
+    ayuda: 'El período todavía no terminó: el campo puede sumar partes.',
+  })
+  // Va con cualquier estado: no cambia el Estado de la fila.
+  assert.equal(etiquetaEnCurso(fila(['facturada'], { en_curso: true }))?.texto, 'En curso')
+})
+
+test('etiquetaEnCurso: sin `en_curso`, o en falso, no lleva', () => {
+  assert.equal(etiquetaEnCurso(fila(['pendiente_de_facturar'], { en_curso: false })), null)
+  assert.equal(etiquetaEnCurso(fila(['pendiente_de_facturar'])), null)
+  assert.equal(etiquetaEnCurso(null), null)
 })

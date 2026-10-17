@@ -185,8 +185,8 @@
   padding: 6px 10px 4px;
 }
 
-/* Antes del corte y Mes en curso: se leen, pero quedan por debajo de los
-   meses que se controlan. Las etiquetas dicen por qué (no sólo el color). */
+/* Antes del corte: se lee, pero queda por debajo de los meses que se
+   controlan. La etiqueta dice por qué (no sólo el color). */
 .gris td { color: var(--text-secondary); }
 .gris .linkCliente { color: var(--text-secondary); font-weight: 400; }
 .gris .sinUnidad { color: var(--text-muted); }

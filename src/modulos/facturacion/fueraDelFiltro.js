@@ -11,8 +11,9 @@
 
 import { esMesEntero, nombreDelMes, textoComprobante, textoPeriodo } from './detalle.js'
 
-// En un mes en gris no se compara nada: el aviso no diría nada útil.
-const SIN_CONTROL = ['mes_en_curso', 'antes_del_corte']
+// En un mes en gris (Antes del corte) no se compara nada: el aviso no diría
+// nada útil. Un período en curso sí se compara (plan del 2026-10-17).
+const SIN_CONTROL = ['antes_del_corte']
 
 // Cómo se cuenta cada tipo en el título, en singular y en plural. Con tipos
 // distintos (o uno que no conoce), "comprobantes".
